@@ -139,7 +139,7 @@ Alternativa manual: Google Cloud → **IAM → Cuentas de servicio → Crear**, 
 
 ## Probar en local con emuladores
 
-Sin proyecto real puedes probar todo con los emuladores de Firebase (necesitas Java 11+). Crea `.env.local`:
+Sin tocar tus datos reales puedes probar todo con los emuladores de Firebase (necesitas Java 11+). Crea `.env.emuladores.local` (no se sube a git):
 
 ```
 VITE_FIREBASE_API_KEY=demo-clave
@@ -160,7 +160,7 @@ npx firebase emulators:start --only auth,firestore --project demo-mos
 En otra:
 
 ```bash
-npm run dev
+npm run dev:emuladores
 ```
 
 Al pulsar "Entrar con Google" aparece la ventana del emulador, donde puedes crear un usuario de prueba. Las notificaciones push no funcionan con emuladores.

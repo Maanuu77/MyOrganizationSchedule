@@ -6,6 +6,7 @@
   "description": "Aplicación web (PWA) para organizar el tiempo: calendario, rutinas, tareas, sesiones de estudio y estadísticas.",
   "scripts": {
     "dev": "vite",
+    "dev:emuladores": "vite --mode emuladores",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
