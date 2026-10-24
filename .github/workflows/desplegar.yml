@@ -1,0 +1,95 @@
+# Integración y despliegue continuo.
+# En cada push a main: instala, comprueba (lint, tipos, tests), compila y despliega en Firebase Hosting.
+# Si no están configurados los secretos de Firebase, se compila y prueba igualmente pero no se despliega.
+# Las reglas, los índices y las Cloud Functions se despliegan solo si la variable DESPLEGAR_BACKEND = 'true'.
+
+name: Comprobar y desplegar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: despliegue-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Compilar Cloud Functions
+        run: npm ci && npm run build
+        working-directory: functions
+
+  reglas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Probar las reglas de Firestore con el emulador
+        run: npm run test:reglas
+
+  desplegar:
+    needs: [comprobar, reglas]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      HAY_CREDENCIALES: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' && secrets.VITE_FIREBASE_PROJECT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Compilar la app
+        run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
+      - name: Aviso si faltan secretos
+        if: env.HAY_CREDENCIALES != 'true'
+        run: echo "::warning::Faltan los secretos de Firebase (ver SETUP.md). Se omite el despliegue."
+      - name: Desplegar en Firebase Hosting
+        if: env.HAY_CREDENCIALES == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          channelId: live
+      - name: Desplegar reglas, índices y Cloud Functions
+        if: env.HAY_CREDENCIALES == 'true' && vars.DESPLEGAR_BACKEND == 'true'
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/cuenta.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/cuenta.json"
+          npm --prefix functions ci
+          npx firebase-tools deploy --only firestore:rules,firestore:indexes,functions --project "${{ secrets.VITE_FIREBASE_PROJECT_ID }}" --non-interactive --force
