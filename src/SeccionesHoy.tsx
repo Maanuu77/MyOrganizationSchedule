@@ -29,7 +29,15 @@ export function useHoy() {
   return { hoy, desde, hasta, ocurrencias };
 }
 
-function TituloSeccion({ icono, texto, extra }: { icono: React.ReactNode; texto: string; extra?: React.ReactNode }) {
+function TituloSeccion({
+  icono,
+  texto,
+  extra,
+}: {
+  icono: React.ReactNode;
+  texto: string;
+  extra?: React.ReactNode;
+}) {
   return (
     <div className="mb-2.5 flex items-center gap-2">
       <span className="text-acento" aria-hidden>
@@ -47,7 +55,8 @@ export function AhoraYDespues({ ocurrencias }: { ocurrencias: Ocurrencia[] }) {
   const formato24h = useDatos((s) => s.ajustes.formato24h);
   const ahora = Date.now();
   const conHora = ocurrencias.filter((o) => !o.evento.todoElDia);
-  const actual = conHora.find((o) => o.inicioMs <= ahora && o.finMs > ahora && o.evento.tipo !== 'protegido') ??
+  const actual =
+    conHora.find((o) => o.inicioMs <= ahora && o.finMs > ahora && o.evento.tipo !== 'protegido') ??
     conHora.find((o) => o.inicioMs <= ahora && o.finMs > ahora);
   const siguiente = conHora.find((o) => o.inicioMs > ahora);
   const fila = (o: Ocurrencia | undefined, rotulo: string) => {
@@ -55,7 +64,11 @@ export function AhoraYDespues({ ocurrencias }: { ocurrencias: Ocurrencia[] }) {
     const color = o?.evento.color ?? e?.color ?? 'var(--mos-acento)';
     return (
       <div className="flex items-center gap-3">
-        <span className="h-10 w-1.5 shrink-0 rounded-full" style={{ background: o ? color : 'var(--mos-borde)' }} aria-hidden />
+        <span
+          className="h-10 w-1.5 shrink-0 rounded-full"
+          style={{ background: o ? color : 'var(--mos-borde)' }}
+          aria-hidden
+        />
         <div className="min-w-0">
           <p className="text-[11px] font-bold tracking-wide text-texto-tenue uppercase">{rotulo}</p>
           <p className="truncate font-semibold">{o ? o.titulo : t.hoy.nadaAhora}</p>
@@ -77,7 +90,13 @@ export function AhoraYDespues({ ocurrencias }: { ocurrencias: Ocurrencia[] }) {
 }
 
 /** Agenda del día con casillas para marcar los bloques como hechos. */
-export function AgendaDelDia({ ocurrencias, compacta }: { ocurrencias: Ocurrencia[]; compacta?: boolean }) {
+export function AgendaDelDia({
+  ocurrencias,
+  compacta,
+}: {
+  ocurrencias: Ocurrencia[];
+  compacta?: boolean;
+}) {
   const etiquetas = useDatos((s) => s.etiquetas);
   const formato24h = useDatos((s) => s.ajustes.formato24h);
   const navegar = useNavigate();
@@ -111,14 +130,32 @@ export function AgendaDelDia({ ocurrencias, compacta }: { ocurrencias: Ocurrenci
                   style={{ background: color }}
                   aria-hidden
                 />
-                <div className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 hover:bg-superficie-2 ${o.completado ? 'opacity-60' : ''}`}>
+                <div
+                  className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 hover:bg-superficie-2 ${o.completado ? 'opacity-60' : ''}`}
+                >
                   {o.evento.tipo !== 'protegido' && (
-                    <CheckAnimado hecho={o.completado} alCambiar={() => alternarHecho(o)} color={color} etiqueta={`${t.calendario.marcarHecho}: ${o.titulo}`} tamano={20} />
+                    <CheckAnimado
+                      hecho={o.completado}
+                      alCambiar={() => alternarHecho(o)}
+                      color={color}
+                      etiqueta={`${t.calendario.marcarHecho}: ${o.titulo}`}
+                      tamano={20}
+                    />
                   )}
-                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => poner({ editorBloque: { ocurrencia: o, borrador: null } })}>
-                    <p className={`truncate text-sm font-semibold ${o.completado ? 'line-through' : ''}`}>{o.titulo}</p>
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => poner({ editorBloque: { ocurrencia: o, borrador: null } })}
+                  >
+                    <p
+                      className={`truncate text-sm font-semibold ${o.completado ? 'line-through' : ''}`}
+                    >
+                      {o.titulo}
+                    </p>
                     <p className="text-xs text-texto-suave">
-                      {o.evento.todoElDia ? t.calendario.todoElDia : `${formatearHora(o.inicioMs, formato24h)} – ${formatearHora(o.finMs, formato24h)}`}
+                      {o.evento.todoElDia
+                        ? t.calendario.todoElDia
+                        : `${formatearHora(o.inicioMs, formato24h)} – ${formatearHora(o.finMs, formato24h)}`}
                       {!compacta && e ? ` · ${e.nombre}` : ''}
                     </p>
                   </button>
@@ -138,17 +175,27 @@ export function TareasDelDia({ compacta }: { compacta?: boolean }) {
   const etiquetas = useDatos((s) => s.etiquetas);
   const inicioSemana = useDatos((s) => s.ajustes.inicioSemana);
   const [texto, setTexto] = useState('');
-  const secciones = useMemo(() => seccionarTareas(tareas, new Date(), inicioSemana), [tareas, inicioSemana]);
+  const secciones = useMemo(
+    () => seccionarTareas(tareas, new Date(), inicioSemana),
+    [tareas, inicioSemana],
+  );
   const hoyClave = claveDia(new Date());
-  const hechasHoy = secciones.completadas.filter((x) => x.planificacion.tipo === 'dia' && x.planificacion.fecha === hoyClave);
-  const lista = [...ordenarTareas(secciones.atrasadas, 'prioridad'), ...ordenarTareas(secciones.hoy, 'prioridad')];
+  const hechasHoy = secciones.completadas.filter(
+    (x) => x.planificacion.tipo === 'dia' && x.planificacion.fecha === hoyClave,
+  );
+  const lista = [
+    ...ordenarTareas(secciones.atrasadas, 'prioridad'),
+    ...ordenarTareas(secciones.hoy, 'prioridad'),
+  ];
 
   const crear = async () => {
     const titulo = texto.trim();
     if (!titulo) return;
     setTexto('');
     try {
-      await dbTareas.crear(tareaVacia({ titulo, planificacion: planificacionDe('hoy', inicioSemana) }));
+      await dbTareas.crear(
+        tareaVacia({ titulo, planificacion: planificacionDe('hoy', inicioSemana) }),
+      );
     } catch {
       avisar(t.comun.error, 'error');
     }
@@ -187,15 +234,28 @@ export function TareasDelDia({ compacta }: { compacta?: boolean }) {
         </Boton>
       </form>
       {lista.length === 0 && hechasHoy.length === 0 ? (
-        <p className="rounded-md bg-superficie-2 px-3 py-3 text-sm text-texto-suave">{t.hoy.tareasVacias}</p>
+        <p className="rounded-md bg-superficie-2 px-3 py-3 text-sm text-texto-suave">
+          {t.hoy.tareasVacias}
+        </p>
       ) : (
         <div className="space-y-1.5">
           <AnimatePresence initial={false}>
             {lista.map((x) => (
-              <TarjetaTarea key={x.id} tarea={x} etiqueta={buscarEtiqueta(etiquetas, x.etiquetaId)} compacta={compacta} mostrarPlan={secciones.atrasadas.includes(x)} />
+              <TarjetaTarea
+                key={x.id}
+                tarea={x}
+                etiqueta={buscarEtiqueta(etiquetas, x.etiquetaId)}
+                compacta={compacta}
+                mostrarPlan={secciones.atrasadas.includes(x)}
+              />
             ))}
             {hechasHoy.map((x) => (
-              <TarjetaTarea key={x.id} tarea={x} etiqueta={buscarEtiqueta(etiquetas, x.etiquetaId)} compacta />
+              <TarjetaTarea
+                key={x.id}
+                tarea={x}
+                etiqueta={buscarEtiqueta(etiquetas, x.etiquetaId)}
+                compacta
+              />
             ))}
           </AnimatePresence>
           {lista.length === 0 && hechasHoy.length > 0 && (
@@ -226,12 +286,24 @@ export function RutinasDelDia() {
           const hecha = !!ejecucion?.completada;
           const { racha } = seguimientoRutina(r, ejecuciones, hoy, addDays(hoy, 1), hoy);
           return (
-            <div key={r.id} className="flex items-center gap-3 rounded-md border border-borde bg-superficie px-3 py-2.5">
-              <span className="h-8 w-1.5 rounded-full" style={{ background: r.color }} aria-hidden />
+            <div
+              key={r.id}
+              className="flex items-center gap-3 rounded-md border border-borde bg-superficie px-3 py-2.5"
+            >
+              <span
+                className="h-8 w-1.5 rounded-full"
+                style={{ background: r.color }}
+                aria-hidden
+              />
               <div className="min-w-0 flex-1">
-                <p className={`truncate text-sm font-semibold ${hecha ? 'line-through opacity-60' : ''}`}>{r.nombre}</p>
+                <p
+                  className={`truncate text-sm font-semibold ${hecha ? 'line-through opacity-60' : ''}`}
+                >
+                  {r.nombre}
+                </p>
                 <p className="text-xs text-texto-suave">
-                  {r.programacion.hora ?? '—'} · {t.rutinas.progreso(ejecucion?.pasosHechos.length ?? 0, r.pasos.length)}
+                  {r.programacion.hora ?? '—'} ·{' '}
+                  {t.rutinas.progreso(ejecucion?.pasosHechos.length ?? 0, r.pasos.length)}
                   {racha > 0 ? ` · 🔥 ${racha}` : ''}
                 </p>
               </div>

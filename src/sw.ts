@@ -3,19 +3,27 @@
 //  1. Caché de la app (precarga de los archivos generados por Vite) para que abra al instante.
 //  2. Notificaciones push de Firebase Cloud Messaging con la app cerrada o en segundo plano.
 
-import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
+import {
+  cleanupOutdatedCaches,
+  createHandlerBoundToURL,
+  precacheAndRoute,
+} from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { clientsClaim } from 'workbox-core';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
-declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
+declare const self: ServiceWorkerGlobalScope & {
+  __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
+};
 
 // --- 1. Caché de la app -------------------------------------------------------
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 // Cualquier ruta de la SPA devuelve index.html, salvo las rutas internas de Firebase (/__/auth...)
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/__\//] }));
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/__\//] }),
+);
 self.skipWaiting();
 clientsClaim();
 

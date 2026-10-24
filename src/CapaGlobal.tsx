@@ -90,7 +90,12 @@ export function CapaGlobal() {
         <p className="text-sm text-texto-suave">{confirmacion?.mensaje}</p>
       </Modal>
 
-      <Modal abierto={!!alcance} alCerrar={() => alcance?.resolver(null)} titulo={t.calendario.alcanceTitulo} ancho="sm">
+      <Modal
+        abierto={!!alcance}
+        alCerrar={() => alcance?.resolver(null)}
+        titulo={t.calendario.alcanceTitulo}
+        ancho="sm"
+      >
         <div className="flex items-start gap-3">
           <Repeat className="mt-0.5 shrink-0 text-acento" size={20} aria-hidden />
           <p className="text-sm text-texto-suave">{t.calendario.alcanceTexto}</p>

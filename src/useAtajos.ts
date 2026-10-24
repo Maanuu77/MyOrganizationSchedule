@@ -11,7 +11,8 @@ import { useDatos } from './almacenDatos';
 export function deboIgnorarTecla(e: KeyboardEvent): boolean {
   const el = e.target as HTMLElement | null;
   if (e.ctrlKey || e.metaKey || e.altKey) return true;
-  if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return true;
+  if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)))
+    return true;
   return !!document.querySelector('[role="dialog"]');
 }
 
@@ -31,13 +32,19 @@ export function useAtajosGlobales(): void {
         if (pathname.startsWith('/calendario') || pathname.startsWith('/semana')) {
           const inicio = addHours(startOfHour(new Date()), 1).getTime();
           const duracion = useDatos.getState().ajustes.duracionPorDefectoMin * 60_000;
-          ui.poner({ editorBloque: { ocurrencia: null, borrador: { inicioMs: inicio, finMs: inicio + duracion } } });
+          ui.poner({
+            editorBloque: {
+              ocurrencia: null,
+              borrador: { inicioMs: inicio, finMs: inicio + duracion },
+            },
+          });
         } else {
           ui.poner({ editorTarea: { tarea: null } });
         }
       } else if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
-        if (pathname.startsWith('/calendario') || pathname.startsWith('/semana')) ui.poner({ fechaMs: Date.now() });
+        if (pathname.startsWith('/calendario') || pathname.startsWith('/semana'))
+          ui.poner({ fechaMs: Date.now() });
         else navegar('/hoy');
       }
     };

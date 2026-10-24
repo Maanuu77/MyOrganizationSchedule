@@ -4,7 +4,13 @@
 // en otro dispositivo llega aquí en tiempo real y actualiza el almacén.
 
 import { useEffect } from 'react';
-import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
+import {
+  getRedirectResult,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+} from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
 import { firebaseConfigurado, obtenerAuth, obtenerDb, proveedorGoogle } from './firebase';
 import { useDatos } from './almacenDatos';
@@ -20,7 +26,9 @@ export function useSesion(): void {
       return;
     }
     // Si venimos de un inicio de sesión por redirección, recogemos el resultado (o el error)
-    getRedirectResult(obtenerAuth()).catch((e) => console.warn('Inicio de sesión por redirección fallido', e));
+    getRedirectResult(obtenerAuth()).catch((e) =>
+      console.warn('Inicio de sesión por redirección fallido', e),
+    );
     return onAuthStateChanged(obtenerAuth(), (u) => {
       const { poner, reiniciar } = useDatos.getState();
       if (!u) {
@@ -32,7 +40,9 @@ export function useSesion(): void {
         usuario: { uid: u.uid, email: u.email, nombre: u.displayName, foto: u.photoURL },
         cargandoSesion: false,
       });
-      registrarPerfil(u.uid, u.email, u.displayName).catch((e) => console.warn('No se pudo guardar el perfil', e));
+      registrarPerfil(u.uid, u.email, u.displayName).catch((e) =>
+        console.warn('No se pudo guardar el perfil', e),
+      );
     });
   }, []);
 }
@@ -56,7 +66,10 @@ export async function entrarConGoogle(): Promise<void> {
     await signInWithPopup(auth, proveedorGoogle());
   } catch (e) {
     const codigo = (e as { code?: string }).code;
-    if (codigo === 'auth/popup-blocked' || codigo === 'auth/operation-not-supported-in-this-environment') {
+    if (
+      codigo === 'auth/popup-blocked' ||
+      codigo === 'auth/operation-not-supported-in-this-environment'
+    ) {
       await signInWithRedirect(auth, proveedorGoogle());
       return;
     }
@@ -98,7 +111,10 @@ export function useSincronizacion(): void {
         refAjustes(uid),
         (snap) => {
           poner({
-            ajustes: completarAjustes(snap.data() as Partial<Ajustes> | undefined, zonaDelDispositivo()),
+            ajustes: completarAjustes(
+              snap.data() as Partial<Ajustes> | undefined,
+              zonaDelDispositivo(),
+            ),
             ajustesCargados: true,
             ajustesExisten: snap.exists(),
           });
@@ -106,24 +122,69 @@ export function useSincronizacion(): void {
         },
         alFallar,
       ),
-      escuchar(uid, COLECCIONES.etiquetas, (etiquetas) => {
-        poner({ etiquetas: etiquetas as never });
-        marcarListo('etiquetas');
-      }, alFallar),
-      escuchar(uid, COLECCIONES.eventos, (eventos) => {
-        poner({ eventos: eventos as never });
-        marcarListo('eventos');
-      }, alFallar),
-      escuchar(uid, COLECCIONES.tareas, (tareas) => {
-        poner({ tareas: tareas as never });
-        marcarListo('tareas');
-      }, alFallar),
-      escuchar(uid, COLECCIONES.excepciones, (excepciones) => poner({ excepciones: excepciones as never }), alFallar),
-      escuchar(uid, COLECCIONES.ciclos, (ciclos) => poner({ ciclos: ordenarPorCreacion(ciclos) as never }), alFallar),
-      escuchar(uid, COLECCIONES.rutinas, (rutinas) => poner({ rutinas: ordenarPorCreacion(rutinas) as never }), alFallar),
-      escuchar(uid, COLECCIONES.ejecuciones, (ejecuciones) => poner({ ejecuciones: ejecuciones as never }), alFallar),
-      escuchar(uid, COLECCIONES.plantillas, (plantillas) => poner({ plantillas: ordenarPorCreacion(plantillas) as never }), alFallar),
-      escuchar(uid, COLECCIONES.dispositivos, (dispositivos) => poner({ dispositivos: dispositivos as never }), alFallar),
+      escuchar(
+        uid,
+        COLECCIONES.etiquetas,
+        (etiquetas) => {
+          poner({ etiquetas: etiquetas as never });
+          marcarListo('etiquetas');
+        },
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.eventos,
+        (eventos) => {
+          poner({ eventos: eventos as never });
+          marcarListo('eventos');
+        },
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.tareas,
+        (tareas) => {
+          poner({ tareas: tareas as never });
+          marcarListo('tareas');
+        },
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.excepciones,
+        (excepciones) => poner({ excepciones: excepciones as never }),
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.ciclos,
+        (ciclos) => poner({ ciclos: ordenarPorCreacion(ciclos) as never }),
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.rutinas,
+        (rutinas) => poner({ rutinas: ordenarPorCreacion(rutinas) as never }),
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.ejecuciones,
+        (ejecuciones) => poner({ ejecuciones: ejecuciones as never }),
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.plantillas,
+        (plantillas) => poner({ plantillas: ordenarPorCreacion(plantillas) as never }),
+        alFallar,
+      ),
+      escuchar(
+        uid,
+        COLECCIONES.dispositivos,
+        (dispositivos) => poner({ dispositivos: dispositivos as never }),
+        alFallar,
+      ),
       escuchar(
         uid,
         COLECCIONES.registros,
@@ -133,7 +194,8 @@ export function useSincronizacion(): void {
       ),
       onSnapshot(
         doc(obtenerDb(), 'users', uid, COLECCIONES.integraciones, 'googleCalendar'),
-        (snap) => poner({ integracionGoogle: (snap.data() as IntegracionGoogle | undefined) ?? null }),
+        (snap) =>
+          poner({ integracionGoogle: (snap.data() as IntegracionGoogle | undefined) ?? null }),
         alFallar,
       ),
       // El contador: usamos estimaciones locales de serverTimestamp para que el cambio
@@ -141,7 +203,10 @@ export function useSincronizacion(): void {
       onSnapshot(
         refDoc(COLECCIONES.contador, 'actual', uid),
         (snap) =>
-          poner({ contador: (snap.data({ serverTimestamps: 'estimate' }) as EstadoContador | undefined) ?? null }),
+          poner({
+            contador:
+              (snap.data({ serverTimestamps: 'estimate' }) as EstadoContador | undefined) ?? null,
+          }),
         alFallar,
       ),
     ];

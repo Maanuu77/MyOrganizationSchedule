@@ -38,7 +38,14 @@ export function AnilloProgreso({
       aria-valuenow={etiqueta ? Math.round(valor * 100) : undefined}
     >
       <svg width={tamano} height={tamano} className="-rotate-90" aria-hidden>
-        <circle cx={tamano / 2} cy={tamano / 2} r={radio} fill="none" stroke={colorFondo} strokeWidth={grosor} />
+        <circle
+          cx={tamano / 2}
+          cy={tamano / 2}
+          r={radio}
+          fill="none"
+          stroke={colorFondo}
+          strokeWidth={grosor}
+        />
         <motion.circle
           cx={tamano / 2}
           cy={tamano / 2}
@@ -53,7 +60,9 @@ export function AnilloProgreso({
           transition={{ duration: suavidad, ease: [0.22, 1, 0.36, 1] }}
         />
       </svg>
-      {children && <div className="absolute inset-0 grid place-items-center text-center">{children}</div>}
+      {children && (
+        <div className="absolute inset-0 grid place-items-center text-center">{children}</div>
+      )}
     </div>
   );
 }

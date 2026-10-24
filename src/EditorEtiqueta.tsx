@@ -85,11 +85,24 @@ export function EditorEtiqueta({ abierto, etiqueta, orden, alCerrar }: Props) {
         }}
       >
         <div className="flex items-end gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-md text-white shadow-media" style={{ background: color }} aria-hidden>
+          <div
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-md text-white shadow-media"
+            style={{ background: color }}
+            aria-hidden
+          >
             <IconoEtiqueta nombre={icono} tamano={22} />
           </div>
           <Campo etiqueta={t.comun.nombre} className="flex-1">
-            {(id) => <input id={id} className="campo" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} data-autofoco />}
+            {(id) => (
+              <input
+                id={id}
+                className="campo"
+                value={nombre}
+                maxLength={60}
+                onChange={(e) => setNombre(e.target.value)}
+                data-autofoco
+              />
+            )}
           </Campo>
         </div>
         <div>
@@ -98,15 +111,44 @@ export function EditorEtiqueta({ abierto, etiqueta, orden, alCerrar }: Props) {
         </div>
         <div>
           <p className="etiqueta-campo">{t.comun.icono}</p>
-          <SelectorIcono etiqueta={t.comun.icono} valor={icono} color={color} alCambiar={setIcono} />
+          <SelectorIcono
+            etiqueta={t.comun.icono}
+            valor={icono}
+            color={color}
+            alCambiar={setIcono}
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Campo etiqueta={`${t.etiquetas.duracion} (${t.comun.minutos})`}>
-            {(id) => <input id={id} type="number" min={5} max={600} step={5} className="campo" value={duracion} onChange={(e) => setDuracion(e.target.value)} />}
-          </Campo>
-          <Campo etiqueta={`${t.etiquetas.objetivo} (${t.comun.horas})`} ayuda={t.etiquetas.objetivoAyuda}>
             {(id) => (
-              <input id={id} type="number" min={0.5} max={168} step={0.5} className="campo" value={objetivo} placeholder={t.comun.opcional} onChange={(e) => setObjetivo(e.target.value)} />
+              <input
+                id={id}
+                type="number"
+                min={5}
+                max={600}
+                step={5}
+                className="campo"
+                value={duracion}
+                onChange={(e) => setDuracion(e.target.value)}
+              />
+            )}
+          </Campo>
+          <Campo
+            etiqueta={`${t.etiquetas.objetivo} (${t.comun.horas})`}
+            ayuda={t.etiquetas.objetivoAyuda}
+          >
+            {(id) => (
+              <input
+                id={id}
+                type="number"
+                min={0.5}
+                max={168}
+                step={0.5}
+                className="campo"
+                value={objetivo}
+                placeholder={t.comun.opcional}
+                onChange={(e) => setObjetivo(e.target.value)}
+              />
             )}
           </Campo>
         </div>

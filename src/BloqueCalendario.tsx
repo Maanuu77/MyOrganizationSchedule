@@ -37,7 +37,14 @@ export function acabaDeArrastrar(): boolean {
   return Date.now() - finUltimoArrastre < 300;
 }
 
-export const BloqueCalendario = memo(function BloqueCalendario({ colocado, etiqueta, avisos, pxPorMinuto, formato24h, idDrag }: Props) {
+export const BloqueCalendario = memo(function BloqueCalendario({
+  colocado,
+  etiqueta,
+  avisos,
+  pxPorMinuto,
+  formato24h,
+  idDrag,
+}: Props) {
   const { ocurrencia: oc, inicioMin, finMin, columna, totalColumnas } = colocado;
   const poner = useUI((s) => s.poner);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -55,7 +62,8 @@ export const BloqueCalendario = memo(function BloqueCalendario({ colocado, etiqu
   const alto = Math.max(18, (finVisible - inicioMin) * pxPorMinuto - 2);
   const corto = alto < 40;
   const ancho = 100 / totalColumnas;
-  const finMsVisible = finProvisional !== null ? oc.inicioMs + (finProvisional - inicioMin) * 60_000 : oc.finMs;
+  const finMsVisible =
+    finProvisional !== null ? oc.inicioMs + (finProvisional - inicioMin) * 60_000 : oc.finMs;
 
   const alPulsarAsa = (e: React.PointerEvent) => {
     e.stopPropagation();
@@ -124,12 +132,26 @@ export const BloqueCalendario = memo(function BloqueCalendario({ colocado, etiqu
     >
       <div className={`flex h-full flex-col px-1.5 ${corto ? 'py-0' : 'py-1'}`}>
         <div className="flex min-w-0 items-center gap-1">
-          {protegido ? <ShieldCheck size={11} className="shrink-0" aria-hidden /> : etiqueta && <IconoEtiqueta nombre={etiqueta.icono} tamano={11} className="shrink-0" />}
-          <p className={`truncate text-[12px] leading-tight font-bold ${oc.completado ? 'line-through' : ''}`}>{oc.titulo}</p>
+          {protegido ? (
+            <ShieldCheck size={11} className="shrink-0" aria-hidden />
+          ) : (
+            etiqueta && <IconoEtiqueta nombre={etiqueta.icono} tamano={11} className="shrink-0" />
+          )}
+          <p
+            className={`truncate text-[12px] leading-tight font-bold ${oc.completado ? 'line-through' : ''}`}
+          >
+            {oc.titulo}
+          </p>
           <span className="ml-auto flex shrink-0 items-center gap-0.5">
             {oc.completado && <Check size={11} aria-label="Hecho" />}
             {oc.esRecurrente && <Repeat size={10} aria-label="Se repite" />}
-            {avisos && avisos.length > 0 && <TriangleAlert size={11} className="text-aviso" aria-label={avisos.map((a) => a.titulo).join('. ')} />}
+            {avisos && avisos.length > 0 && (
+              <TriangleAlert
+                size={11}
+                className="text-aviso"
+                aria-label={avisos.map((a) => a.titulo).join('. ')}
+              />
+            )}
           </span>
         </div>
         {!corto && (

@@ -19,7 +19,14 @@ describe('expandirCiclo', () => {
     const [pomodoro] = plantillasDeArranque(id);
     const fases = expandirCiclo(pomodoro);
     expect(fases.map((f) => f.tipo)).toEqual([
-      'foco', 'descansoCorto', 'foco', 'descansoCorto', 'foco', 'descansoCorto', 'foco', 'descansoLargo',
+      'foco',
+      'descansoCorto',
+      'foco',
+      'descansoCorto',
+      'foco',
+      'descansoCorto',
+      'foco',
+      'descansoLargo',
     ]);
     expect(fases.at(-1)?.duracionMs).toBe(15 * MIN);
     expect(fases[0].duracionMs).toBe(25 * MIN);
@@ -27,7 +34,9 @@ describe('expandirCiclo', () => {
 
   it('sin descanso largo repite la lista tal cual', () => {
     const [, cincuenta] = plantillasDeArranque(id);
-    expect(expandirCiclo(cincuenta).map((f) => f.duracionMs / MIN)).toEqual([50, 10, 50, 10, 50, 10]);
+    expect(expandirCiclo(cincuenta).map((f) => f.duracionMs / MIN)).toEqual([
+      50, 10, 50, 10, 50, 10,
+    ]);
   });
 
   it('respeta fases personalizadas e ignora duraciones a cero', () => {
@@ -109,7 +118,9 @@ describe('cálculos del contador', () => {
   });
 
   it('el modo cronómetro nunca avanza', () => {
-    expect(calcularAvance(estado({ modo: 'cronometro', duracionFaseMs: 0 }), 999 * MIN, true)).toBeNull();
+    expect(
+      calcularAvance(estado({ modo: 'cronometro', duracionFaseMs: 0 }), 999 * MIN, true),
+    ).toBeNull();
   });
 
   it('foco continuo suma tramos de foco seguidos', () => {

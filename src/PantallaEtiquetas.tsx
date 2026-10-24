@@ -24,7 +24,14 @@ export function PantallaEtiquetas() {
   const activas = useMemo(() => etiquetasActivas(etiquetas), [etiquetas]);
   const archivadas = etiquetas.filter((e) => e.archivada);
   const progreso = useMemo(
-    () => new Map(progresoObjetivos(etiquetas, registros, inicioDeSemana(new Date(), inicioSemana).getTime()).map((p) => [p.etiqueta.id, p])),
+    () =>
+      new Map(
+        progresoObjetivos(
+          etiquetas,
+          registros,
+          inicioDeSemana(new Date(), inicioSemana).getTime(),
+        ).map((p) => [p.etiqueta.id, p]),
+      ),
     [etiquetas, registros, inicioSemana],
   );
 
@@ -34,7 +41,12 @@ export function PantallaEtiquetas() {
   };
 
   const borrar = async (e: Etiqueta) => {
-    const ok = await confirmar({ titulo: t.etiquetas.borrarTitulo, mensaje: t.etiquetas.borrarTexto, textoConfirmar: t.comun.borrar, peligro: true });
+    const ok = await confirmar({
+      titulo: t.etiquetas.borrarTitulo,
+      mensaje: t.etiquetas.borrarTexto,
+      textoConfirmar: t.comun.borrar,
+      peligro: true,
+    });
     if (ok) {
       await dbEtiquetas.borrar(e.id);
       avisar(t.comun.borrado);
@@ -51,10 +63,15 @@ export function PantallaEtiquetas() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: i * 0.04 }}
         className={`tarjeta flex flex-col gap-3 ${e.archivada ? 'opacity-60' : ''}`}
-        style={{ backgroundImage: `linear-gradient(160deg, color-mix(in oklab, ${e.color} 12%, var(--mos-superficie)) 0%, var(--mos-superficie) 60%)` }}
+        style={{
+          backgroundImage: `linear-gradient(160deg, color-mix(in oklab, ${e.color} 12%, var(--mos-superficie)) 0%, var(--mos-superficie) 60%)`,
+        }}
       >
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-white shadow-media" style={{ background: e.color }}>
+          <div
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-white shadow-media"
+            style={{ background: e.color }}
+          >
             <IconoEtiqueta nombre={e.icono} tamano={20} />
           </div>
           <div className="min-w-0 flex-1">
@@ -78,12 +95,23 @@ export function PantallaEtiquetas() {
               <span>{Math.round(p.porcentaje * 100)}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-superficie-3">
-              <motion.div className="h-full rounded-full" style={{ background: e.color }} initial={{ width: 0 }} animate={{ width: `${p.porcentaje * 100}%` }} transition={{ duration: 0.8 }} />
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: e.color }}
+                initial={{ width: 0 }}
+                animate={{ width: `${p.porcentaje * 100}%` }}
+                transition={{ duration: 0.8 }}
+              />
             </div>
           </div>
         )}
         <div className="mt-auto flex gap-1">
-          <Boton variante="fantasma" tamano="sm" icono={<Pencil size={14} />} onClick={() => abrir(e)}>
+          <Boton
+            variante="fantasma"
+            tamano="sm"
+            icono={<Pencil size={14} />}
+            onClick={() => abrir(e)}
+          >
             {t.comun.editar}
           </Boton>
           <Boton
@@ -94,7 +122,13 @@ export function PantallaEtiquetas() {
           >
             {e.archivada ? t.comun.desarchivar : t.comun.archivar}
           </Boton>
-          <Boton variante="fantasma" tamano="icono" className="ml-auto h-8 w-8" aria-label={`${t.comun.borrar} ${e.nombre}`} onClick={() => borrar(e)}>
+          <Boton
+            variante="fantasma"
+            tamano="icono"
+            className="ml-auto h-8 w-8"
+            aria-label={`${t.comun.borrar} ${e.nombre}`}
+            onClick={() => borrar(e)}
+          >
             <Trash2 size={15} className="text-peligro" />
           </Boton>
         </div>
@@ -129,13 +163,22 @@ export function PantallaEtiquetas() {
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{activas.map(tarjeta)}</ul>
           {archivadas.length > 0 && (
             <>
-              <h2 className="mt-8 mb-3 text-sm font-bold tracking-wide text-texto-suave uppercase">{t.etiquetas.archivadas}</h2>
-              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{archivadas.map(tarjeta)}</ul>
+              <h2 className="mt-8 mb-3 text-sm font-bold tracking-wide text-texto-suave uppercase">
+                {t.etiquetas.archivadas}
+              </h2>
+              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {archivadas.map(tarjeta)}
+              </ul>
             </>
           )}
         </>
       )}
-      <EditorEtiqueta abierto={abierto} etiqueta={editando} orden={etiquetas.length} alCerrar={() => setAbierto(false)} />
+      <EditorEtiqueta
+        abierto={abierto}
+        etiqueta={editando}
+        orden={etiquetas.length}
+        alCerrar={() => setAbierto(false)}
+      />
     </div>
   );
 }

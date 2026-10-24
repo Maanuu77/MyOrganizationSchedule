@@ -26,7 +26,9 @@ const NOMBRES_VARIABLES: Record<keyof typeof configuracion, string> = {
 };
 
 /** Lista de variables obligatorias que no están definidas. */
-export const variablesQueFaltan: string[] = (Object.keys(configuracion) as Array<keyof typeof configuracion>)
+export const variablesQueFaltan: string[] = (
+  Object.keys(configuracion) as Array<keyof typeof configuracion>
+)
   .filter((clave) => !configuracion[clave])
   .map((clave) => NOMBRES_VARIABLES[clave]);
 

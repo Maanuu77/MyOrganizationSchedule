@@ -28,8 +28,13 @@ export function nuevaFase(tipo: TipoFase, duracionMin: number, id: string): Fase
 }
 
 /** Plantillas de arranque opcionales (el usuario decide si las añade). */
-export function plantillasDeArranque(crearId: () => string): Array<
-  Pick<PlantillaCiclo, 'nombre' | 'fases' | 'repeticiones' | 'descansoLargoCada' | 'descansoLargoMin'>
+export function plantillasDeArranque(
+  crearId: () => string,
+): Array<
+  Pick<
+    PlantillaCiclo,
+    'nombre' | 'fases' | 'repeticiones' | 'descansoLargoCada' | 'descansoLargoMin'
+  >
 > {
   return [
     {
@@ -61,11 +66,17 @@ export function plantillasDeArranque(crearId: () => string): Array<
  * Ejemplo Pomodoro (4 repeticiones, largo cada 4): F C F C F C F L
  */
 export function expandirCiclo(
-  plantilla: Pick<PlantillaCiclo, 'fases' | 'repeticiones' | 'descansoLargoCada' | 'descansoLargoMin'>,
+  plantilla: Pick<
+    PlantillaCiclo,
+    'fases' | 'repeticiones' | 'descansoLargoCada' | 'descansoLargoMin'
+  >,
 ): FaseExpandida[] {
   const resultado: FaseExpandida[] = [];
   const repeticiones = Math.max(1, Math.floor(plantilla.repeticiones || 1));
-  const cada = plantilla.descansoLargoCada && plantilla.descansoLargoCada > 0 ? plantilla.descansoLargoCada : null;
+  const cada =
+    plantilla.descansoLargoCada && plantilla.descansoLargoCada > 0
+      ? plantilla.descansoLargoCada
+      : null;
   let focos = 0;
   for (let r = 0; r < repeticiones; r++) {
     for (const fase of plantilla.fases) {
@@ -152,7 +163,11 @@ export interface ResultadoAvance {
  * terminado, calcula a qué fase hay que saltar y cuándo empezó realmente.
  * Devuelve null si no hay que cambiar nada.
  */
-export function calcularAvance(e: EstadoPlano, ahoraMs: number, autoAvanzar: boolean): ResultadoAvance | null {
+export function calcularAvance(
+  e: EstadoPlano,
+  ahoraMs: number,
+  autoAvanzar: boolean,
+): ResultadoAvance | null {
   if (e.estado !== 'enCurso' || e.modo !== 'ciclo' || e.inicioFaseMs === null) return null;
   if (restanteMs(e, ahoraMs) > 0) return null;
 
@@ -167,7 +182,12 @@ export function calcularAvance(e: EstadoPlano, ahoraMs: number, autoAvanzar: boo
   while (true) {
     const fin = inicio + pausa + duracion;
     if (fin > ahoraMs) break;
-    tramosNuevos.push({ tipo: e.fases[indice]?.tipo ?? 'foco', inicioMs: inicio, finMs: fin, duracionMs: duracion });
+    tramosNuevos.push({
+      tipo: e.fases[indice]?.tipo ?? 'foco',
+      inicioMs: inicio,
+      finMs: fin,
+      duracionMs: duracion,
+    });
     terminadas++;
     indice++;
     inicio = fin;
@@ -211,7 +231,11 @@ export function calcularAvance(e: EstadoPlano, ahoraMs: number, autoAvanzar: boo
  * Minutos de foco seguidos sin descanso: suma los tramos de foco finales consecutivos
  * más lo que lleva la fase actual si también es de foco.
  */
-export function focoContinuoMs(tramos: TramoSesion[], tipoActual: TipoFase | null, transcurridoActual: number): number {
+export function focoContinuoMs(
+  tramos: TramoSesion[],
+  tipoActual: TipoFase | null,
+  transcurridoActual: number,
+): number {
   let total = tipoActual && esFoco(tipoActual) ? transcurridoActual : 0;
   if (tipoActual && !esFoco(tipoActual)) return 0;
   for (let i = tramos.length - 1; i >= 0; i--) {
@@ -222,7 +246,11 @@ export function focoContinuoMs(tramos: TramoSesion[], tipoActual: TipoFase | nul
 }
 
 /** Resumen de los tramos de una sesión: foco real y descansos. */
-export function resumirTramos(tramos: TramoSesion[]): { focoMs: number; descansoMs: number; fasesFoco: number } {
+export function resumirTramos(tramos: TramoSesion[]): {
+  focoMs: number;
+  descansoMs: number;
+  fasesFoco: number;
+} {
   let focoMs = 0;
   let descansoMs = 0;
   let fasesFoco = 0;

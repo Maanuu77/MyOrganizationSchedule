@@ -42,7 +42,12 @@ export function duracionRutinaMin(rutina: Pick<Rutina, 'pasos'>): number {
 }
 
 /** Días (claves) entre dos fechas en los que tocaba la rutina, sin pasar de hoy. */
-export function diasProgramados(rutina: Rutina, desde: Date, hasta: Date, hoy: Date = new Date()): string[] {
+export function diasProgramados(
+  rutina: Rutina,
+  desde: Date,
+  hasta: Date,
+  hoy: Date = new Date(),
+): string[] {
   const resultado: string[] = [];
   const limite = Math.min(hasta.getTime(), addDays(startOfDay(hoy), 1).getTime());
   for (let d = startOfDay(desde); d.getTime() < limite; d = addDays(d, 1)) {
@@ -75,7 +80,8 @@ export function seguimientoRutina(
   for (const e of propias) {
     const previa = porDia.get(e.fecha);
     // Si hubo varias el mismo día nos quedamos con la más completa
-    if (!previa || e.pasosHechos.length > previa.pasosHechos.length || e.completada) porDia.set(e.fecha, e);
+    if (!previa || e.pasosHechos.length > previa.pasosHechos.length || e.completada)
+      porDia.set(e.fecha, e);
   }
   const dias = diasProgramados(rutina, desde, hasta, hoy);
   let completadas = 0;
@@ -83,7 +89,8 @@ export function seguimientoRutina(
   for (const d of dias) {
     const e = porDia.get(d);
     if (e?.completada) completadas++;
-    if (e) sumaPasos += e.pasosTotales ? e.pasosHechos.length / e.pasosTotales : e.completada ? 1 : 0;
+    if (e)
+      sumaPasos += e.pasosTotales ? e.pasosHechos.length / e.pasosTotales : e.completada ? 1 : 0;
   }
 
   // Racha: retrocedemos desde hoy por los días programados. Si hoy toca y aún no

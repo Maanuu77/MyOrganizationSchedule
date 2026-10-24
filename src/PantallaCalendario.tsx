@@ -32,7 +32,14 @@ import { IconoEtiqueta } from './IconoEtiqueta';
 import { crearSesionDeEtiqueta, moverOcurrencia, planificarTareaEnCalendario } from './operaciones';
 import { expandirOcurrencias } from './recurrencia';
 import { deboIgnorarTecla } from './useAtajos';
-import { capitalizar, claveDia, desdeClaveDia, diasDeSemana, formatear, minutosDelDia } from './fechas';
+import {
+  capitalizar,
+  claveDia,
+  desdeClaveDia,
+  diasDeSemana,
+  formatear,
+  minutosDelDia,
+} from './fechas';
 import { t } from './textos';
 import type { Etiqueta, Ocurrencia, Tarea } from './tipos';
 
@@ -44,7 +51,11 @@ type DatosArrastre =
 const PASO_MIN = 15;
 
 /** Rango de fechas visible en cada vista. */
-function rangoVista(vista: VistaCalendario, fecha: Date, inicioSemana: 0 | 1): { desde: number; hasta: number; dias: Date[] } {
+function rangoVista(
+  vista: VistaCalendario,
+  fecha: Date,
+  inicioSemana: 0 | 1,
+): { desde: number; hasta: number; dias: Date[] } {
   if (vista === 'dia') {
     const d = startOfDay(fecha);
     return { desde: d.getTime(), hasta: addDays(d, 1).getTime(), dias: [d] };
@@ -67,10 +78,10 @@ function tituloVista(vista: VistaCalendario, fecha: Date, dias: Date[]): string 
     const [a, b] = [dias[0], dias[6]];
     return a.getMonth() === b.getMonth()
       ? `${formatear(a, 'd')} – ${formatear(b, "d 'de' MMMM yyyy")}`
-      : `${formatear(a, "d MMM")} – ${formatear(b, "d MMM yyyy")}`;
+      : `${formatear(a, 'd MMM')} – ${formatear(b, 'd MMM yyyy')}`;
   }
   if (vista === 'mes') return capitalizar(formatear(startOfMonth(fecha), 'MMMM yyyy'));
-  return `${t.calendario.agenda} · ${formatear(fecha, "d MMM")}`;
+  return `${t.calendario.agenda} · ${formatear(fecha, 'd MMM')}`;
 }
 
 /** Coordenada Y del puntero a partir del evento que inició el arrastre. */
@@ -118,7 +129,10 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
   }, []);
 
   const fecha = useMemo(() => new Date(fechaMs), [fechaMs]);
-  const { desde, hasta, dias } = useMemo(() => rangoVista(vista, fecha, inicioSemana), [vista, fecha, inicioSemana]);
+  const { desde, hasta, dias } = useMemo(
+    () => rangoVista(vista, fecha, inicioSemana),
+    [vista, fecha, inicioSemana],
+  );
   const ocurrencias = useOcurrencias(desde, hasta);
   const avisos = useClavesConAviso();
   const etiquetas = useMemo(() => new Map(etiquetasLista.map((e) => [e.id, e])), [etiquetasLista]);
@@ -127,7 +141,14 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     (sentido: -1 | 1) => {
       const f = new Date(useUI.getState().fechaMs);
       const v = useUI.getState().vista;
-      const nueva = v === 'dia' ? addDays(f, sentido) : v === 'semana' ? addWeeks(f, sentido) : v === 'mes' ? addMonths(f, sentido) : addDays(f, sentido * 30);
+      const nueva =
+        v === 'dia'
+          ? addDays(f, sentido)
+          : v === 'semana'
+            ? addWeeks(f, sentido)
+            : v === 'mes'
+              ? addMonths(f, sentido)
+              : addDays(f, sentido * 30);
       poner({ fechaMs: nueva.getTime() });
     },
     [poner],
@@ -140,7 +161,12 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
       if (e.key === 'ArrowLeft') mover(-1);
       else if (e.key === 'ArrowRight') mover(1);
       else {
-        const mapa: Record<string, VistaCalendario> = { d: 'dia', s: 'semana', m: 'mes', a: 'agenda' };
+        const mapa: Record<string, VistaCalendario> = {
+          d: 'dia',
+          s: 'semana',
+          m: 'mes',
+          a: 'agenda',
+        };
         const v = mapa[e.key.toLowerCase()];
         if (v) poner({ vista: v });
       }
@@ -157,7 +183,10 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     [duracionDefecto, poner],
   );
 
-  const elegirDia = useCallback((d: Date) => poner({ fechaMs: d.getTime(), vista: 'dia' }), [poner]);
+  const elegirDia = useCallback(
+    (d: Date) => poner({ fechaMs: d.getTime(), vista: 'dia' }),
+    [poner],
+  );
 
   // ---------------------------------------------------------------------------
   // Arrastrar y soltar
@@ -178,7 +207,9 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
 
   const colorDe = (d: DatosArrastre): string =>
     d.tipo === 'bloque'
-      ? (d.ocurrencia.evento.color ?? etiquetas.get(d.ocurrencia.etiquetaId ?? '')?.color ?? '#6D5CF0')
+      ? (d.ocurrencia.evento.color ??
+        etiquetas.get(d.ocurrencia.etiquetaId ?? '')?.color ??
+        '#6D5CF0')
       : d.tipo === 'etiqueta'
         ? d.etiqueta.color
         : (etiquetas.get(d.tarea.etiquetaId ?? '')?.color ?? '#6D5CF0');
@@ -216,7 +247,11 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     if (datos.tipo === 'bloque') {
       // Guardamos a qué altura del bloque se ha agarrado para que no "salte"
       const inicial = e.active.rect.current.initial;
-      if (inicial) desplazamientoMin.current = Math.max(0, (yDelEvento(e.activatorEvent) - inicial.top) / pxPorMinuto);
+      if (inicial)
+        desplazamientoMin.current = Math.max(
+          0,
+          (yDelEvento(e.activatorEvent) - inicial.top) / pxPorMinuto,
+        );
     }
   };
 
@@ -232,7 +267,12 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     setPrevia((p) =>
       p && p.fecha === destino.fecha && p.inicioMin === minuto
         ? p
-        : { fecha: destino.fecha, inicioMin: minuto, duracionMin: duracionDe(datos), color: colorDe(datos) },
+        : {
+            fecha: destino.fecha,
+            inicioMin: minuto,
+            duracionMin: duracionDe(datos),
+            color: colorDe(datos),
+          },
     );
   };
 
@@ -283,21 +323,41 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
   const titulo = tituloVista(vista, fecha, dias);
 
   return (
-    <DndContext sensors={sensores} collisionDetection={pointerWithin} onDragStart={alEmpezar} onDragMove={alMover} onDragEnd={alSoltar} onDragCancel={limpiar}>
+    <DndContext
+      sensors={sensores}
+      collisionDetection={pointerWithin}
+      onDragStart={alEmpezar}
+      onDragMove={alMover}
+      onDragEnd={alSoltar}
+      onDragCancel={limpiar}
+    >
       <div className={esMovil ? 'pb-16' : ''}>
         {/* Barra de herramientas */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <h1 className="mr-auto min-w-0 truncate text-xl font-extrabold sm:text-2xl" aria-live="polite">
+          <h1
+            className="mr-auto min-w-0 truncate text-xl font-extrabold sm:text-2xl"
+            aria-live="polite"
+          >
             {titulo}
           </h1>
           <div className="flex items-center gap-1">
-            <Boton variante="secundario" tamano="icono" onClick={() => mover(-1)} aria-label={t.comun.anterior}>
+            <Boton
+              variante="secundario"
+              tamano="icono"
+              onClick={() => mover(-1)}
+              aria-label={t.comun.anterior}
+            >
               <ChevronLeft size={18} />
             </Boton>
             <Boton variante="secundario" onClick={() => poner({ fechaMs: Date.now() })}>
               {t.calendario.irHoy}
             </Boton>
-            <Boton variante="secundario" tamano="icono" onClick={() => mover(1)} aria-label={t.comun.siguiente}>
+            <Boton
+              variante="secundario"
+              tamano="icono"
+              onClick={() => mover(1)}
+              aria-label={t.comun.siguiente}
+            >
               <ChevronRight size={18} />
             </Boton>
             <input
@@ -305,7 +365,9 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
               className="campo h-10 w-[150px]"
               aria-label={t.calendario.irFecha}
               value={claveDia(fecha)}
-              onChange={(e) => e.target.value && poner({ fechaMs: desdeClaveDia(e.target.value).getTime() })}
+              onChange={(e) =>
+                e.target.value && poner({ fechaMs: desdeClaveDia(e.target.value).getTime() })
+              }
             />
           </div>
           <Segmentado
@@ -321,7 +383,10 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
             tamano="sm"
           />
           {!esMovil && (
-            <Link to="/plantilla" className="inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-texto-suave hover:bg-superficie-2">
+            <Link
+              to="/plantilla"
+              className="inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-texto-suave hover:bg-superficie-2"
+            >
               <CalendarRange size={16} aria-hidden /> {t.calendario.plantilla}
             </Link>
           )}
@@ -329,7 +394,8 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
             variante="primario"
             icono={<Plus size={16} />}
             onClick={() => {
-              const base = vista === 'agenda' || vista === 'mes' ? startOfDay(Date.now()) : startOfDay(fecha);
+              const base =
+                vista === 'agenda' || vista === 'mes' ? startOfDay(Date.now()) : startOfDay(fecha);
               const ahora = new Date();
               const hora = claveDia(base) === claveDia(ahora) ? ahora.getHours() + 1 : 9;
               abrirNuevo(base.getTime() + hora * 3_600_000, 0);
@@ -354,9 +420,18 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
               />
             )}
             {vista === 'mes' && (
-              <VistaMes fecha={fecha} ocurrencias={ocurrencias} etiquetas={etiquetas} avisos={avisos} alElegirDia={elegirDia} alCrear={abrirNuevo} />
+              <VistaMes
+                fecha={fecha}
+                ocurrencias={ocurrencias}
+                etiquetas={etiquetas}
+                avisos={avisos}
+                alElegirDia={elegirDia}
+                alCrear={abrirNuevo}
+              />
             )}
-            {vista === 'agenda' && <VistaAgenda ocurrencias={ocurrencias} etiquetas={etiquetas} avisos={avisos} />}
+            {vista === 'agenda' && (
+              <VistaAgenda ocurrencias={ocurrencias} etiquetas={etiquetas} avisos={avisos} />
+            )}
           </div>
         </div>
         {esMovil && <PanelArrastrables modo="hoja" />}
@@ -374,11 +449,19 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
               cursor: 'grabbing',
             }}
           >
-            {activo.tipo === 'etiqueta' && <IconoEtiqueta nombre={activo.etiqueta.icono} tamano={14} />}
+            {activo.tipo === 'etiqueta' && (
+              <IconoEtiqueta nombre={activo.etiqueta.icono} tamano={14} />
+            )}
             <span className="truncate">
-              {activo.tipo === 'bloque' ? activo.ocurrencia.titulo : activo.tipo === 'etiqueta' ? activo.etiqueta.nombre : activo.tarea.titulo}
+              {activo.tipo === 'bloque'
+                ? activo.ocurrencia.titulo
+                : activo.tipo === 'etiqueta'
+                  ? activo.etiqueta.nombre
+                  : activo.tarea.titulo}
             </span>
-            <span className="ml-auto shrink-0 text-xs font-semibold opacity-70">{duracionDe(activo)}′</span>
+            <span className="ml-auto shrink-0 text-xs font-semibold opacity-70">
+              {duracionDe(activo)}′
+            </span>
           </div>
         )}
       </DragOverlay>

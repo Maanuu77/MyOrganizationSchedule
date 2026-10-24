@@ -3,9 +3,19 @@ import type { Etiqueta } from './tipos';
 import { IconoEtiqueta } from './IconoEtiqueta';
 import { t } from './textos';
 
-export function ChipEtiqueta({ etiqueta, pequeno }: { etiqueta: Etiqueta | null; pequeno?: boolean }) {
+export function ChipEtiqueta({
+  etiqueta,
+  pequeno,
+}: {
+  etiqueta: Etiqueta | null;
+  pequeno?: boolean;
+}) {
   if (!etiqueta) {
-    return <span className={`chip ${pequeno ? 'px-2 py-0 text-[11px]' : ''}`}>{t.comun.sinEtiqueta}</span>;
+    return (
+      <span className={`chip ${pequeno ? 'px-2 py-0 text-[11px]' : ''}`}>
+        {t.comun.sinEtiqueta}
+      </span>
+    );
   }
   return (
     <span
@@ -23,6 +33,9 @@ export function ChipEtiqueta({ etiqueta, pequeno }: { etiqueta: Etiqueta | null;
 }
 
 /** Color de una etiqueta (o el acento si no hay). */
-export function colorDe(etiqueta: Etiqueta | null | undefined, porDefecto = 'var(--mos-acento)'): string {
+export function colorDe(
+  etiqueta: Etiqueta | null | undefined,
+  porDefecto = 'var(--mos-acento)',
+): string {
   return etiqueta?.color ?? porDefecto;
 }

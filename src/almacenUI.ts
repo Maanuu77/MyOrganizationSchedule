@@ -36,7 +36,11 @@ export interface BorradorBloque {
 export interface EstadoUI {
   toasts: Toast[];
   confirmacion: PeticionConfirmacion | null;
-  peticionAlcance: { permitirSiguientes: boolean; permitirSolo: boolean; resolver: (a: AlcanceCambio | null) => void } | null;
+  peticionAlcance: {
+    permitirSiguientes: boolean;
+    permitirSolo: boolean;
+    resolver: (a: AlcanceCambio | null) => void;
+  } | null;
   vista: VistaCalendario;
   fechaMs: number;
   panelHoy: boolean;
@@ -50,7 +54,10 @@ export interface EstadoUI {
   avisar: (texto: string, tipo?: Toast['tipo'], accion?: Toast['accion']) => void;
   quitarToast: (id: number) => void;
   confirmar: (p: Omit<PeticionConfirmacion, 'resolver'>) => Promise<boolean>;
-  pedirAlcance: (opciones?: { permitirSiguientes?: boolean; permitirSolo?: boolean }) => Promise<AlcanceCambio | null>;
+  pedirAlcance: (opciones?: {
+    permitirSiguientes?: boolean;
+    permitirSolo?: boolean;
+  }) => Promise<AlcanceCambio | null>;
   poner: (parcial: Partial<EstadoUI>) => void;
 }
 
@@ -131,4 +138,5 @@ export const useUI = create<EstadoUI>((set, get) => ({
 
 /** Atajo para mostrar un aviso desde cualquier sitio (también fuera de componentes). */
 export const avisar = (...args: Parameters<EstadoUI['avisar']>) => useUI.getState().avisar(...args);
-export const confirmar = (p: Omit<PeticionConfirmacion, 'resolver'>) => useUI.getState().confirmar(p);
+export const confirmar = (p: Omit<PeticionConfirmacion, 'resolver'>) =>
+  useUI.getState().confirmar(p);

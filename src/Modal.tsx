@@ -38,7 +38,8 @@ export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }
     if (!abierto) return;
     const previo = document.activeElement as HTMLElement | null;
     const temporizador = setTimeout(() => {
-      const primero = caja.current?.querySelector<HTMLElement>('[data-autofoco]') ??
+      const primero =
+        caja.current?.querySelector<HTMLElement>('[data-autofoco]') ??
         caja.current?.querySelector<HTMLElement>(SELECTOR_ENFOCABLE);
       primero?.focus();
     }, 30);
@@ -134,7 +135,11 @@ export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }
               </button>
             </div>
             <div className="desplazable flex-1 overflow-y-auto px-5 py-4">{children}</div>
-            {pie && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-borde px-5 py-3">{pie}</div>}
+            {pie && (
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-borde px-5 py-3">
+                {pie}
+              </div>
+            )}
           </motion.div>
         </div>
       )}

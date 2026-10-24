@@ -24,7 +24,13 @@ export function PantallaRutinas() {
   const [ambito, setAmbito] = useState<AmbitoRutina>('dia');
   const [editando, setEditando] = useState<Rutina | null>(null);
   const [abierto, setAbierto] = useState(false);
-  const lista = useMemo(() => rutinas.filter((r) => r.ambito === ambito && !r.archivada).sort((a, b) => a.nombre.localeCompare(b.nombre)), [rutinas, ambito]);
+  const lista = useMemo(
+    () =>
+      rutinas
+        .filter((r) => r.ambito === ambito && !r.archivada)
+        .sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    [rutinas, ambito],
+  );
   const hoy = startOfDay(new Date());
 
   const abrir = (r: Rutina | null) => {
@@ -80,25 +86,45 @@ export function PantallaRutinas() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 className="tarjeta flex flex-col gap-3"
-                style={{ backgroundImage: `linear-gradient(160deg, color-mix(in oklab, ${r.color} 13%, var(--mos-superficie)), var(--mos-superficie) 65%)` }}
+                style={{
+                  backgroundImage: `linear-gradient(160deg, color-mix(in oklab, ${r.color} 13%, var(--mos-superficie)), var(--mos-superficie) 65%)`,
+                }}
               >
                 <div className="flex items-start gap-3">
-                  <AnilloProgreso progreso={seg.cumplimiento} tamano={54} grosor={6} color={r.color} etiqueta={t.rutinas.cumplimiento}>
-                    <span className="text-xs font-extrabold">{Math.round(seg.cumplimiento * 100)}%</span>
+                  <AnilloProgreso
+                    progreso={seg.cumplimiento}
+                    tamano={54}
+                    grosor={6}
+                    color={r.color}
+                    etiqueta={t.rutinas.cumplimiento}
+                  >
+                    <span className="text-xs font-extrabold">
+                      {Math.round(seg.cumplimiento * 100)}%
+                    </span>
                   </AnilloProgreso>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="min-w-0 truncate font-bold">{r.nombre}</h2>
-                      {toca && <span className="chip shrink-0 border-acento/30 bg-acento/10 py-0 text-[11px] text-acento">{t.rutinas.tocaHoy}</span>}
+                      {toca && (
+                        <span className="chip shrink-0 border-acento/30 bg-acento/10 py-0 text-[11px] text-acento">
+                          {t.rutinas.tocaHoy}
+                        </span>
+                      )}
                     </div>
-                    <p className="line-clamp-2 text-xs text-texto-suave">{describirRegla(reglaDeRutina(r), new Date(r.creadoEnMs))}</p>
+                    <p className="line-clamp-2 text-xs text-texto-suave">
+                      {describirRegla(reglaDeRutina(r), new Date(r.creadoEnMs))}
+                    </p>
                     <p className="mt-0.5 flex items-center gap-2 text-xs text-texto-suave">
                       {r.programacion.hora && (
                         <span className="flex items-center gap-1">
                           <Clock size={12} aria-hidden /> {r.programacion.hora}
                         </span>
                       )}
-                      <span>{r.clase === 'estudio' ? (ciclo?.nombre ?? t.foco.ciclo) : `${r.pasos.length} ${t.rutinas.pasos.toLowerCase()}${duracion ? ` · ${duracion} min` : ''}`}</span>
+                      <span>
+                        {r.clase === 'estudio'
+                          ? (ciclo?.nombre ?? t.foco.ciclo)
+                          : `${r.pasos.length} ${t.rutinas.pasos.toLowerCase()}${duracion ? ` · ${duracion} min` : ''}`}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -127,7 +153,13 @@ export function PantallaRutinas() {
                   >
                     <Play size={15} aria-hidden /> {t.rutinas.empezar}
                   </Link>
-                  <Boton variante="secundario" tamano="sm" className="h-9" icono={<Pencil size={14} />} onClick={() => abrir(r)}>
+                  <Boton
+                    variante="secundario"
+                    tamano="sm"
+                    className="h-9"
+                    icono={<Pencil size={14} />}
+                    onClick={() => abrir(r)}
+                  >
                     {t.comun.editar}
                   </Boton>
                 </div>
@@ -136,7 +168,12 @@ export function PantallaRutinas() {
           })}
         </ul>
       )}
-      <EditorRutina abierto={abierto} rutina={editando} ambitoInicial={ambito} alCerrar={() => setAbierto(false)} />
+      <EditorRutina
+        abierto={abierto}
+        rutina={editando}
+        ambitoInicial={ambito}
+        alCerrar={() => setAbierto(false)}
+      />
     </div>
   );
 }

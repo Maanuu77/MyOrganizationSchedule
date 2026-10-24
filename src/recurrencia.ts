@@ -6,13 +6,7 @@
 // el horario de verano, porque construimos cada fecha con new Date(año, mes, día, hora, min).
 
 import { getDaysInMonth } from 'date-fns';
-import type {
-  Evento,
-  ExcepcionEvento,
-  Ocurrencia,
-  ReglaMensual,
-  ReglaRecurrencia,
-} from './tipos';
+import type { Evento, ExcepcionEvento, Ocurrencia, ReglaMensual, ReglaRecurrencia } from './tipos';
 import { DIAS_LARGOS, MS_DIA, claveDia, desdeClaveDia, formatear } from './fechas';
 
 /** Límite de seguridad para no entrar nunca en un bucle infinito. */
@@ -29,7 +23,12 @@ function posicionLunes(diaSemana: number): number {
 }
 
 /** Día del mes que corresponde a "el primer lunes", "el último viernes", etc. Devuelve null si no existe. */
-export function diaOrdinal(año: number, mes: number, ordinal: number, diaSemana: number): number | null {
+export function diaOrdinal(
+  año: number,
+  mes: number,
+  ordinal: number,
+  diaSemana: number,
+): number | null {
   const diasMes = getDaysInMonth(new Date(año, mes, 1));
   if (ordinal === -1) {
     for (let d = diasMes; d >= 1; d--) {
@@ -73,7 +72,8 @@ export function* generarInicios(
     regla.fin.tipo === 'fecha'
       ? desdeClaveDia(regla.fin.hasta).getTime() + MS_DIA // el día "hasta" está incluido
       : Infinity;
-  const puedeSaltar = regla.fin.tipo !== 'veces' && desdeMs !== undefined && desdeMs > inicio.getTime();
+  const puedeSaltar =
+    regla.fin.tipo !== 'veces' && desdeMs !== undefined && desdeMs > inicio.getTime();
   const diaInicio = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
   let emitidas = 0;
   let iteraciones = 0;
@@ -105,11 +105,15 @@ export function* generarInicios(
   }
 
   if (regla.frecuencia === 'semanal') {
-    const dias = (regla.diasSemana?.length ? [...new Set(regla.diasSemana)] : [inicio.getDay()]).sort(
-      (a, b) => posicionLunes(a) - posicionLunes(b),
-    );
+    const dias = (
+      regla.diasSemana?.length ? [...new Set(regla.diasSemana)] : [inicio.getDay()]
+    ).sort((a, b) => posicionLunes(a) - posicionLunes(b));
     // Lunes de la semana del inicio
-    const lunes = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() - posicionLunes(inicio.getDay()));
+    const lunes = new Date(
+      inicio.getFullYear(),
+      inicio.getMonth(),
+      inicio.getDate() - posicionLunes(inicio.getDay()),
+    );
     let semana = 0;
     if (puedeSaltar) {
       semana = Math.max(0, Math.floor((desdeMs! - lunes.getTime()) / (intervalo * 7 * MS_DIA)) - 1);
@@ -135,7 +139,8 @@ export function* generarInicios(
   let mes = 0;
   if (puedeSaltar) {
     const d = new Date(desdeMs!);
-    const meses = (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
+    const meses =
+      (d.getFullYear() - inicio.getFullYear()) * 12 + (d.getMonth() - inicio.getMonth());
     mes = Math.max(0, Math.floor(meses / intervalo) - 1);
   }
   while (iteraciones++ < MAX_ITERACIONES) {
@@ -161,7 +166,11 @@ export function iniciosEnRango(evento: Evento, desdeMs: number, hastaMs: number)
   }
   const duracion = evento.finMs - evento.inicioMs;
   const resultado: number[] = [];
-  for (const fecha of generarInicios(evento.recurrencia, new Date(evento.inicioMs), desdeMs - duracion)) {
+  for (const fecha of generarInicios(
+    evento.recurrencia,
+    new Date(evento.inicioMs),
+    desdeMs - duracion,
+  )) {
     const ms = fecha.getTime();
     if (ms >= hastaMs) break;
     if (ms + duracion > desdeMs) resultado.push(ms);
@@ -194,7 +203,7 @@ export function expandirOcurrencias(
 
     for (const original of inicios) {
       const clave = claveOcurrencia(evento.id, original);
-      const ex = evento.recurrencia ? porClave.get(clave) ?? null : null;
+      const ex = evento.recurrencia ? (porClave.get(clave) ?? null) : null;
       if (ex?.cancelada) continue;
       const inicioMs = ex?.cambios.inicioMs ?? original;
       const finMs = ex?.cambios.finMs ?? inicioMs + duracion;
@@ -206,7 +215,8 @@ export function expandirOcurrencias(
         finMs,
         inicioOriginalMs: original,
         titulo: ex?.cambios.titulo ?? evento.titulo,
-        etiquetaId: ex?.cambios.etiquetaId !== undefined ? ex.cambios.etiquetaId : evento.etiquetaId,
+        etiquetaId:
+          ex?.cambios.etiquetaId !== undefined ? ex.cambios.etiquetaId : evento.etiquetaId,
         notas: ex?.cambios.notas ?? evento.notas,
         esRecurrente: !!evento.recurrencia,
         completado: evento.recurrencia ? !!ex?.completado : evento.completado,
@@ -218,7 +228,11 @@ export function expandirOcurrencias(
 }
 
 /** Cuántas ocurrencias hay antes de un inicio dado (para cortar series con límite de veces). */
-export function contarAntes(regla: ReglaRecurrencia, inicioMaestro: Date, antesDeMs: number): number {
+export function contarAntes(
+  regla: ReglaRecurrencia,
+  inicioMaestro: Date,
+  antesDeMs: number,
+): number {
   let n = 0;
   for (const f of generarInicios(regla, inicioMaestro)) {
     if (f.getTime() >= antesDeMs) break;
@@ -249,7 +263,13 @@ export function partirSerie(
   return { antigua: { ...regla, fin: { tipo: 'fecha', hasta: diaAnterior } }, nueva: regla };
 }
 
-const ORDINALES: Record<number, string> = { 1: 'primer', 2: 'segundo', 3: 'tercer', 4: 'cuarto', [-1]: 'último' };
+const ORDINALES: Record<number, string> = {
+  1: 'primer',
+  2: 'segundo',
+  3: 'tercer',
+  4: 'cuarto',
+  [-1]: 'último',
+};
 
 /** Texto legible de una regla: "Cada 2 semanas los lunes y miércoles, 10 veces". */
 export function describirRegla(regla: ReglaRecurrencia, inicio: Date): string {
@@ -259,7 +279,11 @@ export function describirRegla(regla: ReglaRecurrencia, inicio: Date): string {
     texto = n === 1 ? 'Cada día' : `Cada ${n} días`;
   } else if (regla.frecuencia === 'semanal' && n === 1 && new Set(regla.diasSemana).size === 7) {
     texto = 'Cada día';
-  } else if (regla.frecuencia === 'semanal' && n === 1 && [...new Set(regla.diasSemana)].sort().join() === '1,2,3,4,5') {
+  } else if (
+    regla.frecuencia === 'semanal' &&
+    n === 1 &&
+    [...new Set(regla.diasSemana)].sort().join() === '1,2,3,4,5'
+  ) {
     texto = 'De lunes a viernes';
   } else if (regla.frecuencia === 'semanal') {
     const dias = (regla.diasSemana?.length ? regla.diasSemana : [inicio.getDay()])
@@ -278,8 +302,10 @@ export function describirRegla(regla: ReglaRecurrencia, inicio: Date): string {
       texto = `${base} el ${ORDINALES[m.ordinal]} ${DIAS_LARGOS[m.diaSemana]}`;
     }
   }
-  if (regla.fin.tipo === 'fecha') texto += `, hasta el ${formatear(desdeClaveDia(regla.fin.hasta), "d 'de' MMMM 'de' yyyy")}`;
-  if (regla.fin.tipo === 'veces') texto += `, ${regla.fin.veces} ${regla.fin.veces === 1 ? 'vez' : 'veces'}`;
+  if (regla.fin.tipo === 'fecha')
+    texto += `, hasta el ${formatear(desdeClaveDia(regla.fin.hasta), "d 'de' MMMM 'de' yyyy")}`;
+  if (regla.fin.tipo === 'veces')
+    texto += `, ${regla.fin.veces} ${regla.fin.veces === 1 ? 'vez' : 'veces'}`;
   return texto;
 }
 

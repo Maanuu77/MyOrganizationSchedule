@@ -44,7 +44,13 @@ const ERRORES_TOKEN = new Set([
 ]);
 
 export const enviarRecordatorios = onSchedule(
-  { schedule: 'every 1 minutes', timeZone: 'Europe/Madrid', retryCount: 0, memory: '256MiB', timeoutSeconds: 50 },
+  {
+    schedule: 'every 1 minutes',
+    timeZone: 'Europe/Madrid',
+    retryCount: 0,
+    memory: '256MiB',
+    timeoutSeconds: 50,
+  },
   async () => {
     const ahora = Date.now();
     const pendientes = await db
@@ -103,12 +109,16 @@ export const enviarRecordatorios = onSchedule(
         // Limpiamos los tokens que ya no son válidos
         await Promise.all(
           respuesta.responses.map((res, i) =>
-            !res.success && res.error && ERRORES_TOKEN.has(res.error.code) ? destinos[i].ref.update({ token: null }) : null,
+            !res.success && res.error && ERRORES_TOKEN.has(res.error.code)
+              ? destinos[i].ref.update({ token: null })
+              : null,
           ),
         );
       }
     }
-    logger.info(`Recordatorios procesados: ${pendientes.size}, notificaciones enviadas: ${enviados}`);
+    logger.info(
+      `Recordatorios procesados: ${pendientes.size}, notificaciones enviadas: ${enviados}`,
+    );
   },
 );
 

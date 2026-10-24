@@ -33,7 +33,10 @@ describe('periodos', () => {
     const mes = calcularPeriodo('mes', new Date(2026, 1, 10), 1);
     expect(claveDia(mes.desde)).toBe('2026-02-01');
     expect(claveDia(mes.hasta)).toBe('2026-03-01');
-    const rango = calcularPeriodo('rango', new Date(), 1, { desde: '2026-01-01', hasta: '2026-01-10' });
+    const rango = calcularPeriodo('rango', new Date(), 1, {
+      desde: '2026-01-01',
+      hasta: '2026-01-10',
+    });
     expect(claveDia(periodoAnterior(rango).desde)).toBe('2025-12-22');
   });
 });
@@ -43,8 +46,14 @@ describe('foco por etiqueta', () => {
     const desde = new Date(2026, 2, 1).getTime();
     const hasta = new Date(2026, 3, 1).getTime();
     const filas = focoPorEtiqueta(
-      [reg(new Date(2026, 2, 3, 9), 50, { etiquetaId: 'mates' }), reg(new Date(2026, 2, 4, 9), 25, { etiquetaId: 'mates' })],
-      [oc('s1', new Date(2026, 2, 3, 9), 120, { tipo: 'sesion', etiquetaId: 'mates' }), oc('ev', new Date(2026, 2, 3, 12), 60)],
+      [
+        reg(new Date(2026, 2, 3, 9), 50, { etiquetaId: 'mates' }),
+        reg(new Date(2026, 2, 4, 9), 25, { etiquetaId: 'mates' }),
+      ],
+      [
+        oc('s1', new Date(2026, 2, 3, 9), 120, { tipo: 'sesion', etiquetaId: 'mates' }),
+        oc('ev', new Date(2026, 2, 3, 12), 60),
+      ],
       desde,
       hasta,
     );
@@ -52,9 +61,18 @@ describe('foco por etiqueta', () => {
   });
 
   it('progreso hacia el objetivo semanal', () => {
-    const etiqueta = { id: 'ing', nombre: 'Inglés', objetivoSemanalHoras: 2, archivada: false } as Etiqueta;
+    const etiqueta = {
+      id: 'ing',
+      nombre: 'Inglés',
+      objetivoSemanalHoras: 2,
+      archivada: false,
+    } as Etiqueta;
     const semana = new Date(2026, 2, 9).getTime();
-    const p = progresoObjetivos([etiqueta], [reg(new Date(2026, 2, 10, 18), 60, { etiquetaId: 'ing' })], semana);
+    const p = progresoObjetivos(
+      [etiqueta],
+      [reg(new Date(2026, 2, 10, 18), 60, { etiquetaId: 'ing' })],
+      semana,
+    );
     expect(p[0].porcentaje).toBeCloseTo(0.5);
   });
 });
@@ -97,7 +115,11 @@ describe('otros cálculos', () => {
       oc('p', new Date(2026, 2, 1, 13), 60, { tipo: 'protegido' }),
       oc('futuro', new Date(2026, 2, 20, 9), 60),
     ];
-    expect(cumplimientoBloques(lista, new Date(2026, 2, 10).getTime())).toEqual({ hechos: 1, total: 2, ratio: 0.5 });
+    expect(cumplimientoBloques(lista, new Date(2026, 2, 10).getTime())).toEqual({
+      hechos: 1,
+      total: 2,
+      ratio: 0.5,
+    });
   });
 
   it('variación y CSV', () => {

@@ -43,7 +43,12 @@ interface Formulario {
   color: string | null;
 }
 
-const ICONOS_TIPO: Record<TipoBloque, string> = { evento: '📅', sesion: '🎯', protegido: '🛡️', rutina: '🔁' };
+const ICONOS_TIPO: Record<TipoBloque, string> = {
+  evento: '📅',
+  sesion: '🎯',
+  protegido: '🛡️',
+  rutina: '🔁',
+};
 
 export function EditorBloque() {
   const estado = useUI((s) => s.editorBloque);
@@ -94,10 +99,18 @@ export function EditorBloque() {
   }, [estado, oc]);
 
   const activas = useMemo(() => etiquetasActivas(etiquetas), [etiquetas]);
-  const tareasPendientes = useMemo(() => tareas.filter((x) => !x.completada || x.id === f?.tareaId), [tareas, f?.tareaId]);
+  const tareasPendientes = useMemo(
+    () => tareas.filter((x) => !x.completada || x.id === f?.tareaId),
+    [tareas, f?.tareaId],
+  );
   const cerrar = () => poner({ editorBloque: null });
 
-  if (!estado || !f) return <Modal abierto={false} alCerrar={cerrar} titulo="">{null}</Modal>;
+  if (!estado || !f)
+    return (
+      <Modal abierto={false} alCerrar={cerrar} titulo="">
+        {null}
+      </Modal>
+    );
 
   const actualizar = (parcial: Partial<Formulario>) => setF({ ...f, ...parcial });
 
@@ -144,7 +157,9 @@ export function EditorBloque() {
         finMs: oc.finMs,
       };
       const cambios = Object.fromEntries(
-        Object.entries(datos).filter(([k, v]) => JSON.stringify(original[k] ?? null) !== JSON.stringify(v ?? null)),
+        Object.entries(datos).filter(
+          ([k, v]) => JSON.stringify(original[k] ?? null) !== JSON.stringify(v ?? null),
+        ),
       ) as Partial<DatosNuevos<Evento>>;
       ok = Object.keys(cambios).length ? await cambiarOcurrencia(oc, cambios) : true;
     } else {
@@ -250,7 +265,9 @@ export function EditorBloque() {
             tamano="sm"
           />
         </div>
-        {f.tipo === 'protegido' && <p className="-mt-2 text-xs text-texto-suave">{t.bloque.protegidoAyuda}</p>}
+        {f.tipo === 'protegido' && (
+          <p className="-mt-2 text-xs text-texto-suave">{t.bloque.protegidoAyuda}</p>
+        )}
 
         <Campo etiqueta={t.bloque.titulo}>
           {(id) => (
@@ -276,7 +293,10 @@ export function EditorBloque() {
                 const tituloPorDefecto =
                   Object.values(t.bloque.tituloPorDefecto).includes(f.titulo as never) ||
                   f.titulo === etiqueta?.nombre;
-                actualizar({ etiquetaId: nueva?.id ?? null, titulo: nueva && tituloPorDefecto ? nueva.nombre : f.titulo });
+                actualizar({
+                  etiquetaId: nueva?.id ?? null,
+                  titulo: nueva && tituloPorDefecto ? nueva.nombre : f.titulo,
+                });
               }}
             >
               <option value="">{t.comun.sinEtiqueta}</option>
@@ -292,7 +312,13 @@ export function EditorBloque() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Campo etiqueta={t.comun.fecha} className="col-span-2 sm:col-span-1">
             {(id) => (
-              <input id={id} type="date" className="campo" value={f.fecha} onChange={(e) => e.target.value && actualizar({ fecha: e.target.value })} />
+              <input
+                id={id}
+                type="date"
+                className="campo"
+                value={f.fecha}
+                onChange={(e) => e.target.value && actualizar({ fecha: e.target.value })}
+              />
             )}
           </Campo>
           {!f.todoElDia && (
@@ -310,27 +336,51 @@ export function EditorBloque() {
                       // Mantenemos la duración al mover la hora de inicio
                       const { inicioMs, finMs } = calcularHoras();
                       const nuevoInicio = conHora(f.fecha, e.target.value).getTime();
-                      actualizar({ horaInicio: e.target.value, horaFin: formatear(nuevoInicio + (finMs - inicioMs), 'HH:mm') });
+                      actualizar({
+                        horaInicio: e.target.value,
+                        horaFin: formatear(nuevoInicio + (finMs - inicioMs), 'HH:mm'),
+                      });
                     }}
                   />
                 )}
               </Campo>
               <Campo etiqueta={t.comun.fin}>
                 {(id) => (
-                  <input id={id} type="time" step={300} className="campo" value={f.horaFin} onChange={(e) => e.target.value && actualizar({ horaFin: e.target.value })} />
+                  <input
+                    id={id}
+                    type="time"
+                    step={300}
+                    className="campo"
+                    value={f.horaFin}
+                    onChange={(e) => e.target.value && actualizar({ horaFin: e.target.value })}
+                  />
                 )}
               </Campo>
             </>
           )}
         </div>
-        <Interruptor etiqueta={t.calendario.todoElDia} activo={f.todoElDia} alCambiar={(v) => actualizar({ todoElDia: v })} />
+        <Interruptor
+          etiqueta={t.calendario.todoElDia}
+          activo={f.todoElDia}
+          alCambiar={(v) => actualizar({ todoElDia: v })}
+        />
 
-        <EditorRecurrencia valor={f.recurrencia} alCambiar={(r) => actualizar({ recurrencia: r })} inicio={inicioFecha} inicioSemana={inicioSemana} />
+        <EditorRecurrencia
+          valor={f.recurrencia}
+          alCambiar={(r) => actualizar({ recurrencia: r })}
+          inicio={inicioFecha}
+          inicioSemana={inicioSemana}
+        />
 
         {f.tipo === 'sesion' && (
           <Campo etiqueta={t.bloque.ciclo}>
             {(id) => (
-              <select id={id} className="campo" value={f.cicloId ?? ''} onChange={(e) => actualizar({ cicloId: e.target.value || null })}>
+              <select
+                id={id}
+                className="campo"
+                value={f.cicloId ?? ''}
+                onChange={(e) => actualizar({ cicloId: e.target.value || null })}
+              >
                 <option value="">{t.bloque.sinCiclo}</option>
                 {ciclos.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -345,13 +395,20 @@ export function EditorBloque() {
         {f.tipo === 'rutina' && (
           <Campo etiqueta={t.bloque.rutina}>
             {(id) => (
-              <select id={id} className="campo" value={f.rutinaId ?? ''} onChange={(e) => actualizar({ rutinaId: e.target.value || null })}>
+              <select
+                id={id}
+                className="campo"
+                value={f.rutinaId ?? ''}
+                onChange={(e) => actualizar({ rutinaId: e.target.value || null })}
+              >
                 <option value="">{t.comun.ninguna}</option>
-                {rutinas.filter((r) => !r.archivada).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.nombre}
-                  </option>
-                ))}
+                {rutinas
+                  .filter((r) => !r.archivada)
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.nombre}
+                    </option>
+                  ))}
               </select>
             )}
           </Campo>
@@ -361,7 +418,12 @@ export function EditorBloque() {
           <div className="space-y-1">
             <Campo etiqueta={t.bloque.tarea}>
               {(id) => (
-                <select id={id} className="campo" value={f.tareaId ?? ''} onChange={(e) => actualizar({ tareaId: e.target.value || null })}>
+                <select
+                  id={id}
+                  className="campo"
+                  value={f.tareaId ?? ''}
+                  onChange={(e) => actualizar({ tareaId: e.target.value || null })}
+                >
                   <option value="">{t.comun.ninguna}</option>
                   {tareasPendientes.map((x) => (
                     <option key={x.id} value={x.id}>
@@ -383,16 +445,31 @@ export function EditorBloque() {
 
         <Campo etiqueta={t.comun.notas}>
           {(id) => (
-            <textarea id={id} rows={3} maxLength={5000} className="campo resize-y" value={f.notas} onChange={(e) => actualizar({ notas: e.target.value })} />
+            <textarea
+              id={id}
+              rows={3}
+              maxLength={5000}
+              className="campo resize-y"
+              value={f.notas}
+              onChange={(e) => actualizar({ notas: e.target.value })}
+            />
           )}
         </Campo>
 
         <div>
           <p className="etiqueta-campo">{t.comun.color}</p>
           <div className="flex flex-wrap items-center gap-3">
-            <SelectorColor etiqueta={t.comun.color} valor={f.color ?? etiqueta?.color ?? '#6D5CF0'} alCambiar={(c) => actualizar({ color: c })} />
+            <SelectorColor
+              etiqueta={t.comun.color}
+              valor={f.color ?? etiqueta?.color ?? '#6D5CF0'}
+              alCambiar={(c) => actualizar({ color: c })}
+            />
             {f.color && (
-              <button type="button" className="text-xs font-semibold text-acento" onClick={() => actualizar({ color: null })}>
+              <button
+                type="button"
+                className="text-xs font-semibold text-acento"
+                onClick={() => actualizar({ color: null })}
+              >
                 Usar el de la etiqueta
               </button>
             )}

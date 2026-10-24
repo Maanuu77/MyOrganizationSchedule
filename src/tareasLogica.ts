@@ -18,10 +18,16 @@ export function ordenarTareas(lista: Tarea[], orden: OrdenTareas): Tarea[] {
   switch (orden) {
     case 'prioridad':
       return copia.sort(
-        (a, b) => PESO_PRIORIDAD[a.prioridad] - PESO_PRIORIDAD[b.prioridad] || (a.fechaLimiteMs ?? Infinity) - (b.fechaLimiteMs ?? Infinity),
+        (a, b) =>
+          PESO_PRIORIDAD[a.prioridad] - PESO_PRIORIDAD[b.prioridad] ||
+          (a.fechaLimiteMs ?? Infinity) - (b.fechaLimiteMs ?? Infinity),
       );
     case 'fechaLimite':
-      return copia.sort((a, b) => (a.fechaLimiteMs ?? Infinity) - (b.fechaLimiteMs ?? Infinity) || PESO_PRIORIDAD[a.prioridad] - PESO_PRIORIDAD[b.prioridad]);
+      return copia.sort(
+        (a, b) =>
+          (a.fechaLimiteMs ?? Infinity) - (b.fechaLimiteMs ?? Infinity) ||
+          PESO_PRIORIDAD[a.prioridad] - PESO_PRIORIDAD[b.prioridad],
+      );
     case 'creacion':
       return copia.sort((a, b) => b.creadoEnMs - a.creadoEnMs);
     default:
@@ -42,7 +48,14 @@ export interface SeccionesTareas {
 export function seccionarTareas(tareas: Tarea[], hoy: Date, inicioSemana: 0 | 1): SeccionesTareas {
   const claveHoy = claveDia(hoy);
   const semanaActual = claveDia(inicioDeSemana(hoy, inicioSemana));
-  const s: SeccionesTareas = { atrasadas: [], hoy: [], semana: [], proximas: [], sinFecha: [], completadas: [] };
+  const s: SeccionesTareas = {
+    atrasadas: [],
+    hoy: [],
+    semana: [],
+    proximas: [],
+    sinFecha: [],
+    completadas: [],
+  };
   for (const tarea of tareas) {
     if (tarea.completada) {
       s.completadas.push(tarea);

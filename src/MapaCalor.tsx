@@ -16,7 +16,8 @@ export function MapaCalor({ celdas, inicioSemana }: { celdas: CeldaCalor[]; inic
     if (celdas.length) actual = Array(fila(celdas[0].fecha)).fill(null);
     const etiquetasMes: Array<{ col: number; texto: string }> = [];
     for (const c of celdas) {
-      if (c.fecha.getDate() === 1) etiquetasMes.push({ col: cols.length, texto: formatear(c.fecha, 'MMM') });
+      if (c.fecha.getDate() === 1)
+        etiquetasMes.push({ col: cols.length, texto: formatear(c.fecha, 'MMM') });
       actual.push(c);
       if (actual.length === 7) {
         cols.push(actual);
@@ -35,7 +36,12 @@ export function MapaCalor({ celdas, inicioSemana }: { celdas: CeldaCalor[]; inic
     <div className="desplazable overflow-x-auto">
       <svg width={ancho} height={alto} role="img" aria-label={t.estadisticas.mapaCalor}>
         {meses.map((m) => (
-          <text key={`${m.col}-${m.texto}`} x={m.col * (TAM + HUECO)} y={10} className="fill-[var(--mos-texto-tenue)] text-[10px]">
+          <text
+            key={`${m.col}-${m.texto}`}
+            x={m.col * (TAM + HUECO)}
+            y={10}
+            className="fill-[var(--mos-texto-tenue)] text-[10px]"
+          >
             {m.texto}
           </text>
         ))}
@@ -52,7 +58,11 @@ export function MapaCalor({ celdas, inicioSemana }: { celdas: CeldaCalor[]; inic
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: Math.min(x * 0.008, 0.5) }}
-                fill={c.nivel ? `color-mix(in oklab, var(--mos-acento) ${opacidad[c.nivel] * 100}%, var(--mos-superficie-3))` : 'var(--mos-superficie-3)'}
+                fill={
+                  c.nivel
+                    ? `color-mix(in oklab, var(--mos-acento) ${opacidad[c.nivel] * 100}%, var(--mos-superficie-3))`
+                    : 'var(--mos-superficie-3)'
+                }
               >
                 <title>{`${formatear(c.fecha, "d 'de' MMMM")}: ${c.ms ? duracionTexto(c.ms) : '—'}`}</title>
               </motion.rect>
@@ -66,7 +76,11 @@ export function MapaCalor({ celdas, inicioSemana }: { celdas: CeldaCalor[]; inic
           <span
             key={i}
             className="h-3 w-3 rounded-[3px]"
-            style={{ background: i ? `color-mix(in oklab, var(--mos-acento) ${o * 100}%, var(--mos-superficie-3))` : 'var(--mos-superficie-3)' }}
+            style={{
+              background: i
+                ? `color-mix(in oklab, var(--mos-acento) ${o * 100}%, var(--mos-superficie-3))`
+                : 'var(--mos-superficie-3)',
+            }}
           />
         ))}
         {t.estadisticas.masTexto}

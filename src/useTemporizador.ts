@@ -28,7 +28,10 @@ export function useEstadoContador() {
 
   const plano = aPlano(contador);
   const activo = !!contador && contador.estado !== 'inactivo';
-  const fase = contador && contador.indiceFase < contador.fases.length ? contador.fases[contador.indiceFase] : null;
+  const fase =
+    contador && contador.indiceFase < contador.fases.length
+      ? contador.fases[contador.indiceFase]
+      : null;
   const siguiente = contador ? (contador.fases[contador.indiceFase + 1] ?? null) : null;
   return {
     contador,
@@ -38,7 +41,8 @@ export function useEstadoContador() {
     restanteMs: plano ? Math.max(0, restanteMs(plano, ahora)) : 0,
     transcurridoMs: plano ? transcurridoMs(plano, ahora) : 0,
     progreso: plano ? progresoFase(plano, ahora) : 0,
-    cicloTerminado: !!contador && contador.indiceFase >= contador.fases.length && contador.modo === 'ciclo',
+    cicloTerminado:
+      !!contador && contador.indiceFase >= contador.fases.length && contador.modo === 'ciclo',
     ahora,
   };
 }
@@ -70,10 +74,16 @@ export function useMotorContador(): void {
       if (!plano) return;
       const ahora = ahoraServidor();
       if (contador.modo === 'ciclo' && restanteMs(plano, ahora) <= 0) {
-        avanzarSiToca(ajustesContador.autoAvanzar).catch((e) => console.warn('No se pudo avanzar la fase', e));
+        avanzarSiToca(ajustesContador.autoAvanzar).catch((e) =>
+          console.warn('No se pudo avanzar la fase', e),
+        );
       }
       const fase = contador.fases[contador.indiceFase];
-      const continuo = focoContinuoMs(contador.tramos ?? [], fase?.tipo ?? null, transcurridoMs(plano, ahora));
+      const continuo = focoContinuoMs(
+        contador.tramos ?? [],
+        fase?.tipo ?? null,
+        transcurridoMs(plano, ahora),
+      );
       const limite = ajustesContador.focoContinuoMaxMin * 60_000;
       const clave = `${contador.sesionInicioMs}-${contador.tramos?.length ?? 0}`;
       if (limite > 0 && continuo > limite && avisadoFocoContinuo.current !== clave) {
@@ -81,7 +91,8 @@ export function useMotorContador(): void {
         const texto = t.foco.focoContinuo(Math.round(continuo / 60_000));
         avisar(texto, 'info');
         if (ajustesContador.sonido) reproducir('aviso', ajustesContador.volumen);
-        if (document.visibilityState !== 'visible') void mostrarNotificacionLocal(t.foco.titulo, texto, '/foco', 'mos-contador');
+        if (document.visibilityState !== 'visible')
+          void mostrarNotificacionLocal(t.foco.titulo, texto, '/foco', 'mos-contador');
       }
     };
     comprobar();
@@ -93,7 +104,13 @@ export function useMotorContador(): void {
       clearInterval(id);
       document.removeEventListener('visibilitychange', comprobar);
     };
-  }, [contador, ajustesContador.autoAvanzar, ajustesContador.focoContinuoMaxMin, ajustesContador.sonido, ajustesContador.volumen]);
+  }, [
+    contador,
+    ajustesContador.autoAvanzar,
+    ajustesContador.focoContinuoMaxMin,
+    ajustesContador.sonido,
+    ajustesContador.volumen,
+  ]);
 
   // Cambios de fase: sonido, vibración, notificación y mensaje claro
   useEffect(() => {
@@ -108,17 +125,31 @@ export function useMotorContador(): void {
 
     const terminado = contador.indiceFase >= contador.fases.length;
     const fase = contador.fases[contador.indiceFase];
-    const titulo = terminado ? t.foco.cicloTerminado : pasaAEsperar ? t.foco.esperando : mensajeFase(fase.tipo, fase.nombre);
+    const titulo = terminado
+      ? t.foco.cicloTerminado
+      : pasaAEsperar
+        ? t.foco.esperando
+        : mensajeFase(fase.tipo, fase.nombre);
     const cuerpo = terminado
       ? t.foco.cicloTerminadoTexto
       : `${fase.nombre} · ${Math.round(fase.duracionMs / 60_000)} min`;
     if (ajustesContador.sonido) {
-      reproducir(terminado ? 'fin' : fase.tipo === 'foco' ? 'foco' : 'descanso', ajustesContador.volumen);
+      reproducir(
+        terminado ? 'fin' : fase.tipo === 'foco' ? 'foco' : 'descanso',
+        ajustesContador.volumen,
+      );
     }
     if (ajustesContador.vibracion) vibrar();
     if (document.visibilityState === 'visible') avisar(`${titulo}`, terminado ? 'logro' : 'info');
-    else if (notificaciones.tipos.faseTemporizador) void mostrarNotificacionLocal(titulo, cuerpo, '/foco', 'mos-contador');
-  }, [contador, ajustesContador.sonido, ajustesContador.vibracion, ajustesContador.volumen, notificaciones.tipos.faseTemporizador]);
+    else if (notificaciones.tipos.faseTemporizador)
+      void mostrarNotificacionLocal(titulo, cuerpo, '/foco', 'mos-contador');
+  }, [
+    contador,
+    ajustesContador.sonido,
+    ajustesContador.vibracion,
+    ajustesContador.volumen,
+    notificaciones.tipos.faseTemporizador,
+  ]);
 
   // Recordatorios en el servidor para recibir los cambios de fase con la app cerrada
   const version = contador?.version ?? null;
@@ -126,12 +157,19 @@ export function useMotorContador(): void {
     if (!uid) return;
     const activas = notificaciones.activas && notificaciones.tipos.faseTemporizador;
     const temporizador = setTimeout(() => {
-      sincronizarRecordatoriosContador(activas ? contador : null, ajustesContador.autoAvanzar).catch((e) =>
-        console.warn('No se pudieron preparar los avisos del contador', e),
-      );
+      sincronizarRecordatoriosContador(
+        activas ? contador : null,
+        ajustesContador.autoAvanzar,
+      ).catch((e) => console.warn('No se pudieron preparar los avisos del contador', e));
     }, 800);
     return () => clearTimeout(temporizador);
     // Solo cuando cambia la versión del contador (no en cada render)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, version, notificaciones.activas, notificaciones.tipos.faseTemporizador, ajustesContador.autoAvanzar]);
+  }, [
+    uid,
+    version,
+    notificaciones.activas,
+    notificaciones.tipos.faseTemporizador,
+    ajustesContador.autoAvanzar,
+  ]);
 }

@@ -11,7 +11,13 @@ interface PropsInterruptor {
 }
 
 /** Interruptor tipo "switch" accesible (role=switch). */
-export function Interruptor({ activo, alCambiar, etiqueta, descripcion, deshabilitado }: PropsInterruptor) {
+export function Interruptor({
+  activo,
+  alCambiar,
+  etiqueta,
+  descripcion,
+  deshabilitado,
+}: PropsInterruptor) {
   const id = useId();
   return (
     <div className="flex items-center justify-between gap-4 py-1.5">
@@ -55,10 +61,20 @@ interface PropsSegmentado<T extends string> {
 }
 
 /** Grupo de botones donde solo uno está activo (como pestañas). */
-export function Segmentado<T extends string>({ opciones, valor, alCambiar, etiqueta, tamano = 'md' }: PropsSegmentado<T>) {
+export function Segmentado<T extends string>({
+  opciones,
+  valor,
+  alCambiar,
+  etiqueta,
+  tamano = 'md',
+}: PropsSegmentado<T>) {
   const id = useId();
   return (
-    <div role="radiogroup" aria-label={etiqueta} className="inline-flex max-w-full overflow-x-auto rounded-md border border-borde bg-superficie-2 p-1">
+    <div
+      role="radiogroup"
+      aria-label={etiqueta}
+      className="inline-flex max-w-full overflow-x-auto rounded-md border border-borde bg-superficie-2 p-1"
+    >
       {opciones.map((o) => {
         const activo = o.valor === valor;
         return (
@@ -113,7 +129,15 @@ export function Campo({ etiqueta, children, ayuda, className = '' }: PropsCampo)
 }
 
 /** Sección con título dentro de formularios largos (ajustes, editores). */
-export function Seccion({ titulo, children, icono }: { titulo: string; children: ReactNode; icono?: ReactNode }) {
+export function Seccion({
+  titulo,
+  children,
+  icono,
+}: {
+  titulo: string;
+  children: ReactNode;
+  icono?: ReactNode;
+}) {
   return (
     <section className="tarjeta">
       <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-texto">
@@ -152,7 +176,9 @@ export function SelectorDias({
             aria-label={nombres[d]}
             onClick={() => alCambiar(activo ? valor.filter((x) => x !== d) : [...valor, d])}
             className={`h-9 w-9 rounded-full text-sm font-bold transition-all ${
-              activo ? 'degradado-marca text-white shadow-media' : 'bg-superficie-2 text-texto-suave hover:bg-superficie-3'
+              activo
+                ? 'degradado-marca text-white shadow-media'
+                : 'bg-superficie-2 text-texto-suave hover:bg-superficie-3'
             }`}
           >
             {letras[d]}

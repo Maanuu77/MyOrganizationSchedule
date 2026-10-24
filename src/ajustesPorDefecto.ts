@@ -50,7 +50,10 @@ export function ajustesPorDefecto(zonaHoraria: string): Ajustes {
  * Mezcla los ajustes guardados con los valores por defecto, para que una versión
  * nueva de la app con ajustes nuevos no falle con documentos antiguos.
  */
-export function completarAjustes(guardados: Partial<Ajustes> | undefined, zonaHoraria: string): Ajustes {
+export function completarAjustes(
+  guardados: Partial<Ajustes> | undefined,
+  zonaHoraria: string,
+): Ajustes {
   const base = ajustesPorDefecto(zonaHoraria);
   if (!guardados) return base;
   return {

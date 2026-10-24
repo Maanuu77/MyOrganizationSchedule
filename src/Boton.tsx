@@ -16,7 +16,8 @@ const VARIANTES: Record<Variante, string> = {
     'degradado-marca text-sobre-acento shadow-media hover:brightness-110 active:brightness-95 disabled:opacity-50',
   secundario:
     'bg-superficie text-texto border border-borde-fuerte hover:bg-superficie-2 shadow-suave disabled:opacity-50',
-  fantasma: 'bg-transparent text-texto-suave hover:bg-superficie-2 hover:text-texto disabled:opacity-40',
+  fantasma:
+    'bg-transparent text-texto-suave hover:bg-superficie-2 hover:text-texto disabled:opacity-40',
   peligro: 'bg-peligro text-white hover:brightness-110 shadow-suave disabled:opacity-50',
   suave: 'bg-acento/10 text-acento hover:bg-acento/18 disabled:opacity-50',
 };
@@ -29,7 +30,17 @@ const TAMANOS: Record<Tamano, string> = {
 };
 
 export const Boton = forwardRef<HTMLButtonElement, Props>(function Boton(
-  { variante = 'secundario', tamano = 'md', icono, cargando, className = '', children, disabled, type = 'button', ...resto },
+  {
+    variante = 'secundario',
+    tamano = 'md',
+    icono,
+    cargando,
+    className = '',
+    children,
+    disabled,
+    type = 'button',
+    ...resto
+  },
   ref,
 ) {
   return (
@@ -41,7 +52,10 @@ export const Boton = forwardRef<HTMLButtonElement, Props>(function Boton(
       {...resto}
     >
       {cargando ? (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+        <span
+          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          aria-hidden
+        />
       ) : (
         icono
       )}

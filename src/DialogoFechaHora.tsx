@@ -47,10 +47,28 @@ export function DialogoFechaHora({ abierto, titulo, inicialMs, alCerrar, alAcept
     >
       <div className="grid grid-cols-2 gap-3">
         <Campo etiqueta={t.comun.fecha}>
-          {(id) => <input id={id} type="date" className="campo" value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} data-autofoco />}
+          {(id) => (
+            <input
+              id={id}
+              type="date"
+              className="campo"
+              value={fecha}
+              onChange={(e) => e.target.value && setFecha(e.target.value)}
+              data-autofoco
+            />
+          )}
         </Campo>
         <Campo etiqueta={t.comun.hora}>
-          {(id) => <input id={id} type="time" step={300} className="campo" value={hora} onChange={(e) => e.target.value && setHora(e.target.value)} />}
+          {(id) => (
+            <input
+              id={id}
+              type="time"
+              step={300}
+              className="campo"
+              value={hora}
+              onChange={(e) => e.target.value && setHora(e.target.value)}
+            />
+          )}
         </Campo>
       </div>
     </Modal>

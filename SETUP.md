@@ -118,22 +118,22 @@ El flujo `.github/workflows/desplegar.yml` comprueba la app en cada push y, si h
 npx firebase init hosting:github
 ```
 
-   Responde con tu repositorio `Maanuu77/MyOrganizationSchedule`. El asistente crea el secreto `FIREBASE_SERVICE_ACCOUNT_...` en GitHub. **Renómbralo** (o crea otro con el mismo valor) como `FIREBASE_SERVICE_ACCOUNT`. Si el asistente crea archivos nuevos en `.github/workflows/`, bórralos: el flujo del proyecto ya está preparado.
+Responde con tu repositorio `Maanuu77/MyOrganizationSchedule`. El asistente crea el secreto `FIREBASE_SERVICE_ACCOUNT_...` en GitHub. **Renómbralo** (o crea otro con el mismo valor) como `FIREBASE_SERVICE_ACCOUNT`. Si el asistente crea archivos nuevos en `.github/workflows/`, bórralos: el flujo del proyecto ya está preparado.
 
-   Alternativa manual: Google Cloud → **IAM → Cuentas de servicio → Crear**, con los roles *Firebase Hosting Admin*, *Cloud Functions Admin*, *Firebase Rules Admin*, *Cloud Datastore Index Admin* y *Service Account User*; crea una clave JSON y pega su contenido completo como secreto `FIREBASE_SERVICE_ACCOUNT`.
+Alternativa manual: Google Cloud → **IAM → Cuentas de servicio → Crear**, con los roles _Firebase Hosting Admin_, _Cloud Functions Admin_, _Firebase Rules Admin_, _Cloud Datastore Index Admin_ y _Service Account User_; crea una clave JSON y pega su contenido completo como secreto `FIREBASE_SERVICE_ACCOUNT`.
 
 2. En GitHub → **Settings → Secrets and variables → Actions → New repository secret**, crea también:
 
-| Secreto | Valor |
-| --- | --- |
-| `VITE_FIREBASE_API_KEY` | igual que en `.env` |
-| `VITE_FIREBASE_AUTH_DOMAIN` | igual que en `.env` |
-| `VITE_FIREBASE_PROJECT_ID` | igual que en `.env` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | igual que en `.env` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | igual que en `.env` |
-| `VITE_FIREBASE_APP_ID` | igual que en `.env` |
-| `VITE_FIREBASE_VAPID_KEY` | igual que en `.env` |
-| `FIREBASE_SERVICE_ACCOUNT` | JSON de la cuenta de servicio |
+| Secreto                             | Valor                         |
+| ----------------------------------- | ----------------------------- |
+| `VITE_FIREBASE_API_KEY`             | igual que en `.env`           |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | igual que en `.env`           |
+| `VITE_FIREBASE_PROJECT_ID`          | igual que en `.env`           |
+| `VITE_FIREBASE_STORAGE_BUCKET`      | igual que en `.env`           |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | igual que en `.env`           |
+| `VITE_FIREBASE_APP_ID`              | igual que en `.env`           |
+| `VITE_FIREBASE_VAPID_KEY`           | igual que en `.env`           |
+| `FIREBASE_SERVICE_ACCOUNT`          | JSON de la cuenta de servicio |
 
 3. Opcional: para que el flujo despliegue también reglas, índices y Cloud Functions, crea en **Variables** la variable `DESPLEGAR_BACKEND` con valor `true` (requiere Blaze).
 

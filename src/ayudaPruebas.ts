@@ -37,7 +37,13 @@ export function ocurrenciaPrueba(
   minutos: number,
   parcial: Partial<Evento> = {},
 ): Ocurrencia {
-  const evento = eventoPrueba({ id, inicioMs: inicio.getTime(), finMs: inicio.getTime() + minutos * 60000, titulo: id, ...parcial });
+  const evento = eventoPrueba({
+    id,
+    inicioMs: inicio.getTime(),
+    finMs: inicio.getTime() + minutos * 60000,
+    titulo: id,
+    ...parcial,
+  });
   return {
     clave: claveOcurrencia(id, evento.inicioMs),
     evento,
@@ -74,7 +80,11 @@ export function tareaPrueba(parcial: Partial<Tarea> = {}): Tarea {
   };
 }
 
-export function registroPrueba(inicio: Date, focoMin: number, parcial: Partial<RegistroSesion> = {}): RegistroSesion {
+export function registroPrueba(
+  inicio: Date,
+  focoMin: number,
+  parcial: Partial<RegistroSesion> = {},
+): RegistroSesion {
   return {
     id: `r${inicio.getTime()}`,
     etiquetaId: null,

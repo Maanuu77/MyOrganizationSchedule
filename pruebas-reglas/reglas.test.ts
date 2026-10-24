@@ -80,7 +80,9 @@ const tarea = {
 };
 
 const db = (uid: string | null) =>
-  uid ? entorno.authenticatedContext(uid).firestore() : entorno.unauthenticatedContext().firestore();
+  uid
+    ? entorno.authenticatedContext(uid).firestore()
+    : entorno.unauthenticatedContext().firestore();
 
 describe('propiedad de los datos', () => {
   it('el propietario puede crear y leer sus etiquetas', async () => {
@@ -117,7 +119,9 @@ describe('validación de campos', () => {
   it('rechaza tipos incorrectos y tamaños excesivos', async () => {
     const ana = db('ana');
     await assertFails(setDoc(doc(ana, 'users/ana/tags/t1'), { ...etiqueta, duracionMin: 'mucho' }));
-    await assertFails(setDoc(doc(ana, 'users/ana/tags/t1'), { ...etiqueta, nombre: 'x'.repeat(61) }));
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/tags/t1'), { ...etiqueta, nombre: 'x'.repeat(61) }),
+    );
     await assertFails(setDoc(doc(ana, 'users/ana/tags/t1'), { ...etiqueta, nombre: '' }));
   });
 
@@ -125,16 +129,23 @@ describe('validación de campos', () => {
     const ana = db('ana');
     await assertSucceeds(setDoc(doc(ana, 'users/ana/events/e1'), evento));
     await assertFails(setDoc(doc(ana, 'users/ana/events/e2'), { ...evento, tipo: 'fiesta' }));
-    await assertFails(setDoc(doc(ana, 'users/ana/events/e3'), { ...evento, finMs: evento.inicioMs - 1 }));
     await assertFails(
-      setDoc(doc(ana, 'users/ana/events/e4'), { ...evento, recurrencia: { frecuencia: 'anual', intervalo: 1 } }),
+      setDoc(doc(ana, 'users/ana/events/e3'), { ...evento, finMs: evento.inicioMs - 1 }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/events/e4'), {
+        ...evento,
+        recurrencia: { frecuencia: 'anual', intervalo: 1 },
+      }),
     );
   });
 
   it('las actualizaciones parciales se validan sobre el documento completo', async () => {
     const ana = db('ana');
     await assertSucceeds(setDoc(doc(ana, 'users/ana/tasks/t1'), tarea));
-    await assertSucceeds(updateDoc(doc(ana, 'users/ana/tasks/t1'), { completada: true, completadaEnMs: ahora }));
+    await assertSucceeds(
+      updateDoc(doc(ana, 'users/ana/tasks/t1'), { completada: true, completadaEnMs: ahora }),
+    );
     await assertFails(updateDoc(doc(ana, 'users/ana/tasks/t1'), { prioridad: 'máxima' }));
   });
 
@@ -162,7 +173,9 @@ describe('validación de campos', () => {
     };
     await assertSucceeds(setDoc(doc(ana, 'users/ana/timerState/actual'), contador));
     await assertFails(setDoc(doc(ana, 'users/ana/timerState/otro'), contador));
-    await assertFails(setDoc(doc(ana, 'users/ana/timerState/actual'), { ...contador, estado: 'volando' }));
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/timerState/actual'), { ...contador, estado: 'volando' }),
+    );
   });
 
   it('los recordatorios deben pertenecer al mismo usuario', async () => {
@@ -185,9 +198,19 @@ describe('validación de campos', () => {
   it('los dispositivos admiten escrituras parciales con merge', async () => {
     const ana = db('ana');
     await assertSucceeds(
-      setDoc(doc(ana, 'users/ana/devices/d1'), { nombre: 'Chrome', ultimoUsoMs: ahora, ping: serverTimestamp() }, { merge: true }),
+      setDoc(
+        doc(ana, 'users/ana/devices/d1'),
+        { nombre: 'Chrome', ultimoUsoMs: ahora, ping: serverTimestamp() },
+        { merge: true },
+      ),
     );
-    await assertSucceeds(setDoc(doc(ana, 'users/ana/devices/d1'), { token: 'abc', creadoEnMs: ahora }, { merge: true }));
+    await assertSucceeds(
+      setDoc(
+        doc(ana, 'users/ana/devices/d1'),
+        { token: 'abc', creadoEnMs: ahora },
+        { merge: true },
+      ),
+    );
     await assertFails(setDoc(doc(ana, 'users/ana/devices/d1'), { token: 123 }, { merge: true }));
   });
 
@@ -203,8 +226,19 @@ describe('validación de campos', () => {
       zonaHoraria: 'Europe/Madrid',
       duracionPorDefectoMin: 60,
       sueno: { activo: false, inicio: '23:30', fin: '07:30' },
-      umbrales: { focoDiarioMaxHoras: 8, sesionesSeguidasMax: 3, descansoMinimoMin: 10, diasAvisoFechaLimite: 3 },
-      temporizador: { sonido: true, vibracion: true, volumen: 0.7, focoContinuoMaxMin: 120, autoAvanzar: true },
+      umbrales: {
+        focoDiarioMaxHoras: 8,
+        sesionesSeguidasMax: 3,
+        descansoMinimoMin: 10,
+        diasAvisoFechaLimite: 3,
+      },
+      temporizador: {
+        sonido: true,
+        vibracion: true,
+        volumen: 0.7,
+        focoContinuoMaxMin: 120,
+        autoAvanzar: true,
+      },
       notificaciones: {
         activas: false,
         antelacionMin: 10,
@@ -218,7 +252,10 @@ describe('validación de campos', () => {
     await assertSucceeds(setDoc(doc(ana, 'users/ana/settings/general'), ajustes));
     await assertFails(setDoc(doc(ana, 'users/ana/settings/otros'), ajustes));
     await assertFails(
-      setDoc(doc(ana, 'users/ana/settings/general'), { ...ajustes, sueno: { activo: true, inicio: '25h', fin: '07:00' } }),
+      setDoc(doc(ana, 'users/ana/settings/general'), {
+        ...ajustes,
+        sueno: { activo: true, inicio: '25h', fin: '07:00' },
+      }),
     );
   });
 });

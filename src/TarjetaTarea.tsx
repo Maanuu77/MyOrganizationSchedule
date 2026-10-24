@@ -19,11 +19,19 @@ interface Props {
   mostrarPlan?: boolean;
 }
 
-export const TarjetaTarea = memo(function TarjetaTarea({ tarea, etiqueta, compacta, mostrarPlan }: Props) {
+export const TarjetaTarea = memo(function TarjetaTarea({
+  tarea,
+  etiqueta,
+  compacta,
+  mostrarPlan,
+}: Props) {
   const poner = useUI((s) => s.poner);
   const hechas = tarea.subtareas.filter((s) => s.hecha).length;
   const vencida = tarea.fechaLimiteMs !== null && !tarea.completada && isPast(tarea.fechaLimiteMs);
-  const pronto = tarea.fechaLimiteMs !== null && !vencida && differenceInHours(tarea.fechaLimiteMs, Date.now()) < 24;
+  const pronto =
+    tarea.fechaLimiteMs !== null &&
+    !vencida &&
+    differenceInHours(tarea.fechaLimiteMs, Date.now()) < 24;
 
   return (
     <motion.div
@@ -51,7 +59,11 @@ export const TarjetaTarea = memo(function TarjetaTarea({ tarea, etiqueta, compac
         className="min-w-0 flex-1 text-left"
         aria-label={`${t.comun.editar}: ${tarea.titulo}`}
       >
-        <p className={`text-sm font-semibold text-texto ${tarea.completada ? 'line-through decoration-2' : ''}`}>{tarea.titulo}</p>
+        <p
+          className={`text-sm font-semibold text-texto ${tarea.completada ? 'line-through decoration-2' : ''}`}
+        >
+          {tarea.titulo}
+        </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-texto-suave">
           {etiqueta && <ChipEtiqueta etiqueta={etiqueta} pequeno />}
           {(tarea.prioridad === 'alta' || tarea.prioridad === 'urgente') && (
@@ -60,9 +72,15 @@ export const TarjetaTarea = memo(function TarjetaTarea({ tarea, etiqueta, compac
             </span>
           )}
           {tarea.fechaLimiteMs !== null && (
-            <span className={`flex items-center gap-1 font-semibold ${vencida ? 'text-peligro' : pronto ? 'text-aviso' : ''}`}>
+            <span
+              className={`flex items-center gap-1 font-semibold ${vencida ? 'text-peligro' : pronto ? 'text-aviso' : ''}`}
+            >
               <AlarmClock size={12} aria-hidden />
-              {vencida ? t.tareas.vencida : t.tareas.vence(`${diaRelativo(tarea.fechaLimiteMs).toLowerCase()} ${formatear(tarea.fechaLimiteMs, 'HH:mm')}`)}
+              {vencida
+                ? t.tareas.vencida
+                : t.tareas.vence(
+                    `${diaRelativo(tarea.fechaLimiteMs).toLowerCase()} ${formatear(tarea.fechaLimiteMs, 'HH:mm')}`,
+                  )}
             </span>
           )}
           {mostrarPlan && tarea.planificacion.tipo === 'dia' && (

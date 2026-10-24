@@ -22,7 +22,8 @@ export interface DocumentoBase {
 
 export type Tema = 'claro' | 'oscuro' | 'sistema';
 export type Densidad = 'compacta' | 'normal' | 'comoda';
-export type PantallaInicio = 'hoy' | 'semana' | 'calendario' | 'tareas' | 'rutinas' | 'estadisticas';
+export type PantallaInicio =
+  'hoy' | 'semana' | 'calendario' | 'tareas' | 'rutinas' | 'estadisticas';
 export type TipoNotificacion =
   | 'inicioBloque'
   | 'faseTemporizador'
@@ -423,11 +424,7 @@ export interface IntegracionGoogle {
 // ---------------------------------------------------------------------------
 
 export type TipoAviso =
-  | 'solape'
-  | 'focoExcesivo'
-  | 'sesionesSeguidas'
-  | 'fechaLimiteSinTiempo'
-  | 'sueno';
+  'solape' | 'focoExcesivo' | 'sesionesSeguidas' | 'fechaLimiteSinTiempo' | 'sueno';
 
 export interface AvisoCarga {
   id: string;

@@ -2,8 +2,22 @@
 import { Check } from 'lucide-react';
 
 export const PALETA = [
-  '#6D5CF0', '#5B4BDB', '#2F6FD6', '#0EA5E9', '#14B8A6', '#12A37F', '#65A30D', '#CA8A04',
-  '#E8A317', '#F97316', '#FF6B4A', '#E5484D', '#DB2777', '#C026D3', '#8B5CF6', '#64748B',
+  '#6D5CF0',
+  '#5B4BDB',
+  '#2F6FD6',
+  '#0EA5E9',
+  '#14B8A6',
+  '#12A37F',
+  '#65A30D',
+  '#CA8A04',
+  '#E8A317',
+  '#F97316',
+  '#FF6B4A',
+  '#E5484D',
+  '#DB2777',
+  '#C026D3',
+  '#8B5CF6',
+  '#64748B',
 ];
 
 interface Props {

@@ -151,7 +151,8 @@ export const t = {
     masEventos: (n: number) => `+${n} más`,
     agendaVacia: 'No hay nada planificado en los próximos días.',
     panelEtiquetas: 'Arrastra al calendario',
-    panelEtiquetasAyuda: 'Arrastra una etiqueta o una tarea a un hueco. En móvil, mantén pulsado para arrastrar.',
+    panelEtiquetasAyuda:
+      'Arrastra una etiqueta o una tarea a un hueco. En móvil, mantén pulsado para arrastrar.',
     sinEtiquetas: 'Aún no tienes etiquetas.',
     crearEtiquetas: 'Crear etiquetas',
     backlog: 'Tareas sin hora',
@@ -198,7 +199,8 @@ export const t = {
     rutina: 'Rutina',
     repetir: 'Repetir',
     hecho: 'Hecho',
-    protegidoAyuda: 'Nada podrá colocarse encima sin que lo confirmes (sueño, comidas, tiempo personal…).',
+    protegidoAyuda:
+      'Nada podrá colocarse encima sin que lo confirmes (sueño, comidas, tiempo personal…).',
   },
 
   recurrencia: {
@@ -216,7 +218,10 @@ export const t = {
     diaDelMes: 'El mismo día del mes',
     variosDias: 'Varios días del mes',
     ordinal: 'Un día de la semana concreto',
-    ordinales: { 1: 'Primer', 2: 'Segundo', 3: 'Tercer', 4: 'Cuarto', [-1]: 'Último' } as Record<number, string>,
+    ordinales: { 1: 'Primer', 2: 'Segundo', 3: 'Tercer', 4: 'Cuarto', [-1]: 'Último' } as Record<
+      number,
+      string
+    >,
     termina: 'Termina',
     finNunca: 'Nunca',
     finFecha: 'El día',
@@ -272,7 +277,12 @@ export const t = {
     completada: '¡Hecha!',
     filtros: 'Filtros',
     orden: 'Ordenar por',
-    ordenes: { prioridad: 'Prioridad', fechaLimite: 'Fecha límite', creacion: 'Recientes', manual: 'Manual' },
+    ordenes: {
+      prioridad: 'Prioridad',
+      fechaLimite: 'Fecha límite',
+      creacion: 'Recientes',
+      manual: 'Manual',
+    },
     verCompletadas: 'Mostrar completadas',
     vence: (texto: string) => `Vence ${texto}`,
     vencida: 'Vencida',
@@ -369,7 +379,8 @@ export const t = {
     cumplimiento: 'Cumplimiento',
     pasosHechos: 'Pasos hechos',
     vacioTitulo: 'Sin rutinas por ahora',
-    vacioTexto: 'Una rutina es una lista de pasos que repites: tu mañana, tu repaso semanal, tu cierre de mes…',
+    vacioTexto:
+      'Una rutina es una lista de pasos que repites: tu mañana, tu repaso semanal, tu cierre de mes…',
     borrarTitulo: 'Borrar rutina',
     tocaHoy: 'Toca hoy',
     pasoActual: 'Paso actual',
@@ -412,7 +423,8 @@ export const t = {
 
   avisos: {
     titulo: 'Centro de avisos',
-    subtitulo: 'Problemas detectados en tu planificación de los próximos 14 días. Solo te avisan: tú decides.',
+    subtitulo:
+      'Problemas detectados en tu planificación de los próximos 14 días. Solo te avisan: tú decides.',
     vacioTitulo: 'Todo en orden',
     vacioTexto: 'No hay solapes ni sobrecargas a la vista. Buen plan.',
     ver: 'Ver en el calendario',
@@ -548,14 +560,16 @@ export const t = {
     sincronizar: 'Sincronizar ahora',
     sincronizando: 'Sincronizando…',
     ultima: (texto: string) => `Última sincronización: ${texto}`,
-    resultado: (imp: number, exp: number) => `Importados/actualizados ${imp} · Exportados/actualizados ${exp}`,
+    resultado: (imp: number, exp: number) =>
+      `Importados/actualizados ${imp} · Exportados/actualizados ${exp}`,
     tokenCaducado: 'El permiso de Google caduca cada hora. Vuelve a conectar para sincronizar.',
     limitacion:
       'La sincronización es manual (botón «Sincronizar ahora»). La automática en segundo plano necesitaría un servidor con permiso permanente.',
   },
 
   notificaciones: {
-    permisoDenegado: 'Has bloqueado las notificaciones en el navegador. Actívalas en la configuración del sitio.',
+    permisoDenegado:
+      'Has bloqueado las notificaciones en el navegador. Actívalas en la configuración del sitio.',
     sinVapid: 'Falta la clave VAPID en el .env: solo funcionarán los avisos con la app abierta.',
     activadas: 'Notificaciones activadas en este dispositivo',
     pruebaTitulo: 'Notificaciones listas',

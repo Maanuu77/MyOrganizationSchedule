@@ -3,7 +3,16 @@
 
 import { addDays, startOfDay } from 'date-fns';
 import type { Ajustes, AvisoCarga, Ocurrencia, Tarea } from './tipos';
-import { MS_DIA, MS_HORA, MS_MINUTO, claveDia, duracionTexto, formatear, seSolapan, tramosSueno } from './fechas';
+import {
+  MS_DIA,
+  MS_HORA,
+  MS_MINUTO,
+  claveDia,
+  duracionTexto,
+  formatear,
+  seSolapan,
+  tramosSueno,
+} from './fechas';
 
 type AjustesAvisos = Pick<Ajustes, 'umbrales' | 'sueno'>;
 
@@ -13,7 +22,9 @@ function conHora(ocurrencias: Ocurrencia[]): Ocurrencia[] {
 }
 
 export function detectarSolapes(ocurrencias: Ocurrencia[]): AvisoCarga[] {
-  const lista = conHora(ocurrencias).slice().sort((a, b) => a.inicioMs - b.inicioMs);
+  const lista = conHora(ocurrencias)
+    .slice()
+    .sort((a, b) => a.inicioMs - b.inicioMs);
   const avisos: AvisoCarga[] = [];
   const activas: Ocurrencia[] = [];
   for (const o of lista) {
@@ -54,7 +65,10 @@ function sesionesPorDia(ocurrencias: Ocurrencia[]): Map<string, Ocurrencia[]> {
   return mapa;
 }
 
-export function detectarFocoExcesivo(ocurrencias: Ocurrencia[], ajustes: AjustesAvisos): AvisoCarga[] {
+export function detectarFocoExcesivo(
+  ocurrencias: Ocurrencia[],
+  ajustes: AjustesAvisos,
+): AvisoCarga[] {
   const umbral = ajustes.umbrales.focoDiarioMaxHoras * MS_HORA;
   const avisos: AvisoCarga[] = [];
   for (const [dia, sesiones] of sesionesPorDia(ocurrencias)) {
@@ -74,7 +88,10 @@ export function detectarFocoExcesivo(ocurrencias: Ocurrencia[], ajustes: Ajustes
   return avisos;
 }
 
-export function detectarSesionesSeguidas(ocurrencias: Ocurrencia[], ajustes: AjustesAvisos): AvisoCarga[] {
+export function detectarSesionesSeguidas(
+  ocurrencias: Ocurrencia[],
+  ajustes: AjustesAvisos,
+): AvisoCarga[] {
   const maximo = ajustes.umbrales.sesionesSeguidasMax;
   const hueco = ajustes.umbrales.descansoMinimoMin * MS_MINUTO;
   const avisos: AvisoCarga[] = [];
@@ -118,7 +135,9 @@ export function detectarFechasLimite(
   for (const t of tareas) {
     if (t.completada || t.fechaLimiteMs === null || t.fechaLimiteMs > horizonte) continue;
     const planificado = ocurrencias
-      .filter((o) => o.evento.tareaId === t.id && o.finMs > ahoraMs && o.inicioMs < t.fechaLimiteMs!)
+      .filter(
+        (o) => o.evento.tareaId === t.id && o.finMs > ahoraMs && o.inicioMs < t.fechaLimiteMs!,
+      )
       .reduce((s, o) => s + (o.finMs - o.inicioMs), 0);
     const necesario = (t.estimacionMin ?? 0) * MS_MINUTO;
     const vencida = t.fechaLimiteMs < ahoraMs;
@@ -160,7 +179,9 @@ export function detectarSueno(ocurrencias: Ocurrencia[], ajustes: AjustesAvisos)
     // Revisamos el día en que empieza y el siguiente (por si el bloque cruza la medianoche)
     const dias = [startOfDay(o.inicioMs), addDays(startOfDay(o.inicioMs), 1)];
     const choca = dias.some((d) =>
-      tramosSueno(d, ajustes.sueno.inicio, ajustes.sueno.fin).some(([a, b]) => seSolapan(a, b, o.inicioMs, o.finMs)),
+      tramosSueno(d, ajustes.sueno.inicio, ajustes.sueno.fin).some(([a, b]) =>
+        seSolapan(a, b, o.inicioMs, o.finMs),
+      ),
     );
     if (choca) {
       avisos.push({
@@ -168,7 +189,7 @@ export function detectarSueno(ocurrencias: Ocurrencia[], ajustes: AjustesAvisos)
         tipo: 'sueno',
         severidad: 'aviso',
         titulo: 'Bloque en tu horario de sueño',
-        detalle: `«${o.titulo}» (${formatear(o.inicioMs, "EEEE d, HH:mm")}) invade tu descanso de ${ajustes.sueno.inicio} a ${ajustes.sueno.fin}.`,
+        detalle: `«${o.titulo}» (${formatear(o.inicioMs, 'EEEE d, HH:mm')}) invade tu descanso de ${ajustes.sueno.inicio} a ${ajustes.sueno.fin}.`,
         fecha: claveDia(o.inicioMs),
         claves: [o.clave],
       });

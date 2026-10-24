@@ -167,7 +167,11 @@ h4 {
 
 @layer components {
   .tarjeta {
-    background: linear-gradient(180deg, var(--mos-superficie) 0%, color-mix(in oklab, var(--mos-superficie) 94%, var(--mos-acento)) 100%);
+    background: linear-gradient(
+      180deg,
+      var(--mos-superficie) 0%,
+      color-mix(in oklab, var(--mos-superficie) 94%, var(--mos-acento)) 100%
+    );
     border: 1px solid var(--mos-borde);
     border-radius: var(--mos-radio-lg);
     box-shadow: var(--mos-sombra-1);
@@ -181,7 +185,11 @@ h4 {
   }
 
   .degradado-marca {
-    background: linear-gradient(135deg, var(--mos-acento) 0%, color-mix(in oklab, var(--mos-acento) 55%, var(--mos-acento-2)) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--mos-acento) 0%,
+      color-mix(in oklab, var(--mos-acento) 55%, var(--mos-acento-2)) 100%
+    );
   }
 
   .texto-degradado {
@@ -199,7 +207,9 @@ h4 {
     padding: 0.55rem 0.75rem;
     color: var(--mos-texto);
     font-size: 0.95rem;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
   }
   .campo:focus {
     outline: none;

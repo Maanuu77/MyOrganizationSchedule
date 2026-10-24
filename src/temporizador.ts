@@ -5,13 +5,37 @@
 // reloj corregido; por eso no hace falta un setInterval funcionando en segundo plano.
 // Los cambios usan transacciones para que dos dispositivos no avancen la fase a la vez.
 
-import { Timestamp, deleteDoc, getDocs, query, runTransaction, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import {
+  Timestamp,
+  deleteDoc,
+  getDocs,
+  query,
+  runTransaction,
+  serverTimestamp,
+  setDoc,
+  where,
+} from 'firebase/firestore';
 import { obtenerDb } from './firebase';
-import { COLECCIONES, ejecuciones, enLotes, limpiar, refColeccion, refDoc, registros, uidActual } from './datos';
+import {
+  COLECCIONES,
+  ejecuciones,
+  enLotes,
+  limpiar,
+  refColeccion,
+  refDoc,
+  registros,
+  uidActual,
+} from './datos';
 import { useDatos } from './almacenDatos';
 import { claveDia } from './fechas';
 import { ahoraServidor, idDispositivo } from './relojServidor';
-import { calcularAvance, mensajeFase, resumirTramos, transcurridoMs, type EstadoPlano } from './ciclos';
+import {
+  calcularAvance,
+  mensajeFase,
+  resumirTramos,
+  transcurridoMs,
+  type EstadoPlano,
+} from './ciclos';
 import { idRecordatorio } from './recordatorios';
 import type { EstadoContador, FaseExpandida, Recordatorio, TramoSesion } from './tipos';
 
@@ -47,7 +71,10 @@ export async function iniciarSesion(o: OpcionesInicio): Promise<void> {
   const estado = {
     estado: 'enCurso',
     modo: o.modo,
-    fases: o.modo === 'ciclo' ? o.fases : [{ tipo: 'foco', nombre: 'Foco libre', color: '#6D5CF0', duracionMs: 0 }],
+    fases:
+      o.modo === 'ciclo'
+        ? o.fases
+        : [{ tipo: 'foco', nombre: 'Foco libre', color: '#6D5CF0', duracionMs: 0 }],
     indiceFase: 0,
     inicioFase: serverTimestamp(),
     duracionFaseMs: o.modo === 'ciclo' ? (o.fases[0]?.duracionMs ?? 0) : 0,
@@ -68,20 +95,28 @@ export async function iniciarSesion(o: OpcionesInicio): Promise<void> {
 }
 
 /** Ejecuta un cambio dentro de una transacción leyendo el estado más reciente. */
-async function cambiar(fn: (e: EstadoContador) => Partial<Record<keyof EstadoContador, unknown>> | null): Promise<void> {
+async function cambiar(
+  fn: (e: EstadoContador) => Partial<Record<keyof EstadoContador, unknown>> | null,
+): Promise<void> {
   await runTransaction(obtenerDb(), async (tx) => {
     const snap = await tx.get(refContador());
     if (!snap.exists()) return;
     const actual = snap.data() as EstadoContador;
     const cambios = fn(actual);
     if (!cambios) return;
-    tx.update(refContador(), { ...cambios, actualizadoPor: idDispositivo(), version: (actual.version ?? 0) + 1 });
+    tx.update(refContador(), {
+      ...cambios,
+      actualizadoPor: idDispositivo(),
+      version: (actual.version ?? 0) + 1,
+    });
   });
 }
 
 export function pausar(): Promise<void> {
   return cambiar((e) =>
-    e.estado === 'enCurso' ? { estado: 'pausado', pausadoEn: serverTimestamp(), interrupciones: e.interrupciones + 1 } : null,
+    e.estado === 'enCurso'
+      ? { estado: 'pausado', pausadoEn: serverTimestamp(), interrupciones: e.interrupciones + 1 }
+      : null,
   );
 }
 
@@ -111,7 +146,13 @@ export function saltarFase(): Promise<void> {
     return {
       tramos: [...e.tramos, tramo],
       indiceFase: siguiente,
-      estado: terminado ? 'esperando' : e.estado === 'pausado' ? 'enCurso' : e.estado === 'esperando' ? 'enCurso' : e.estado,
+      estado: terminado
+        ? 'esperando'
+        : e.estado === 'pausado'
+          ? 'enCurso'
+          : e.estado === 'esperando'
+            ? 'enCurso'
+            : e.estado,
       inicioFase: serverTimestamp(),
       duracionFaseMs: terminado ? 0 : e.fases[siguiente].duracionMs,
       pausaAcumuladaMs: 0,
@@ -230,7 +271,12 @@ async function completarEjecucionDeHoy(rutinaId: string): Promise<void> {
   const previa = lista.find((e) => e.rutinaId === rutinaId && e.fecha === hoy);
   const pasos = rutina?.pasos.map((p) => p.id) ?? [];
   if (previa) {
-    await ejecuciones.actualizar(previa.id, { completada: true, finMs: Date.now(), pasosHechos: pasos, indicePaso: pasos.length });
+    await ejecuciones.actualizar(previa.id, {
+      completada: true,
+      finMs: Date.now(),
+      pasosHechos: pasos,
+      indicePaso: pasos.length,
+    });
   } else {
     await ejecuciones.crear({
       rutinaId,
@@ -267,7 +313,9 @@ export async function sincronizarRecordatoriosContador(
 ): Promise<void> {
   if (!forzar && e && e.actualizadoPor !== idDispositivo()) return;
   const uid = uidActual();
-  const existentes = await getDocs(query(refColeccion(COLECCIONES.recordatorios), where('tipo', '==', 'faseTemporizador')));
+  const existentes = await getDocs(
+    query(refColeccion(COLECCIONES.recordatorios), where('tipo', '==', 'faseTemporizador')),
+  );
   const nuevos: Recordatorio[] = [];
   const plano = aPlano(e);
   if (e && plano && e.estado === 'enCurso' && e.modo === 'ciclo' && plano.inicioFaseMs !== null) {
@@ -280,7 +328,18 @@ export async function sincronizarRecordatoriosContador(
         ? `${siguiente.nombre} · ${Math.round(siguiente.duracionMs / 60000)} min`
         : 'Guarda la sesión para que cuente en tus estadísticas.';
       const id = idRecordatorio('faseTemporizador', `fase${i}`, Math.round(fin));
-      nuevos.push({ id, uid, tipo: 'faseTemporizador', refId: `fase${i}`, fireAt: Math.round(fin), titulo, cuerpo, url: '/foco', enviado: false, creadoEnMs: Date.now() });
+      nuevos.push({
+        id,
+        uid,
+        tipo: 'faseTemporizador',
+        refId: `fase${i}`,
+        fireAt: Math.round(fin),
+        titulo,
+        cuerpo,
+        url: '/foco',
+        enviado: false,
+        creadoEnMs: Date.now(),
+      });
       // Sin avance automático solo avisamos del primer cambio (luego espera al usuario)
       if (!siguiente || !autoAvanzar) break;
       fin += siguiente.duracionMs;

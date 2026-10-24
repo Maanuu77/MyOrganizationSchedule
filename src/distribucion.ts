@@ -21,7 +21,10 @@ export function colocarBloques(ocurrencias: Ocurrencia[], inicioDiaMs: number): 
       ocurrencia: o,
       inicioMin: Math.max(0, (o.inicioMs - inicioDiaMs) / 60000),
       // Mínimo 15 minutos de alto para que siempre se pueda pulsar
-      finMin: Math.min(1440, Math.max((o.finMs - inicioDiaMs) / 60000, (o.inicioMs - inicioDiaMs) / 60000 + 15)),
+      finMin: Math.min(
+        1440,
+        Math.max((o.finMs - inicioDiaMs) / 60000, (o.inicioMs - inicioDiaMs) / 60000 + 15),
+      ),
       columna: 0,
       totalColumnas: 1,
     }))

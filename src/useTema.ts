@@ -18,7 +18,9 @@ export function useTema(): void {
     raiz.dataset.tema = oscuro ? 'oscuro' : 'claro';
     raiz.dataset.densidad = densidad;
     raiz.style.setProperty('--mos-acento', colorAcento);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', oscuro ? '#0f0e1a' : '#f5f4fb');
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', oscuro ? '#0f0e1a' : '#f5f4fb');
     if (cargados) guardarLocal('mos-tema', { tema, colorAcento, densidad });
   }, [tema, colorAcento, densidad, sistemaOscuro, cargados]);
 }

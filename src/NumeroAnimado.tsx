@@ -9,7 +9,12 @@ interface Props {
   className?: string;
 }
 
-export function NumeroAnimado({ valor, formatear = (n) => Math.round(n).toLocaleString('es-ES'), duracion = 0.9, className }: Props) {
+export function NumeroAnimado({
+  valor,
+  formatear = (n) => Math.round(n).toLocaleString('es-ES'),
+  duracion = 0.9,
+  className,
+}: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const anterior = useRef(0);
   const reducido = useReducedMotion();

@@ -47,7 +47,15 @@ export function nombreDispositivo(): string {
           : /Linux/i.test(ua)
             ? 'Linux'
             : 'Dispositivo';
-  const nav = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Navegador';
+  const nav = /Edg\//.test(ua)
+    ? 'Edge'
+    : /Chrome\//.test(ua)
+      ? 'Chrome'
+      : /Firefox\//.test(ua)
+        ? 'Firefox'
+        : /Safari\//.test(ua)
+          ? 'Safari'
+          : 'Navegador';
   return `${nav} en ${so}`;
 }
 

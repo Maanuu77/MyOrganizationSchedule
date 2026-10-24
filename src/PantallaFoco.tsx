@@ -5,7 +5,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
-import { CloudCheck, Pause, Play, Plus, Scissors, SkipForward, Square, Star, Timer, TriangleAlert, Workflow } from 'lucide-react';
+import {
+  CloudCheck,
+  Pause,
+  Play,
+  Plus,
+  Scissors,
+  SkipForward,
+  Square,
+  Star,
+  Timer,
+  TriangleAlert,
+  Workflow,
+} from 'lucide-react';
 import { buscarEtiqueta, etiquetasActivas, useDatos } from './almacenDatos';
 import { avisar } from './almacenUI';
 import { useEstadoContador } from './useTemporizador';
@@ -53,7 +65,9 @@ function PrepararSesion() {
   const activas = useMemo(() => etiquetasActivas(etiquetas), [etiquetas]);
   const ciclo = ciclos.find((c) => c.id === cicloId) ?? ciclos[0];
   const fases = useMemo(() => (ciclo ? expandirCiclo(ciclo) : []), [ciclo]);
-  const pendientes = tareas.filter((x) => !x.completada && (!etiquetaId || x.etiquetaId === etiquetaId || !x.etiquetaId));
+  const pendientes = tareas.filter(
+    (x) => !x.completada && (!etiquetaId || x.etiquetaId === etiquetaId || !x.etiquetaId),
+  );
 
   const empezar = async () => {
     setEmpezando(true);
@@ -117,7 +131,12 @@ function PrepararSesion() {
 
         <Campo etiqueta={t.foco.tarea}>
           {(id) => (
-            <select id={id} className="campo" value={tareaId} onChange={(e) => setTareaId(e.target.value)}>
+            <select
+              id={id}
+              className="campo"
+              value={tareaId}
+              onChange={(e) => setTareaId(e.target.value)}
+            >
               <option value="">{t.comun.ninguna}</option>
               {pendientes.map((x) => (
                 <option key={x.id} value={x.id}>
@@ -148,7 +167,10 @@ function PrepararSesion() {
                 <Boton variante="suave" tamano="sm" onClick={añadirArranque}>
                   {t.ciclos.arranque}
                 </Boton>
-                <Link to="/ciclos" className="inline-flex h-8 items-center rounded-sm px-3 text-sm font-semibold text-acento hover:bg-acento/10">
+                <Link
+                  to="/ciclos"
+                  className="inline-flex h-8 items-center rounded-sm px-3 text-sm font-semibold text-acento hover:bg-acento/10"
+                >
                   {t.ciclos.nuevo}
                 </Link>
               </div>
@@ -158,7 +180,12 @@ function PrepararSesion() {
               <div className="flex items-end gap-2">
                 <Campo etiqueta={t.foco.ciclo} className="flex-1">
                   {(id) => (
-                    <select id={id} className="campo" value={ciclo?.id ?? ''} onChange={(e) => setCicloId(e.target.value)}>
+                    <select
+                      id={id}
+                      className="campo"
+                      value={ciclo?.id ?? ''}
+                      onChange={(e) => setCicloId(e.target.value)}
+                    >
                       {ciclos.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.nombre}
@@ -167,16 +194,28 @@ function PrepararSesion() {
                     </select>
                   )}
                 </Campo>
-                <Link to="/ciclos" className="inline-flex h-10 items-center rounded-md px-3 text-sm font-semibold text-acento hover:bg-acento/10">
+                <Link
+                  to="/ciclos"
+                  className="inline-flex h-10 items-center rounded-md px-3 text-sm font-semibold text-acento hover:bg-acento/10"
+                >
                   {t.foco.editarCiclos}
                 </Link>
               </div>
               <BarraFases fases={fases} />
-              <p className="text-xs text-texto-suave">{t.ciclos.total(duracionTexto(duracionTotal(fases)))}</p>
+              <p className="text-xs text-texto-suave">
+                {t.ciclos.total(duracionTexto(duracionTotal(fases)))}
+              </p>
             </div>
           ))}
 
-        <Boton variante="primario" tamano="lg" className="w-full justify-center" icono={<Play size={18} />} onClick={empezar} cargando={empezando}>
+        <Boton
+          variante="primario"
+          tamano="lg"
+          className="w-full justify-center"
+          icono={<Play size={18} />}
+          onClick={empezar}
+          cargando={empezando}
+        >
           {t.foco.empezar}
         </Boton>
       </div>
@@ -185,7 +224,8 @@ function PrepararSesion() {
 }
 
 function SesionEnCurso() {
-  const { contador, fase, siguiente, restanteMs, transcurridoMs, progreso, cicloTerminado, ahora } = useEstadoContador();
+  const { contador, fase, siguiente, restanteMs, transcurridoMs, progreso, cicloTerminado, ahora } =
+    useEstadoContador();
   const etiquetas = useDatos((s) => s.etiquetas);
   const tareas = useDatos((s) => s.tareas);
   const formato24h = useDatos((s) => s.ajustes.formato24h);
@@ -199,7 +239,8 @@ function SesionEnCurso() {
   const finFase = ahora + restanteMs;
   const proximos = useOcurrencias(ahora, ahora + 6 * 3_600_000);
   const invadido = useMemo(() => {
-    if (!contador || contador.modo !== 'ciclo' || contador.estado !== 'enCurso' || !fase) return null;
+    if (!contador || contador.modo !== 'ciclo' || contador.estado !== 'enCurso' || !fase)
+      return null;
     return (
       proximos.find(
         (o) =>
@@ -227,7 +268,9 @@ function SesionEnCurso() {
   if (!contador) return null;
   const etiqueta = buscarEtiqueta(etiquetas, contador.etiquetaId);
   const tarea = tareas.find((x) => x.id === contador.tareaId);
-  const color = cicloTerminado ? 'var(--mos-exito)' : (fase?.color ?? etiqueta?.color ?? 'var(--mos-acento)');
+  const color = cicloTerminado
+    ? 'var(--mos-exito)'
+    : (fase?.color ?? etiqueta?.color ?? 'var(--mos-acento)');
   const pausado = contador.estado === 'pausado';
   const esperando = contador.estado === 'esperando';
   const cronometro = contador.modo === 'cronometro';
@@ -259,14 +302,22 @@ function SesionEnCurso() {
       {/* Fondo suave con el color de la fase */}
       <motion.div
         className="pointer-events-none fixed inset-0 -z-10"
-        animate={{ background: `radial-gradient(60% 50% at 50% 30%, color-mix(in oklab, ${color} 16%, transparent), transparent)` }}
+        animate={{
+          background: `radial-gradient(60% 50% at 50% 30%, color-mix(in oklab, ${color} 16%, transparent), transparent)`,
+        }}
         transition={{ duration: 1 }}
         aria-hidden
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
         {etiqueta && (
-          <span className="chip text-sm" style={{ background: `color-mix(in oklab, ${etiqueta.color} 15%, transparent)`, color: etiqueta.color }}>
+          <span
+            className="chip text-sm"
+            style={{
+              background: `color-mix(in oklab, ${etiqueta.color} 15%, transparent)`,
+              color: etiqueta.color,
+            }}
+          >
             <IconoEtiqueta nombre={etiqueta.icono} tamano={14} /> {etiqueta.nombre}
           </span>
         )}
@@ -286,21 +337,48 @@ function SesionEnCurso() {
           style={{ color }}
           aria-live="assertive"
         >
-          {cicloTerminado ? t.foco.cicloTerminado : esperando ? t.foco.esperando : cronometro ? t.foco.cronometro : fase?.nombre}
+          {cicloTerminado
+            ? t.foco.cicloTerminado
+            : esperando
+              ? t.foco.esperando
+              : cronometro
+                ? t.foco.cronometro
+                : fase?.nombre}
         </motion.p>
       </AnimatePresence>
 
-      <AnilloProgreso progreso={cronometro ? (transcurridoMs % 3_600_000) / 3_600_000 : cicloTerminado ? 1 : progreso} tamano={tamano} grosor={esMovil ? 14 : 18} color={color} suavidad={0.4}>
+      <AnilloProgreso
+        progreso={
+          cronometro ? (transcurridoMs % 3_600_000) / 3_600_000 : cicloTerminado ? 1 : progreso
+        }
+        tamano={tamano}
+        grosor={esMovil ? 14 : 18}
+        color={color}
+        suavidad={0.4}
+      >
         <div>
-          <p className={`numeros font-titulos font-extrabold tracking-tight ${esMovil ? 'text-5xl' : 'text-7xl'} ${pausado ? 'animate-pulse opacity-70' : ''}`} aria-label="Tiempo">
-            {cronometro ? relojTexto(transcurridoMs) : cicloTerminado ? '✓' : relojTexto(restanteMs)}
+          <p
+            className={`numeros font-titulos font-extrabold tracking-tight ${esMovil ? 'text-5xl' : 'text-7xl'} ${pausado ? 'animate-pulse opacity-70' : ''}`}
+            aria-label="Tiempo"
+          >
+            {cronometro
+              ? relojTexto(transcurridoMs)
+              : cicloTerminado
+                ? '✓'
+                : relojTexto(restanteMs)}
           </p>
           {!cronometro && !cicloTerminado && (
             <p className="mt-1 text-sm text-texto-suave">
-              {siguiente ? `${t.foco.siguienteFase}: ${siguiente.nombre} · ${Math.round(siguiente.duracionMs / 60000)}′` : t.foco.ultimaFase}
+              {siguiente
+                ? `${t.foco.siguienteFase}: ${siguiente.nombre} · ${Math.round(siguiente.duracionMs / 60000)}′`
+                : t.foco.ultimaFase}
             </p>
           )}
-          {pausado && <p className="mt-1 text-xs font-bold tracking-wide text-aviso uppercase">{t.foco.pausar}</p>}
+          {pausado && (
+            <p className="mt-1 text-xs font-bold tracking-wide text-aviso uppercase">
+              {t.foco.pausar}
+            </p>
+          )}
         </div>
       </AnilloProgreso>
 
@@ -313,49 +391,93 @@ function SesionEnCurso() {
       {invadido && (
         <div className="mt-5 flex w-full max-w-md flex-wrap items-center gap-2 rounded-lg border border-aviso/40 bg-aviso/10 px-4 py-3 text-left text-sm">
           <TriangleAlert size={18} className="shrink-0 text-aviso" aria-hidden />
-          <span className="flex-1">{t.foco.invade(invadido.titulo, formatearHora(invadido.inicioMs, formato24h))}</span>
-          <Boton variante="secundario" tamano="sm" icono={<Scissors size={14} />} onClick={() => cortarFaseEn(invadido.inicioMs)}>
+          <span className="flex-1">
+            {t.foco.invade(invadido.titulo, formatearHora(invadido.inicioMs, formato24h))}
+          </span>
+          <Boton
+            variante="secundario"
+            tamano="sm"
+            icono={<Scissors size={14} />}
+            onClick={() => cortarFaseEn(invadido.inicioMs)}
+          >
             {t.foco.cortar}
           </Boton>
         </div>
       )}
 
       {(esperando || cicloTerminado) && (
-        <p className="mt-5 max-w-sm text-sm text-texto-suave">{cicloTerminado ? t.foco.cicloTerminadoTexto : t.foco.esperandoTexto}</p>
+        <p className="mt-5 max-w-sm text-sm text-texto-suave">
+          {cicloTerminado ? t.foco.cicloTerminadoTexto : t.foco.esperandoTexto}
+        </p>
       )}
 
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         {cicloTerminado ? (
-          <Boton variante="primario" tamano="lg" icono={<Square size={16} />} onClick={abrirGuardar}>
+          <Boton
+            variante="primario"
+            tamano="lg"
+            icono={<Square size={16} />}
+            onClick={abrirGuardar}
+          >
             {t.foco.guardarTitulo}
           </Boton>
         ) : esperando ? (
-          <Boton variante="primario" tamano="lg" icono={<Play size={18} />} onClick={() => seguir()}>
+          <Boton
+            variante="primario"
+            tamano="lg"
+            icono={<Play size={18} />}
+            onClick={() => seguir()}
+          >
             {t.foco.seguir}
           </Boton>
         ) : pausado ? (
-          <Boton variante="primario" tamano="lg" icono={<Play size={18} />} onClick={() => reanudar()}>
+          <Boton
+            variante="primario"
+            tamano="lg"
+            icono={<Play size={18} />}
+            onClick={() => reanudar()}
+          >
             {t.foco.reanudar}
           </Boton>
         ) : (
-          <Boton variante="primario" tamano="lg" icono={<Pause size={18} />} onClick={() => pausar()}>
+          <Boton
+            variante="primario"
+            tamano="lg"
+            icono={<Pause size={18} />}
+            onClick={() => pausar()}
+          >
             {t.foco.pausar}
           </Boton>
         )}
         {!cronometro && !cicloTerminado && (
           <>
-            <Boton variante="secundario" tamano="lg" icono={<SkipForward size={16} />} onClick={() => saltarFase()}>
+            <Boton
+              variante="secundario"
+              tamano="lg"
+              icono={<SkipForward size={16} />}
+              onClick={() => saltarFase()}
+            >
               {t.foco.saltar}
             </Boton>
             {!esperando && (
-              <Boton variante="secundario" tamano="lg" icono={<Plus size={16} />} onClick={() => añadirMinutos(5)}>
+              <Boton
+                variante="secundario"
+                tamano="lg"
+                icono={<Plus size={16} />}
+                onClick={() => añadirMinutos(5)}
+              >
                 {t.foco.mas5}
               </Boton>
             )}
           </>
         )}
         {!cicloTerminado && (
-          <Boton variante="fantasma" tamano="lg" icono={<Square size={16} />} onClick={abrirGuardar}>
+          <Boton
+            variante="fantasma"
+            tamano="lg"
+            icono={<Square size={16} />}
+            onClick={abrirGuardar}
+          >
             {t.foco.terminar}
           </Boton>
         )}
@@ -412,14 +534,30 @@ function SesionEnCurso() {
                     onClick={() => setValoracion(valoracion === n ? null : n)}
                     className="rounded-md p-1 transition-transform hover:scale-110"
                   >
-                    <Star size={28} className={valoracion !== null && n <= valoracion ? 'fill-aviso text-aviso' : 'text-borde-fuerte'} />
+                    <Star
+                      size={28}
+                      className={
+                        valoracion !== null && n <= valoracion
+                          ? 'fill-aviso text-aviso'
+                          : 'text-borde-fuerte'
+                      }
+                    />
                   </button>
                 ))}
               </div>
               <p className="mt-1 text-xs text-texto-tenue">{t.foco.valoracionAyuda}</p>
             </div>
             <Campo etiqueta={t.foco.nota}>
-              {(id) => <textarea id={id} rows={3} maxLength={2000} className="campo" value={nota} onChange={(e) => setNota(e.target.value)} />}
+              {(id) => (
+                <textarea
+                  id={id}
+                  rows={3}
+                  maxLength={2000}
+                  className="campo"
+                  value={nota}
+                  onChange={(e) => setNota(e.target.value)}
+                />
+              )}
             </Campo>
           </div>
         )}

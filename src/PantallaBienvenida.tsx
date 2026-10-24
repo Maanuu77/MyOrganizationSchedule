@@ -11,7 +11,11 @@ import { ChipEtiqueta } from './ChipEtiqueta';
 import { etiquetasActivas, useDatos } from './almacenDatos';
 import { avisar } from './almacenUI';
 import { etiquetas as dbEtiquetas, guardarAjustes } from './datos';
-import { activarNotificaciones, notificacionDePrueba, type ResultadoActivacion } from './useNotificaciones';
+import {
+  activarNotificaciones,
+  notificacionDePrueba,
+  type ResultadoActivacion,
+} from './useNotificaciones';
 import { t } from './textos';
 import type { Tema } from './tipos';
 
@@ -48,7 +52,8 @@ export function PantallaBienvenida() {
     }
   };
 
-  const elegirTema = (tema: Tema) => guardarAjustes({ ...ajustes, tema }).catch(() => avisar(t.comun.error, 'error'));
+  const elegirTema = (tema: Tema) =>
+    guardarAjustes({ ...ajustes, tema }).catch(() => avisar(t.comun.error, 'error'));
 
   const terminar = async () => {
     setTerminando(true);
@@ -77,7 +82,9 @@ export function PantallaBienvenida() {
             ))}
           </div>
         </div>
-        <p className="text-xs font-bold tracking-wide text-texto-tenue uppercase">{t.bienvenida.paso(paso, TOTAL)}</p>
+        <p className="text-xs font-bold tracking-wide text-texto-tenue uppercase">
+          {t.bienvenida.paso(paso, TOTAL)}
+        </p>
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -109,7 +116,12 @@ export function PantallaBienvenida() {
                       onChange={(e) => setNombre(e.target.value)}
                       autoFocus
                     />
-                    <Boton type="submit" variante="primario" tamano="icono" aria-label={t.comun.añadir}>
+                    <Boton
+                      type="submit"
+                      variante="primario"
+                      tamano="icono"
+                      aria-label={t.comun.añadir}
+                    >
                       <Plus size={18} />
                     </Boton>
                   </div>
@@ -118,11 +130,17 @@ export function PantallaBienvenida() {
                 </form>
                 {activas.length > 0 && (
                   <div className="mt-5">
-                    <p className="mb-2 text-xs font-semibold text-exito">{t.bienvenida.etiquetasCreadas(activas.length)}</p>
+                    <p className="mb-2 text-xs font-semibold text-exito">
+                      {t.bienvenida.etiquetasCreadas(activas.length)}
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       <AnimatePresence>
                         {activas.map((e) => (
-                          <motion.span key={e.id} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                          <motion.span
+                            key={e.id}
+                            initial={{ scale: 0.6, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                          >
                             <ChipEtiqueta etiqueta={e} />
                           </motion.span>
                         ))}
@@ -137,7 +155,11 @@ export function PantallaBienvenida() {
               <div>
                 <h1 className="mt-1 text-2xl font-extrabold">{t.bienvenida.temaTitulo}</h1>
                 <p className="mt-2 text-sm text-texto-suave">{t.bienvenida.temaTexto}</p>
-                <div role="radiogroup" aria-label={t.ajustes.tema} className="mt-5 grid grid-cols-3 gap-3">
+                <div
+                  role="radiogroup"
+                  aria-label={t.ajustes.tema}
+                  className="mt-5 grid grid-cols-3 gap-3"
+                >
                   {(
                     [
                       ['claro', Sun],
@@ -152,10 +174,16 @@ export function PantallaBienvenida() {
                       aria-checked={ajustes.tema === tema}
                       onClick={() => elegirTema(tema)}
                       className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                        ajustes.tema === tema ? 'border-acento bg-acento/8 shadow-media' : 'border-borde hover:border-borde-fuerte'
+                        ajustes.tema === tema
+                          ? 'border-acento bg-acento/8 shadow-media'
+                          : 'border-borde hover:border-borde-fuerte'
                       }`}
                     >
-                      <Icono size={26} className={ajustes.tema === tema ? 'text-acento' : 'text-texto-suave'} aria-hidden />
+                      <Icono
+                        size={26}
+                        className={ajustes.tema === tema ? 'text-acento' : 'text-texto-suave'}
+                        aria-hidden
+                      />
                       <span className="text-sm font-semibold">{t.ajustes.temas[tema]}</span>
                     </button>
                   ))}
@@ -173,10 +201,16 @@ export function PantallaBienvenida() {
                     transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 1.5 }}
                     className="grid h-16 w-16 place-items-center rounded-full degradado-marca text-white shadow-media"
                   >
-                    {notif === 'activadas' || notif === 'soloLocales' ? <Check size={28} /> : <BellRing size={28} />}
+                    {notif === 'activadas' || notif === 'soloLocales' ? (
+                      <Check size={28} />
+                    ) : (
+                      <BellRing size={28} />
+                    )}
                   </motion.div>
                   {notif === 'activadas' || notif === 'soloLocales' ? (
-                    <p className="text-sm font-semibold text-exito">{t.bienvenida.notifActivadas}</p>
+                    <p className="text-sm font-semibold text-exito">
+                      {t.bienvenida.notifActivadas}
+                    </p>
                   ) : (
                     <Boton
                       variante="primario"
@@ -190,9 +224,21 @@ export function PantallaBienvenida() {
                       {t.bienvenida.notifActivar}
                     </Boton>
                   )}
-                  {notif === 'denegadas' && <p className="text-center text-xs text-peligro">{t.notificaciones.permisoDenegado}</p>}
-                  {notif === 'noSoportadas' && <p className="text-center text-xs text-texto-suave">{t.bienvenida.notifNoSoportadas}</p>}
-                  {notif === 'soloLocales' && <p className="text-center text-xs text-texto-suave">{t.notificaciones.sinVapid}</p>}
+                  {notif === 'denegadas' && (
+                    <p className="text-center text-xs text-peligro">
+                      {t.notificaciones.permisoDenegado}
+                    </p>
+                  )}
+                  {notif === 'noSoportadas' && (
+                    <p className="text-center text-xs text-texto-suave">
+                      {t.bienvenida.notifNoSoportadas}
+                    </p>
+                  )}
+                  {notif === 'soloLocales' && (
+                    <p className="text-center text-xs text-texto-suave">
+                      {t.notificaciones.sinVapid}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

@@ -9,7 +9,13 @@ interface Props {
   tamano?: number;
 }
 
-export function CheckAnimado({ hecho, alCambiar, color = 'var(--mos-acento)', etiqueta, tamano = 24 }: Props) {
+export function CheckAnimado({
+  hecho,
+  alCambiar,
+  color = 'var(--mos-acento)',
+  etiqueta,
+  tamano = 24,
+}: Props) {
   return (
     <motion.button
       type="button"
@@ -51,7 +57,10 @@ export function CheckAnimado({ hecho, alCambiar, color = 'var(--mos-acento)', et
           transition={{ duration: 0.6 }}
           aria-hidden
         >
-          <span className="absolute inset-0 rounded-full" style={{ background: color, opacity: 0.35 }} />
+          <span
+            className="absolute inset-0 rounded-full"
+            style={{ background: color, opacity: 0.35 }}
+          />
         </motion.span>
       )}
     </motion.button>

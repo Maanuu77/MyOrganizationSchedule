@@ -40,7 +40,12 @@ export function PantallaCiclos() {
         subtitulo={t.ciclos.subtitulo}
         acciones={
           <>
-            <Boton variante="secundario" icono={<Sparkles size={16} />} onClick={añadirArranque} title={t.ciclos.arranqueTexto}>
+            <Boton
+              variante="secundario"
+              icono={<Sparkles size={16} />}
+              onClick={añadirArranque}
+              title={t.ciclos.arranqueTexto}
+            >
               {t.ciclos.arranque}
             </Boton>
             <Boton variante="primario" icono={<Plus size={16} />} onClick={() => abrir(null)}>
@@ -70,16 +75,28 @@ export function PantallaCiclos() {
           {ciclos.map((c, i) => {
             const fases = expandirCiclo(c);
             return (
-              <motion.li key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="tarjeta">
+              <motion.li
+                key={c.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="tarjeta"
+              >
                 <div className="mb-3 flex items-center gap-2">
                   <h2 className="flex-1 truncate font-bold">{c.nombre}</h2>
-                  <Boton variante="fantasma" tamano="sm" icono={<Pencil size={14} />} onClick={() => abrir(c)}>
+                  <Boton
+                    variante="fantasma"
+                    tamano="sm"
+                    icono={<Pencil size={14} />}
+                    onClick={() => abrir(c)}
+                  >
                     {t.comun.editar}
                   </Boton>
                 </div>
                 <BarraFases fases={fases} />
                 <p className="mt-2 text-xs text-texto-suave">
-                  {fases.length} fases · {t.ciclos.total(duracionTexto(duracionTotal(fases)))} · {duracionTexto(focoTotal(fases))} de foco
+                  {fases.length} fases · {t.ciclos.total(duracionTexto(duracionTotal(fases)))} ·{' '}
+                  {duracionTexto(focoTotal(fases))} de foco
                 </p>
               </motion.li>
             );

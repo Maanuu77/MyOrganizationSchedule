@@ -20,7 +20,12 @@ function presetDe(regla: ReglaRecurrencia | null, inicio: Date): Preset {
   if (!regla) return 'nunca';
   const simple = regla.intervalo === 1 && regla.fin.tipo === 'nunca';
   if (simple && regla.frecuencia === 'diaria') return 'diaria';
-  if (simple && regla.frecuencia === 'semanal' && (regla.diasSemana ?? []).join() === String(inicio.getDay())) return 'semanal';
+  if (
+    simple &&
+    regla.frecuencia === 'semanal' &&
+    (regla.diasSemana ?? []).join() === String(inicio.getDay())
+  )
+    return 'semanal';
   if (simple && regla.frecuencia === 'mensual' && !regla.mensual) return 'mensual';
   return 'personalizada';
 }
@@ -33,19 +38,29 @@ export function EditorRecurrencia({ valor, alCambiar, inicio, inicioSemana }: Pr
     const fin: FinRecurrencia = { tipo: 'nunca' };
     if (p === 'nunca') alCambiar(null);
     else if (p === 'diaria') alCambiar({ frecuencia: 'diaria', intervalo: 1, fin });
-    else if (p === 'semanal') alCambiar({ frecuencia: 'semanal', intervalo: 1, diasSemana: [inicio.getDay()], fin });
+    else if (p === 'semanal')
+      alCambiar({ frecuencia: 'semanal', intervalo: 1, diasSemana: [inicio.getDay()], fin });
     else if (p === 'mensual') alCambiar({ frecuencia: 'mensual', intervalo: 1, fin });
-    else alCambiar(valor ?? { frecuencia: 'semanal', intervalo: 1, diasSemana: [inicio.getDay()], fin });
+    else
+      alCambiar(
+        valor ?? { frecuencia: 'semanal', intervalo: 1, diasSemana: [inicio.getDay()], fin },
+      );
   };
 
-  const cambiar = (parcial: Partial<ReglaRecurrencia>) => valor && alCambiar({ ...valor, ...parcial });
+  const cambiar = (parcial: Partial<ReglaRecurrencia>) =>
+    valor && alCambiar({ ...valor, ...parcial });
   const ordinalDelInicio = Math.min(4, Math.ceil(inicio.getDate() / 7)) as 1 | 2 | 3 | 4;
 
   return (
     <div className="space-y-3">
       <Campo etiqueta={t.bloque.repetir}>
         {(id) => (
-          <select id={id} className="campo" value={preset} onChange={(e) => elegirPreset(e.target.value as Preset)}>
+          <select
+            id={id}
+            className="campo"
+            value={preset}
+            onChange={(e) => elegirPreset(e.target.value as Preset)}
+          >
             <option value="nunca">{t.recurrencia.nunca}</option>
             <option value="diaria">{t.recurrencia.diaria}</option>
             <option value="semanal">{t.recurrencia.semanal}</option>
@@ -79,7 +94,8 @@ export function EditorRecurrencia({ valor, alCambiar, inicio, inicioSemana }: Pr
                 const frecuencia = e.target.value as ReglaRecurrencia['frecuencia'];
                 cambiar({
                   frecuencia,
-                  diasSemana: frecuencia === 'semanal' ? (valor.diasSemana ?? [inicio.getDay()]) : undefined,
+                  diasSemana:
+                    frecuencia === 'semanal' ? (valor.diasSemana ?? [inicio.getDay()]) : undefined,
                   mensual: frecuencia === 'mensual' ? valor.mensual : undefined,
                 });
               }}
@@ -97,13 +113,20 @@ export function EditorRecurrencia({ valor, alCambiar, inicio, inicioSemana }: Pr
                 etiqueta={t.recurrencia.enDias}
                 valor={valor.diasSemana ?? []}
                 inicioSemana={inicioSemana}
-                alCambiar={(dias) => cambiar({ diasSemana: dias.length ? dias : [inicio.getDay()] })}
+                alCambiar={(dias) =>
+                  cambiar({ diasSemana: dias.length ? dias : [inicio.getDay()] })
+                }
               />
             </div>
           )}
 
           {valor.frecuencia === 'mensual' && (
-            <EditorMensual valor={valor.mensual} alCambiar={(mensual) => cambiar({ mensual })} inicio={inicio} ordinal={ordinalDelInicio} />
+            <EditorMensual
+              valor={valor.mensual}
+              alCambiar={(mensual) => cambiar({ mensual })}
+              inicio={inicio}
+              ordinal={ordinalDelInicio}
+            />
           )}
 
           <div className="flex flex-wrap items-end gap-2">
@@ -138,7 +161,9 @@ export function EditorRecurrencia({ valor, alCambiar, inicio, inicioSemana }: Pr
                 className="campo w-auto"
                 value={valor.fin.hasta}
                 min={claveDia(inicio)}
-                onChange={(e) => e.target.value && cambiar({ fin: { tipo: 'fecha', hasta: e.target.value } })}
+                onChange={(e) =>
+                  e.target.value && cambiar({ fin: { tipo: 'fecha', hasta: e.target.value } })
+                }
               />
             )}
             {valor.fin.tipo === 'veces' && (
@@ -150,7 +175,11 @@ export function EditorRecurrencia({ valor, alCambiar, inicio, inicioSemana }: Pr
                   aria-label={t.recurrencia.veces}
                   className="campo w-20"
                   value={valor.fin.veces}
-                  onChange={(e) => cambiar({ fin: { tipo: 'veces', veces: Math.max(1, Number(e.target.value) || 1) } })}
+                  onChange={(e) =>
+                    cambiar({
+                      fin: { tipo: 'veces', veces: Math.max(1, Number(e.target.value) || 1) },
+                    })
+                  }
                 />
                 <span className="text-sm text-texto-suave">{t.recurrencia.veces}</span>
               </div>
@@ -224,7 +253,9 @@ function EditorMensual({
             aria-label="Ordinal"
             className="campo"
             value={valor.ordinal}
-            onChange={(e) => alCambiar({ ...valor, ordinal: Number(e.target.value) as 1 | 2 | 3 | 4 | -1 })}
+            onChange={(e) =>
+              alCambiar({ ...valor, ordinal: Number(e.target.value) as 1 | 2 | 3 | 4 | -1 })
+            }
           >
             {[1, 2, 3, 4, -1].map((o) => (
               <option key={o} value={o}>

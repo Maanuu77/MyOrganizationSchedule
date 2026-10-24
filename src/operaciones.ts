@@ -5,12 +5,25 @@
 import { addDays, addMonths, startOfDay } from 'date-fns';
 import { useDatos } from './almacenDatos';
 import { avisar, confirmar, useUI, type AlcanceCambio } from './almacenUI';
-import { eventos as dbEventos, excepciones as dbExcepciones, tareas as dbTareas, type DatosNuevos } from './datos';
+import {
+  eventos as dbEventos,
+  excepciones as dbExcepciones,
+  tareas as dbTareas,
+  type DatosNuevos,
+} from './datos';
 import { expandirOcurrencias, partirSerie } from './recurrencia';
 import { protegidosQueChocan } from './avisosCarga';
 import { claveDia, desdeClaveDia, inicioDeSemana, zonaDelDispositivo } from './fechas';
 import { t } from './textos';
-import type { Etiqueta, Evento, ExcepcionEvento, Ocurrencia, Planificacion, Tarea, TipoBloque } from './tipos';
+import type {
+  Etiqueta,
+  Evento,
+  ExcepcionEvento,
+  Ocurrencia,
+  Planificacion,
+  Tarea,
+  TipoBloque,
+} from './tipos';
 
 // ---------------------------------------------------------------------------
 // Bloques protegidos
@@ -27,7 +40,12 @@ export async function comprobarProtegidos(
 ): Promise<boolean> {
   if (opciones.tipo === 'protegido') return true; // un protegido puede ir encima de otro sin preguntar
   const { eventos, excepciones } = useDatos.getState();
-  const ocurrencias = expandirOcurrencias(eventos, excepciones, inicioMs - 86_400_000, finMs + 86_400_000);
+  const ocurrencias = expandirOcurrencias(
+    eventos,
+    excepciones,
+    inicioMs - 86_400_000,
+    finMs + 86_400_000,
+  );
   const choques = protegidosQueChocan(ocurrencias, inicioMs, finMs, opciones.ignorarEventoId);
   if (!choques.length) return true;
   const nombres = [...new Set(choques.map((c) => c.titulo))].join(', ');
@@ -43,7 +61,9 @@ export async function comprobarProtegidos(
 // ---------------------------------------------------------------------------
 
 /** Valores por defecto de un evento nuevo. */
-export function eventoVacio(parcial: Partial<DatosNuevos<Evento>> & { inicioMs: number; finMs: number }): DatosNuevos<Evento> {
+export function eventoVacio(
+  parcial: Partial<DatosNuevos<Evento>> & { inicioMs: number; finMs: number },
+): DatosNuevos<Evento> {
   const tipo = parcial.tipo ?? 'evento';
   return {
     tipo,
@@ -67,7 +87,11 @@ export function eventoVacio(parcial: Partial<DatosNuevos<Evento>> & { inicioMs: 
 
 /** Crea un bloque comprobando antes los bloques protegidos. */
 export async function crearBloque(datos: DatosNuevos<Evento>): Promise<Evento | null> {
-  if (!datos.todoElDia && !(await comprobarProtegidos(datos.inicioMs, datos.finMs, { tipo: datos.tipo }))) return null;
+  if (
+    !datos.todoElDia &&
+    !(await comprobarProtegidos(datos.inicioMs, datos.finMs, { tipo: datos.tipo }))
+  )
+    return null;
   try {
     return await dbEventos.crear(datos);
   } catch (e) {
@@ -81,8 +105,13 @@ export async function crearBloque(datos: DatosNuevos<Evento>): Promise<Evento | 
  * Crea una sesión de estudio a partir de una etiqueta (al soltarla en el calendario).
  * Usa la duración por defecto de la etiqueta y el primer ciclo guardado, si existe.
  */
-export async function crearSesionDeEtiqueta(etiqueta: Etiqueta, inicioMs: number, duracionMin = etiqueta.duracionMin) {
-  const ciclo = [...useDatos.getState().ciclos].sort((a, b) => a.creadoEnMs - b.creadoEnMs)[0] ?? null;
+export async function crearSesionDeEtiqueta(
+  etiqueta: Etiqueta,
+  inicioMs: number,
+  duracionMin = etiqueta.duracionMin,
+) {
+  const ciclo =
+    [...useDatos.getState().ciclos].sort((a, b) => a.creadoEnMs - b.creadoEnMs)[0] ?? null;
   return crearBloque(
     eventoVacio({
       tipo: 'sesion',
@@ -97,7 +126,13 @@ export async function crearSesionDeEtiqueta(etiqueta: Etiqueta, inicioMs: number
 
 /** Campos que se pueden cambiar solo en una ocurrencia (van en la excepción). */
 type CambiosOcurrencia = ExcepcionEvento['cambios'];
-const CAMPOS_EXCEPCION: Array<keyof CambiosOcurrencia> = ['inicioMs', 'finMs', 'titulo', 'notas', 'etiquetaId'];
+const CAMPOS_EXCEPCION: Array<keyof CambiosOcurrencia> = [
+  'inicioMs',
+  'finMs',
+  'titulo',
+  'notas',
+  'etiquetaId',
+];
 
 /**
  * Aplica cambios a una ocurrencia. Si el evento se repite, pregunta el alcance
@@ -127,17 +162,19 @@ export async function cambiarOcurrencia(
     }
 
     // ¿Hay cambios que no caben en una excepción (tipo, regla de repetición…)?
-    const soloCamposSimples = Object.keys(cambios).every((k) => CAMPOS_EXCEPCION.includes(k as keyof CambiosOcurrencia));
+    const soloCamposSimples = Object.keys(cambios).every((k) =>
+      CAMPOS_EXCEPCION.includes(k as keyof CambiosOcurrencia),
+    );
     const alcance =
-      alcanceDecidido ??
-      (await useUI.getState().pedirAlcance({ permitirSolo: soloCamposSimples }));
+      alcanceDecidido ?? (await useUI.getState().pedirAlcance({ permitirSolo: soloCamposSimples }));
     if (!alcance) return false;
 
     if (alcance === 'solo') {
       const previa = oc.excepcion;
       const nuevos: CambiosOcurrencia = { ...previa?.cambios };
       for (const campo of CAMPOS_EXCEPCION) {
-        if (campo in cambios) (nuevos as Record<string, unknown>)[campo] = cambios[campo as keyof typeof cambios];
+        if (campo in cambios)
+          (nuevos as Record<string, unknown>)[campo] = cambios[campo as keyof typeof cambios];
       }
       await dbExcepciones.guardar(
         {
@@ -167,7 +204,11 @@ export async function cambiarOcurrencia(
     }
 
     // "Este y los siguientes": cortamos la serie y creamos una nueva desde aquí
-    const { antigua, nueva } = partirSerie(evento.recurrencia, new Date(evento.inicioMs), oc.inicioOriginalMs);
+    const { antigua, nueva } = partirSerie(
+      evento.recurrencia,
+      new Date(evento.inicioMs),
+      oc.inicioOriginalMs,
+    );
     if (!antigua) {
       return cambiarOcurrencia(oc, cambios, 'todos');
     }
@@ -225,7 +266,11 @@ export async function borrarOcurrencia(oc: Ocurrencia): Promise<boolean> {
         oc.excepcion,
       );
     } else if (alcance === 'siguientes') {
-      const { antigua } = partirSerie(evento.recurrencia, new Date(evento.inicioMs), oc.inicioOriginalMs);
+      const { antigua } = partirSerie(
+        evento.recurrencia,
+        new Date(evento.inicioMs),
+        oc.inicioOriginalMs,
+      );
       if (antigua) await dbEventos.actualizar(evento.id, { recurrencia: antigua });
       else await dbEventos.borrar(evento.id, excepciones);
     } else {
@@ -330,16 +375,23 @@ export function siguienteFecha(tarea: Tarea, desde: Date): string {
 /** Completa (o reabre) una tarea. Si se repite, crea la siguiente al completarla. */
 export async function completarTarea(tarea: Tarea, hecha: boolean): Promise<void> {
   try {
-    await dbTareas.actualizar(tarea.id, { completada: hecha, completadaEnMs: hecha ? Date.now() : null });
+    await dbTareas.actualizar(tarea.id, {
+      completada: hecha,
+      completadaEnMs: hecha ? Date.now() : null,
+    });
     if (hecha) {
       const frases = t.logros.tareaHecha;
       avisar(frases[Math.floor(Math.random() * frases.length)], 'logro', {
         texto: t.comun.deshacer,
-        ejecutar: () => void dbTareas.actualizar(tarea.id, { completada: false, completadaEnMs: null }),
+        ejecutar: () =>
+          void dbTareas.actualizar(tarea.id, { completada: false, completadaEnMs: null }),
       });
     }
     if (hecha && tarea.repeticion) {
-      const base = tarea.planificacion.tipo === 'dia' ? desdeClaveDia(tarea.planificacion.fecha) : startOfDay(new Date());
+      const base =
+        tarea.planificacion.tipo === 'dia'
+          ? desdeClaveDia(tarea.planificacion.fecha)
+          : startOfDay(new Date());
       const fecha = siguienteFecha(tarea, base);
       const { id: _id, creadoEnMs: _c, actualizadoEnMs: _a, ...resto } = tarea;
       const desplazamiento = desdeClaveDia(fecha).getTime() - base.getTime();
@@ -359,14 +411,21 @@ export async function completarTarea(tarea: Tarea, hecha: boolean): Promise<void
 }
 
 /** Planificación "hoy", "esta semana" o "sin fecha" a partir de un texto corto. */
-export function planificacionDe(tipo: 'hoy' | 'semana' | 'sinFecha', inicioSemana: 0 | 1): Planificacion {
+export function planificacionDe(
+  tipo: 'hoy' | 'semana' | 'sinFecha',
+  inicioSemana: 0 | 1,
+): Planificacion {
   if (tipo === 'hoy') return { tipo: 'dia', fecha: claveDia(new Date()) };
-  if (tipo === 'semana') return { tipo: 'semana', semana: claveDia(inicioDeSemana(new Date(), inicioSemana)) };
+  if (tipo === 'semana')
+    return { tipo: 'semana', semana: claveDia(inicioDeSemana(new Date(), inicioSemana)) };
   return { tipo: 'sinFecha' };
 }
 
 /** Crea un bloque vinculado a una tarea (al arrastrarla al calendario). */
-export async function planificarTareaEnCalendario(tarea: Tarea, inicioMs: number): Promise<Evento | null> {
+export async function planificarTareaEnCalendario(
+  tarea: Tarea,
+  inicioMs: number,
+): Promise<Evento | null> {
   const duracion = (tarea.estimacionMin ?? 30) * 60_000;
   const evento = await crearBloque(
     eventoVacio({
@@ -380,7 +439,9 @@ export async function planificarTareaEnCalendario(tarea: Tarea, inicioMs: number
     }),
   );
   if (evento && tarea.planificacion.tipo !== 'dia') {
-    await dbTareas.actualizar(tarea.id, { planificacion: { tipo: 'dia', fecha: claveDia(inicioMs) } });
+    await dbTareas.actualizar(tarea.id, {
+      planificacion: { tipo: 'dia', fecha: claveDia(inicioMs) },
+    });
   }
   return evento;
 }

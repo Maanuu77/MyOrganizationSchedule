@@ -93,7 +93,9 @@ export const useDatos = create<EstadoDatos>((set) => ({
 
 /** Etiquetas no archivadas, ordenadas. */
 export function etiquetasActivas(lista: Etiqueta[]): Etiqueta[] {
-  return lista.filter((e) => !e.archivada).sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+  return lista
+    .filter((e) => !e.archivada)
+    .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
 }
 
 /** Busca una etiqueta por id (o null). */

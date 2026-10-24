@@ -130,7 +130,15 @@ export function capitalizar(texto: string): string {
 
 /** Nombres cortos de los días empezando en domingo (índice = getDay()). */
 export const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-export const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+export const DIAS_LARGOS = [
+  'domingo',
+  'lunes',
+  'martes',
+  'miércoles',
+  'jueves',
+  'viernes',
+  'sábado',
+];
 
 /** Orden de los días de la semana según el día de inicio. */
 export function ordenDias(inicioSemana: 0 | 1): number[] {

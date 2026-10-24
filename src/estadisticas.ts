@@ -35,7 +35,12 @@ export function calcularPeriodo(
   switch (tipo) {
     case 'dia': {
       const d = startOfDay(referencia);
-      return { tipo, desde: d.getTime(), hasta: addDays(d, 1).getTime(), nombre: formatear(d, "EEEE d 'de' MMMM") };
+      return {
+        tipo,
+        desde: d.getTime(),
+        hasta: addDays(d, 1).getTime(),
+        nombre: formatear(d, "EEEE d 'de' MMMM"),
+      };
     }
     case 'semana': {
       const d = inicioDeSemana(referencia, inicioSemana);
@@ -44,16 +49,26 @@ export function calcularPeriodo(
         tipo,
         desde: d.getTime(),
         hasta: fin.getTime(),
-        nombre: `${formatear(d, "d MMM")} – ${formatear(addDays(fin, -1), "d MMM yyyy")}`,
+        nombre: `${formatear(d, 'd MMM')} – ${formatear(addDays(fin, -1), 'd MMM yyyy')}`,
       };
     }
     case 'mes': {
       const d = startOfMonth(referencia);
-      return { tipo, desde: d.getTime(), hasta: endOfMonth(d).getTime() + 1, nombre: formatear(d, 'MMMM yyyy') };
+      return {
+        tipo,
+        desde: d.getTime(),
+        hasta: endOfMonth(d).getTime() + 1,
+        nombre: formatear(d, 'MMMM yyyy'),
+      };
     }
     case 'año': {
       const d = startOfYear(referencia);
-      return { tipo, desde: d.getTime(), hasta: endOfYear(d).getTime() + 1, nombre: formatear(d, 'yyyy') };
+      return {
+        tipo,
+        desde: d.getTime(),
+        hasta: endOfYear(d).getTime() + 1,
+        nombre: formatear(d, 'yyyy'),
+      };
     }
     case 'rango': {
       const desde = desdeClaveDia(rango?.desde ?? claveDia(referencia));
@@ -94,7 +109,11 @@ export function periodoAnterior(p: Periodo): Periodo {
 }
 
 /** Registros cuyo inicio cae dentro del periodo. */
-export function registrosEn(registros: RegistroSesion[], desde: number, hasta: number): RegistroSesion[] {
+export function registrosEn(
+  registros: RegistroSesion[],
+  desde: number,
+  hasta: number,
+): RegistroSesion[] {
   return registros.filter((r) => r.inicioMs >= desde && r.inicioMs < hasta);
 }
 
@@ -150,20 +169,33 @@ export function progresoObjetivos(
     .filter((e) => !e.archivada && e.objetivoSemanalHoras && e.objetivoSemanalHoras > 0)
     .map((e) => {
       const objetivoMs = e.objetivoSemanalHoras! * MS_HORA;
-      const realMs = enSemana.filter((r) => r.etiquetaId === e.id).reduce((s, r) => s + r.focoRealMs, 0);
+      const realMs = enSemana
+        .filter((r) => r.etiquetaId === e.id)
+        .reduce((s, r) => s + r.focoRealMs, 0);
       return { etiqueta: e, objetivoMs, realMs, porcentaje: Math.min(1, realMs / objetivoMs) };
     });
 }
 
 /** Cumplimiento de bloques: de los bloques ya pasados (no protegidos), cuántos se marcaron como hechos. */
-export function cumplimientoBloques(ocurrencias: Ocurrencia[], ahoraMs: number): { hechos: number; total: number; ratio: number } {
-  const pasados = ocurrencias.filter((o) => o.finMs <= ahoraMs && o.evento.tipo !== 'protegido' && !o.evento.todoElDia);
+export function cumplimientoBloques(
+  ocurrencias: Ocurrencia[],
+  ahoraMs: number,
+): { hechos: number; total: number; ratio: number } {
+  const pasados = ocurrencias.filter(
+    (o) => o.finMs <= ahoraMs && o.evento.tipo !== 'protegido' && !o.evento.todoElDia,
+  );
   const hechos = pasados.filter((o) => o.completado).length;
   return { hechos, total: pasados.length, ratio: pasados.length ? hechos / pasados.length : 0 };
 }
 
 export function tareasCompletadasEn(tareas: Tarea[], desde: number, hasta: number): Tarea[] {
-  return tareas.filter((t) => t.completada && t.completadaEnMs !== null && t.completadaEnMs >= desde && t.completadaEnMs < hasta);
+  return tareas.filter(
+    (t) =>
+      t.completada &&
+      t.completadaEnMs !== null &&
+      t.completadaEnMs >= desde &&
+      t.completadaEnMs < hasta,
+  );
 }
 
 /** Minutos de foco por día (clave 'YYYY-MM-DD'). */
@@ -177,7 +209,10 @@ export function focoPorDia(registros: RegistroSesion[]): Map<string, number> {
 }
 
 /** Racha actual y mejor racha de días seguidos con algo de foco. Hoy sin foco no rompe la racha. */
-export function rachas(registros: RegistroSesion[], hoy: Date = new Date()): { actual: number; mejor: number } {
+export function rachas(
+  registros: RegistroSesion[],
+  hoy: Date = new Date(),
+): { actual: number; mejor: number } {
   const dias = focoPorDia(registros);
   let actual = 0;
   let d = startOfDay(hoy);
@@ -186,7 +221,10 @@ export function rachas(registros: RegistroSesion[], hoy: Date = new Date()): { a
     actual++;
     d = addDays(d, -1);
   }
-  const ordenadas = [...dias.entries()].filter(([, ms]) => ms > 0).map(([k]) => k).sort();
+  const ordenadas = [...dias.entries()]
+    .filter(([, ms]) => ms > 0)
+    .map(([k]) => k)
+    .sort();
   let mejor = 0;
   let cadena = 0;
   let previa: Date | null = null;
@@ -222,7 +260,8 @@ export function mapaCalor(registros: RegistroSesion[], año: number): CeldaCalor
   }
   // Niveles por cuartiles de los días con actividad, para que el mapa se adapte a cada persona
   const ordenados = valores.sort((a, b) => a - b);
-  const q = (p: number) => ordenados[Math.min(ordenados.length - 1, Math.floor(p * ordenados.length))] ?? 0;
+  const q = (p: number) =>
+    ordenados[Math.min(ordenados.length - 1, Math.floor(p * ordenados.length))] ?? 0;
   const cortes = [q(0.25), q(0.5), q(0.75)];
   for (const c of celdas) {
     if (c.ms <= 0) continue;
@@ -246,7 +285,12 @@ export function distribucionFranja(registros: RegistroSesion[]): number[] {
     let t = r.inicioMs;
     while (t < r.finMs) {
       const d = new Date(t);
-      const finHora = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1).getTime();
+      const finHora = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        d.getHours() + 1,
+      ).getTime();
       const tramo = Math.min(finHora, r.finMs) - t;
       resultado[d.getHours()] += (tramo / duracion) * r.focoRealMs;
       t = finHora;
@@ -285,11 +329,18 @@ export function resumenRutinas(
 ): ResumenRutina[] {
   return rutinas
     .filter((r) => !r.archivada)
-    .map((rutina) => ({ rutina, ...seguimientoRutina(rutina, ejecuciones, new Date(desde), new Date(hasta), hoy) }));
+    .map((rutina) => ({
+      rutina,
+      ...seguimientoRutina(rutina, ejecuciones, new Date(desde), new Date(hasta), hoy),
+    }));
 }
 
 /** Serie diaria de foco real en el periodo (para el gráfico de evolución). */
-export function serieDiaria(registros: RegistroSesion[], desde: number, hasta: number): Array<{ clave: string; horas: number }> {
+export function serieDiaria(
+  registros: RegistroSesion[],
+  desde: number,
+  hasta: number,
+): Array<{ clave: string; horas: number }> {
   const dias = focoPorDia(registrosEn(registros, desde, hasta));
   const serie: Array<{ clave: string; horas: number }> = [];
   for (let t = desde; t < hasta; t = addDays(t, 1).getTime()) {
@@ -313,18 +364,24 @@ function celdaCsv(valor: unknown): string {
 export function aCsv(filas: Array<Record<string, unknown>>): string {
   if (!filas.length) return '';
   const columnas = Object.keys(filas[0]);
-  const lineas = [columnas.join(';'), ...filas.map((f) => columnas.map((c) => celdaCsv(f[c])).join(';'))];
+  const lineas = [
+    columnas.join(';'),
+    ...filas.map((f) => columnas.map((c) => celdaCsv(f[c])).join(';')),
+  ];
   return '﻿' + lineas.join('\n'); // BOM para que Excel lea bien los acentos
 }
 
 /** Filas de los registros de sesión listas para exportar. */
-export function filasRegistros(registros: RegistroSesion[], etiquetas: Etiqueta[]): Array<Record<string, unknown>> {
+export function filasRegistros(
+  registros: RegistroSesion[],
+  etiquetas: Etiqueta[],
+): Array<Record<string, unknown>> {
   const nombre = new Map(etiquetas.map((e) => [e.id, e.nombre]));
   return registros.map((r) => ({
     fecha: claveDia(r.inicioMs),
     inicio: formatear(r.inicioMs, 'HH:mm'),
     fin: formatear(r.finMs, 'HH:mm'),
-    etiqueta: r.etiquetaId ? nombre.get(r.etiquetaId) ?? '' : '',
+    etiqueta: r.etiquetaId ? (nombre.get(r.etiquetaId) ?? '') : '',
     foco_min: Math.round(r.focoRealMs / 60000),
     descansos_min: Math.round(r.descansosMs / 60000),
     interrupciones: r.interrupciones,
@@ -332,4 +389,3 @@ export function filasRegistros(registros: RegistroSesion[], etiquetas: Etiqueta[
     nota: r.nota,
   }));
 }
-

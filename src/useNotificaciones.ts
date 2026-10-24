@@ -51,7 +51,13 @@ async function registrarDispositivo(token: string | null): Promise<void> {
   const ahora = Date.now();
   await setDoc(
     refDoc(COLECCIONES.dispositivos, idDispositivo()),
-    { token, nombre: nombreDispositivo(), plataforma: navigator.platform || 'web', ultimoUsoMs: ahora, creadoEnMs: ahora },
+    {
+      token,
+      nombre: nombreDispositivo(),
+      plataforma: navigator.platform || 'web',
+      ultimoUsoMs: ahora,
+      creadoEnMs: ahora,
+    },
     { merge: true },
   );
 }
@@ -99,7 +105,8 @@ export function useAvisosEnPrimerPlano(): void {
     const comprobar = () => {
       const ahora = Date.now();
       for (const r of recordatoriosCalculados()) {
-        if (r.fireAt <= ahora && r.fireAt > ahora - 90_000) mostrar(r.id, r.titulo, r.cuerpo, r.url, r.tipo);
+        if (r.fireAt <= ahora && r.fireAt > ahora - 90_000)
+          mostrar(r.id, r.titulo, r.cuerpo, r.url, r.tipo);
       }
     };
     const id = setInterval(comprobar, 20_000);
@@ -109,5 +116,10 @@ export function useAvisosEnPrimerPlano(): void {
 
 /** Notificación de prueba al activar. */
 export function notificacionDePrueba(): void {
-  void mostrarNotificacionLocal(t.notificaciones.pruebaTitulo, t.notificaciones.pruebaTexto, '/', 'mos-prueba');
+  void mostrarNotificacionLocal(
+    t.notificaciones.pruebaTitulo,
+    t.notificaciones.pruebaTexto,
+    '/',
+    'mos-prueba',
+  );
 }

@@ -16,7 +16,15 @@ import { Cabecera } from './Cabecera';
 import { Boton } from './Boton';
 import { Campo } from './Campos';
 import { EstadoVacio } from './EstadoVacio';
-import { DIAS_CORTOS, DIAS_LARGOS, conHora, horaAMinutos, inicioDeSemana, minutosAHora, ordenDias } from './fechas';
+import {
+  DIAS_CORTOS,
+  DIAS_LARGOS,
+  conHora,
+  horaAMinutos,
+  inicioDeSemana,
+  minutosAHora,
+  ordenDias,
+} from './fechas';
 import { t } from './textos';
 import type { BloquePlantilla, PlantillaSemanal, TipoBloque } from './tipos';
 
@@ -26,7 +34,10 @@ export function PantallaPlantilla() {
   const actual = plantillas.find((p) => p.id === seleccion) ?? plantillas[0] ?? null;
 
   const crear = async () => {
-    const p = await dbPlantillas.crear({ nombre: `${t.plantilla.titulo} ${plantillas.length + 1}`, bloques: [] });
+    const p = await dbPlantillas.crear({
+      nombre: `${t.plantilla.titulo} ${plantillas.length + 1}`,
+      bloques: [],
+    });
     setSeleccion(p.id);
   };
 
@@ -96,7 +107,8 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
   const [semanas, setSemanas] = useState(4);
   const [aplicando, setAplicando] = useState(false);
 
-  const guardarBloques = (bloques: BloquePlantilla[]) => dbPlantillas.actualizar(plantilla.id, { bloques });
+  const guardarBloques = (bloques: BloquePlantilla[]) =>
+    dbPlantillas.actualizar(plantilla.id, { bloques });
 
   const añadir = async () => {
     const etiqueta = activas.find((e) => e.id === nuevo.etiquetaId);
@@ -133,8 +145,18 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
     const desde = lunes.getTime();
     const hasta = addDays(lunes, numero * 7).getTime();
     const ocurrencias = expandirOcurrencias(eventos, excepciones, desde, hasta);
-    const conflictos = nuevos.filter((n) => n.tipo !== 'protegido' && protegidosQueChocan(ocurrencias, n.inicioMs, n.finMs).length > 0).length;
-    if (conflictos > 0 && !(await confirmar({ titulo: t.calendario.protegidoTitulo, mensaje: t.plantilla.conflictos(conflictos), textoConfirmar: t.calendario.protegidoConfirmar }))) {
+    const conflictos = nuevos.filter(
+      (n) =>
+        n.tipo !== 'protegido' && protegidosQueChocan(ocurrencias, n.inicioMs, n.finMs).length > 0,
+    ).length;
+    if (
+      conflictos > 0 &&
+      !(await confirmar({
+        titulo: t.calendario.protegidoTitulo,
+        mensaje: t.plantilla.conflictos(conflictos),
+        textoConfirmar: t.calendario.protegidoConfirmar,
+      }))
+    ) {
       setAplicando(false);
       return;
     }
@@ -149,19 +171,39 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
   };
 
   const quitarAplicados = async () => {
-    const ids = eventos.filter((e) => e.plantillaId === plantilla.id && e.inicioMs >= Date.now()).map((e) => e.id);
+    const ids = eventos
+      .filter((e) => e.plantillaId === plantilla.id && e.inicioMs >= Date.now())
+      .map((e) => e.id);
     if (!ids.length) return;
-    if (!(await confirmar({ titulo: t.plantilla.deshacer, mensaje: t.plantilla.seQuitaran(ids.length), textoConfirmar: t.comun.borrar, peligro: true }))) return;
+    if (
+      !(await confirmar({
+        titulo: t.plantilla.deshacer,
+        mensaje: t.plantilla.seQuitaran(ids.length),
+        textoConfirmar: t.comun.borrar,
+        peligro: true,
+      }))
+    )
+      return;
     await dbEventos.borrarVarios(ids);
     avisar(t.comun.borrado);
   };
 
   const borrarPlantilla = async () => {
-    if (!(await confirmar({ titulo: t.plantilla.borrarTitulo, mensaje: `«${plantilla.nombre}»`, textoConfirmar: t.comun.borrar, peligro: true }))) return;
+    if (
+      !(await confirmar({
+        titulo: t.plantilla.borrarTitulo,
+        mensaje: `«${plantilla.nombre}»`,
+        textoConfirmar: t.comun.borrar,
+        peligro: true,
+      }))
+    )
+      return;
     await dbPlantillas.borrar(plantilla.id);
   };
 
-  const aplicados = eventos.filter((e) => e.plantillaId === plantilla.id && e.inicioMs >= Date.now()).length;
+  const aplicados = eventos.filter(
+    (e) => e.plantillaId === plantilla.id && e.inicioMs >= Date.now(),
+  ).length;
   const dias = ordenDias(inicioSemana);
 
   return (
@@ -174,19 +216,32 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
             value={nombre}
             maxLength={60}
             onChange={(e) => setNombre(e.target.value)}
-            onBlur={() => nombre.trim() && nombre !== plantilla.nombre && dbPlantillas.actualizar(plantilla.id, { nombre: nombre.trim() })}
+            onBlur={() =>
+              nombre.trim() &&
+              nombre !== plantilla.nombre &&
+              dbPlantillas.actualizar(plantilla.id, { nombre: nombre.trim() })
+            }
           />
-          <Boton variante="fantasma" tamano="icono" onClick={borrarPlantilla} aria-label={t.plantilla.borrarTitulo}>
+          <Boton
+            variante="fantasma"
+            tamano="icono"
+            onClick={borrarPlantilla}
+            aria-label={t.plantilla.borrarTitulo}
+          >
             <Trash2 size={18} className="text-peligro" />
           </Boton>
         </div>
         {/* Semana tipo: una columna por día */}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
           {dias.map((d) => {
-            const bloques = plantilla.bloques.filter((b) => b.diaSemana === d).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+            const bloques = plantilla.bloques
+              .filter((b) => b.diaSemana === d)
+              .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
             return (
               <div key={d} className="min-h-24 rounded-md bg-superficie-2/60 p-1.5">
-                <p className="mb-1.5 text-center text-xs font-bold text-texto-suave uppercase">{DIAS_CORTOS[d]}</p>
+                <p className="mb-1.5 text-center text-xs font-bold text-texto-suave uppercase">
+                  {DIAS_CORTOS[d]}
+                </p>
                 <div className="space-y-1">
                   {bloques.map((b) => {
                     const color = etiquetas.find((e) => e.id === b.etiquetaId)?.color ?? '#6D5CF0';
@@ -195,7 +250,10 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
                         key={b.id}
                         layout
                         className={`group relative rounded-sm px-1.5 py-1 text-[11px] font-semibold ${b.tipo === 'protegido' ? 'rayado-protegido' : ''}`}
-                        style={{ background: `color-mix(in oklab, ${color} 20%, var(--mos-superficie))`, borderLeft: `3px solid ${color}` }}
+                        style={{
+                          background: `color-mix(in oklab, ${color} 20%, var(--mos-superficie))`,
+                          borderLeft: `3px solid ${color}`,
+                        }}
                       >
                         <p className="truncate">{b.titulo}</p>
                         <p className="numeros opacity-70">
@@ -206,11 +264,23 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
                             type="button"
                             className="rounded bg-superficie p-0.5 shadow-suave"
                             aria-label={t.comun.duplicar}
-                            onClick={() => guardarBloques([...plantilla.bloques, { ...b, id: nuevoId(), diaSemana: (b.diaSemana + 1) % 7 }])}
+                            onClick={() =>
+                              guardarBloques([
+                                ...plantilla.bloques,
+                                { ...b, id: nuevoId(), diaSemana: (b.diaSemana + 1) % 7 },
+                              ])
+                            }
                           >
                             <Copy size={11} />
                           </button>
-                          <button type="button" className="rounded bg-superficie p-0.5 shadow-suave" aria-label={t.comun.borrar} onClick={() => guardarBloques(plantilla.bloques.filter((x) => x.id !== b.id))}>
+                          <button
+                            type="button"
+                            className="rounded bg-superficie p-0.5 shadow-suave"
+                            aria-label={t.comun.borrar}
+                            onClick={() =>
+                              guardarBloques(plantilla.bloques.filter((x) => x.id !== b.id))
+                            }
+                          >
                             <Trash2 size={11} className="text-peligro" />
                           </button>
                         </div>
@@ -230,7 +300,12 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
           <div className="grid grid-cols-2 gap-2">
             <Campo etiqueta="Día">
               {(id) => (
-                <select id={id} className="campo" value={nuevo.diaSemana} onChange={(e) => setNuevo({ ...nuevo, diaSemana: Number(e.target.value) })}>
+                <select
+                  id={id}
+                  className="campo"
+                  value={nuevo.diaSemana}
+                  onChange={(e) => setNuevo({ ...nuevo, diaSemana: Number(e.target.value) })}
+                >
                   {dias.map((d) => (
                     <option key={d} value={d}>
                       {DIAS_LARGOS[d]}
@@ -241,7 +316,12 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
             </Campo>
             <Campo etiqueta="Tipo">
               {(id) => (
-                <select id={id} className="campo" value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value as TipoBloque })}>
+                <select
+                  id={id}
+                  className="campo"
+                  value={nuevo.tipo}
+                  onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value as TipoBloque })}
+                >
                   {(Object.keys(t.bloque.tipos) as TipoBloque[]).map((tipo) => (
                     <option key={tipo} value={tipo}>
                       {t.bloque.tipos[tipo]}
@@ -251,10 +331,34 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
               )}
             </Campo>
             <Campo etiqueta={t.comun.inicio}>
-              {(id) => <input id={id} type="time" step={300} className="campo" value={nuevo.horaInicio} onChange={(e) => e.target.value && setNuevo({ ...nuevo, horaInicio: e.target.value })} />}
+              {(id) => (
+                <input
+                  id={id}
+                  type="time"
+                  step={300}
+                  className="campo"
+                  value={nuevo.horaInicio}
+                  onChange={(e) =>
+                    e.target.value && setNuevo({ ...nuevo, horaInicio: e.target.value })
+                  }
+                />
+              )}
             </Campo>
             <Campo etiqueta={`${t.comun.duracion} (min)`}>
-              {(id) => <input id={id} type="number" min={5} max={720} step={5} className="campo" value={nuevo.duracionMin} onChange={(e) => setNuevo({ ...nuevo, duracionMin: Number(e.target.value) || 60 })} />}
+              {(id) => (
+                <input
+                  id={id}
+                  type="number"
+                  min={5}
+                  max={720}
+                  step={5}
+                  className="campo"
+                  value={nuevo.duracionMin}
+                  onChange={(e) =>
+                    setNuevo({ ...nuevo, duracionMin: Number(e.target.value) || 60 })
+                  }
+                />
+              )}
             </Campo>
           </div>
           <Campo etiqueta={t.comun.etiqueta}>
@@ -265,7 +369,14 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
                 value={nuevo.etiquetaId ?? ''}
                 onChange={(e) => {
                   const etiqueta = activas.find((x) => x.id === e.target.value);
-                  setNuevo({ ...nuevo, etiquetaId: etiqueta?.id ?? null, duracionMin: etiqueta && nuevo.tipo === 'sesion' ? etiqueta.duracionMin : nuevo.duracionMin });
+                  setNuevo({
+                    ...nuevo,
+                    etiquetaId: etiqueta?.id ?? null,
+                    duracionMin:
+                      etiqueta && nuevo.tipo === 'sesion'
+                        ? etiqueta.duracionMin
+                        : nuevo.duracionMin,
+                  });
                 }}
               >
                 <option value="">{t.comun.sinEtiqueta}</option>
@@ -280,7 +391,12 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
           {nuevo.tipo === 'sesion' && ciclos.length > 0 && (
             <Campo etiqueta={t.bloque.ciclo}>
               {(id) => (
-                <select id={id} className="campo" value={nuevo.cicloId ?? ''} onChange={(e) => setNuevo({ ...nuevo, cicloId: e.target.value || null })}>
+                <select
+                  id={id}
+                  className="campo"
+                  value={nuevo.cicloId ?? ''}
+                  onChange={(e) => setNuevo({ ...nuevo, cicloId: e.target.value || null })}
+                >
                   <option value="">{t.bloque.sinCiclo}</option>
                   {ciclos.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -292,28 +408,69 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
             </Campo>
           )}
           <Campo etiqueta={`${t.comun.titulo} (${t.comun.opcional})`}>
-            {(id) => <input id={id} className="campo" value={nuevo.titulo} maxLength={200} onChange={(e) => setNuevo({ ...nuevo, titulo: e.target.value })} />}
+            {(id) => (
+              <input
+                id={id}
+                className="campo"
+                value={nuevo.titulo}
+                maxLength={200}
+                onChange={(e) => setNuevo({ ...nuevo, titulo: e.target.value })}
+              />
+            )}
           </Campo>
-          <Boton variante="suave" className="w-full justify-center" icono={<Plus size={16} />} onClick={añadir}>
+          <Boton
+            variante="suave"
+            className="w-full justify-center"
+            icono={<Plus size={16} />}
+            onClick={añadir}
+          >
             {t.plantilla.añadirBloque}
           </Boton>
         </div>
 
         <div className="tarjeta space-y-3">
           <h2 className="font-bold">{t.plantilla.aplicar}</h2>
-          <Boton variante="primario" className="w-full justify-center" disabled={!plantilla.bloques.length} cargando={aplicando} onClick={() => aplicar(1)}>
+          <Boton
+            variante="primario"
+            className="w-full justify-center"
+            disabled={!plantilla.bloques.length}
+            cargando={aplicando}
+            onClick={() => aplicar(1)}
+          >
             {t.plantilla.aplicarEstaSemana}
           </Boton>
           <div className="flex items-end gap-2">
             <Campo etiqueta={t.plantilla.numeroSemanas} className="w-28">
-              {(id) => <input id={id} type="number" min={1} max={52} className="campo" value={semanas} onChange={(e) => setSemanas(Math.min(52, Math.max(1, Number(e.target.value) || 1)))} />}
+              {(id) => (
+                <input
+                  id={id}
+                  type="number"
+                  min={1}
+                  max={52}
+                  className="campo"
+                  value={semanas}
+                  onChange={(e) =>
+                    setSemanas(Math.min(52, Math.max(1, Number(e.target.value) || 1)))
+                  }
+                />
+              )}
             </Campo>
-            <Boton variante="secundario" className="flex-1 justify-center" disabled={!plantilla.bloques.length || aplicando} onClick={() => aplicar(semanas)}>
+            <Boton
+              variante="secundario"
+              className="flex-1 justify-center"
+              disabled={!plantilla.bloques.length || aplicando}
+              onClick={() => aplicar(semanas)}
+            >
               {t.plantilla.aplicarProximas}
             </Boton>
           </div>
           {aplicados > 0 && (
-            <Boton variante="fantasma" tamano="sm" icono={<Undo2 size={14} />} onClick={quitarAplicados}>
+            <Boton
+              variante="fantasma"
+              tamano="sm"
+              icono={<Undo2 size={14} />}
+              onClick={quitarAplicados}
+            >
               {t.plantilla.deshacer} ({aplicados})
             </Boton>
           )}

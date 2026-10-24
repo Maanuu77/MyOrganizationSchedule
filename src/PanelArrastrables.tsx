@@ -17,7 +17,13 @@ import { COLORES_PRIORIDAD, seccionarTareas } from './tareasLogica';
 import { t } from './textos';
 import type { Etiqueta, Tarea } from './tipos';
 
-function ChipArrastrable({ etiqueta, alElegirHora }: { etiqueta: Etiqueta; alElegirHora: () => void }) {
+function ChipArrastrable({
+  etiqueta,
+  alElegirHora,
+}: {
+  etiqueta: Etiqueta;
+  alElegirHora: () => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `etiqueta-${etiqueta.id}`,
     data: { tipo: 'etiqueta', etiqueta },
@@ -37,11 +43,16 @@ function ChipArrastrable({ etiqueta, alElegirHora }: { etiqueta: Etiqueta; alEle
           touchAction: 'manipulation',
         }}
       >
-        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm text-white" style={{ background: etiqueta.color }}>
+        <span
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-sm text-white"
+          style={{ background: etiqueta.color }}
+        >
           <IconoEtiqueta nombre={etiqueta.icono} tamano={13} />
         </span>
         <span className="truncate">{etiqueta.nombre}</span>
-        <span className="ml-auto shrink-0 text-[11px] font-medium text-texto-tenue">{etiqueta.duracionMin}′</span>
+        <span className="ml-auto shrink-0 text-[11px] font-medium text-texto-tenue">
+          {etiqueta.duracionMin}′
+        </span>
       </div>
       <button
         type="button"
@@ -56,8 +67,19 @@ function ChipArrastrable({ etiqueta, alElegirHora }: { etiqueta: Etiqueta; alEle
   );
 }
 
-function TareaArrastrable({ tarea, color, alElegirHora }: { tarea: Tarea; color: string; alElegirHora: () => void }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `tarea-${tarea.id}`, data: { tipo: 'tarea', tarea } });
+function TareaArrastrable({
+  tarea,
+  color,
+  alElegirHora,
+}: {
+  tarea: Tarea;
+  color: string;
+  alElegirHora: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `tarea-${tarea.id}`,
+    data: { tipo: 'tarea', tarea },
+  });
   return (
     <div className={`flex items-center gap-1 ${isDragging ? 'opacity-40' : ''}`}>
       <div
@@ -68,12 +90,19 @@ function TareaArrastrable({ tarea, color, alElegirHora }: { tarea: Tarea; color:
         aria-label={tarea.titulo}
         title={t.tareas.arrastrarAyuda}
         className="flex min-w-0 flex-1 cursor-grab items-center gap-2 rounded-md border border-borde bg-superficie px-2 py-1.5 text-sm shadow-suave hover:shadow-media"
-        style={{ borderLeft: `3px solid ${COLORES_PRIORIDAD[tarea.prioridad]}`, touchAction: 'manipulation' }}
+        style={{
+          borderLeft: `3px solid ${COLORES_PRIORIDAD[tarea.prioridad]}`,
+          touchAction: 'manipulation',
+        }}
       >
         <GripVertical size={14} className="shrink-0 text-texto-tenue" aria-hidden />
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
         <span className="truncate">{tarea.titulo}</span>
-        {tarea.estimacionMin && <span className="ml-auto shrink-0 text-[11px] text-texto-tenue">{tarea.estimacionMin}′</span>}
+        {tarea.estimacionMin && (
+          <span className="ml-auto shrink-0 text-[11px] text-texto-tenue">
+            {tarea.estimacionMin}′
+          </span>
+        )}
       </div>
       <button
         type="button"
@@ -115,14 +144,20 @@ export function PanelArrastrables({ modo }: { modo: 'lateral' | 'hoja' }) {
         ) : (
           <div className={modo === 'hoja' ? 'grid grid-cols-2 gap-1.5' : 'space-y-1.5'}>
             {activas.map((e) => (
-              <ChipArrastrable key={e.id} etiqueta={e} alElegirHora={() => setEligiendo({ etiqueta: e })} />
+              <ChipArrastrable
+                key={e.id}
+                etiqueta={e}
+                alElegirHora={() => setEligiendo({ etiqueta: e })}
+              />
             ))}
           </div>
         )}
       </div>
       {pendientes.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-bold tracking-wide text-texto-suave uppercase">{t.calendario.backlog}</p>
+          <p className="mb-2 text-xs font-bold tracking-wide text-texto-suave uppercase">
+            {t.calendario.backlog}
+          </p>
           <div className="space-y-1.5">
             {pendientes.slice(0, 30).map((x) => (
               <TareaArrastrable
@@ -160,7 +195,10 @@ export function PanelArrastrables({ modo }: { modo: 'lateral' | 'hoja' }) {
 
   if (modo === 'lateral') {
     return (
-      <aside className="tarjeta-plana desplazable sticky top-6 max-h-[calc(100dvh-160px)] w-60 shrink-0 overflow-y-auto p-3" aria-label={t.calendario.panelEtiquetas}>
+      <aside
+        className="tarjeta-plana desplazable sticky top-6 max-h-[calc(100dvh-160px)] w-60 shrink-0 overflow-y-auto p-3"
+        aria-label={t.calendario.panelEtiquetas}
+      >
         <h2 className="mb-2 text-sm font-extrabold">{t.calendario.panelEtiquetas}</h2>
         {contenido}
         {dialogo}
@@ -184,9 +222,17 @@ export function PanelArrastrables({ modo }: { modo: 'lateral' | 'hoja' }) {
         >
           <Plus size={16} className="text-acento" aria-hidden />
           {t.calendario.abrirPanel}
-          <ChevronUp size={18} className={`ml-auto transition-transform ${abierta ? 'rotate-180' : ''}`} aria-hidden />
+          <ChevronUp
+            size={18}
+            className={`ml-auto transition-transform ${abierta ? 'rotate-180' : ''}`}
+            aria-hidden
+          />
         </button>
-        {abierta && <div className="desplazable h-[calc(46dvh-52px)] overflow-y-auto px-4 pb-4">{contenido}</div>}
+        {abierta && (
+          <div className="desplazable h-[calc(46dvh-52px)] overflow-y-auto px-4 pb-4">
+            {contenido}
+          </div>
+        )}
       </motion.div>
       {dialogo}
     </>

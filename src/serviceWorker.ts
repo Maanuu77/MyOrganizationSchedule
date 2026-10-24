@@ -28,7 +28,12 @@ export async function obtenerRegistroSW(): Promise<ServiceWorkerRegistration | u
 }
 
 /** Muestra una notificación del sistema desde el service worker (funciona también en Android). */
-export async function mostrarNotificacionLocal(titulo: string, cuerpo: string, url = '/', etiqueta?: string): Promise<void> {
+export async function mostrarNotificacionLocal(
+  titulo: string,
+  cuerpo: string,
+  url = '/',
+  etiqueta?: string,
+): Promise<void> {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const r = await obtenerRegistroSW();
   const opciones: NotificationOptions & { vibrate?: number[] } = {

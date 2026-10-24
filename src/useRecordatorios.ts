@@ -6,7 +6,12 @@ import { useEffect } from 'react';
 import { addDays, startOfDay } from 'date-fns';
 import { useDatos } from './almacenDatos';
 import { COLECCIONES, enLotes, recordatoriosPendientes, refDoc, uidActual } from './datos';
-import { diferenciaRecordatorios, generarRecordatorios, DIAS_VENTANA, type RecordatorioNuevo } from './recordatorios';
+import {
+  diferenciaRecordatorios,
+  generarRecordatorios,
+  DIAS_VENTANA,
+  type RecordatorioNuevo,
+} from './recordatorios';
 import { expandirOcurrencias } from './recurrencia';
 import type { AvisoCarga } from './tipos';
 
@@ -30,7 +35,12 @@ export function useRecordatorios(avisos: AvisoCarga[]): void {
       try {
         const ahora = Date.now();
         const desde = startOfDay(ahora).getTime();
-        const ocurrencias = expandirOcurrencias(eventos, excepciones, desde, addDays(desde, DIAS_VENTANA + 1).getTime());
+        const ocurrencias = expandirOcurrencias(
+          eventos,
+          excepciones,
+          desde,
+          addDays(desde, DIAS_VENTANA + 1).getTime(),
+        );
         const deseados = generarRecordatorios({
           uid: uidActual(),
           ajustes: { notificaciones, formato24h },
@@ -41,16 +51,24 @@ export function useRecordatorios(avisos: AvisoCarga[]): void {
           ahoraMs: ahora,
         });
         ultimosDeseados = deseados;
-        const existentes = (await recordatoriosPendientes()).filter((r) => r.tipo !== 'faseTemporizador');
+        const existentes = (await recordatoriosPendientes()).filter(
+          (r) => r.tipo !== 'faseTemporizador',
+        );
         const { crear, borrar } = diferenciaRecordatorios(existentes as never, deseados);
         if (!crear.length && !borrar.length) return;
         await enLotes(
-          [...borrar.map((id) => ({ id, borrar: true as const })), ...crear.map((r) => ({ id: r.id, datos: r }))],
+          [
+            ...borrar.map((id) => ({ id, borrar: true as const })),
+            ...crear.map((r) => ({ id: r.id, datos: r })),
+          ],
           (lote, op) => {
             if ('borrar' in op) lote.delete(refDoc(COLECCIONES.recordatorios, op.id));
             else {
               const { id: _id, ...datos } = op.datos;
-              lote.set(refDoc(COLECCIONES.recordatorios, op.id), { ...datos, creadoEnMs: Date.now() });
+              lote.set(refDoc(COLECCIONES.recordatorios, op.id), {
+                ...datos,
+                creadoEnMs: Date.now(),
+              });
             }
           },
         );

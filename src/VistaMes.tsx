@@ -4,7 +4,14 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { addDays, isSameMonth, isToday, startOfDay, startOfMonth } from 'date-fns';
 import { TriangleAlert } from 'lucide-react';
 import type { AvisoCarga, Etiqueta, Ocurrencia } from './tipos';
-import { claveDia, formatear, formatearHora, inicioDeSemana, ordenDias, DIAS_CORTOS } from './fechas';
+import {
+  claveDia,
+  formatear,
+  formatearHora,
+  inicioDeSemana,
+  ordenDias,
+  DIAS_CORTOS,
+} from './fechas';
 import { useUI } from './almacenUI';
 import { useDatos } from './almacenDatos';
 import { acabaDeArrastrar } from './BloqueCalendario';
@@ -42,7 +49,10 @@ export function VistaMes({ fecha, ocurrencias, etiquetas, avisos, alElegirDia, a
     <div className="tarjeta-plana overflow-hidden">
       <div className="grid grid-cols-7 border-b border-borde bg-superficie-2/60">
         {ordenDias(inicioSemana).map((d) => (
-          <div key={d} className="py-2 text-center text-[11px] font-bold text-texto-tenue uppercase">
+          <div
+            key={d}
+            className="py-2 text-center text-[11px] font-bold text-texto-tenue uppercase"
+          >
             {DIAS_CORTOS[d]}
           </div>
         ))}
@@ -83,7 +93,10 @@ const CeldaDia = memo(function CeldaDia({
   alCrear: (inicioMs: number, finMs: number) => void;
 }) {
   const clave = claveDia(dia);
-  const { setNodeRef, isOver } = useDroppable({ id: `mes-${clave}`, data: { tipo: 'dia', fecha: clave, conHoras: false } });
+  const { setNodeRef, isOver } = useDroppable({
+    id: `mes-${clave}`,
+    data: { tipo: 'dia', fecha: clave, conHoras: false },
+  });
   const visibles = ocurrencias.slice(0, 3);
   const resto = ocurrencias.length - visibles.length;
   const conAviso = ocurrencias.some((o) => avisos.has(o.clave));
@@ -108,14 +121,24 @@ const CeldaDia = memo(function CeldaDia({
         >
           {formatear(dia, 'd')}
         </button>
-        {conAviso && <TriangleAlert size={12} className="text-aviso" aria-label="Hay avisos este día" />}
+        {conAviso && (
+          <TriangleAlert size={12} className="text-aviso" aria-label="Hay avisos este día" />
+        )}
       </div>
       <div className="space-y-0.5">
         {visibles.map((o) => (
-          <ChipMes key={o.clave} oc={o} etiqueta={o.etiquetaId ? etiquetas.get(o.etiquetaId) ?? null : null} />
+          <ChipMes
+            key={o.clave}
+            oc={o}
+            etiqueta={o.etiquetaId ? (etiquetas.get(o.etiquetaId) ?? null) : null}
+          />
         ))}
         {resto > 0 && (
-          <button type="button" onClick={() => alElegirDia(dia)} className="px-1 text-[11px] font-bold text-texto-suave hover:text-acento">
+          <button
+            type="button"
+            onClick={() => alElegirDia(dia)}
+            className="px-1 text-[11px] font-bold text-texto-suave hover:text-acento"
+          >
             {t.calendario.masEventos(resto)}
           </button>
         )}
@@ -139,13 +162,29 @@ function ChipMes({ oc, etiqueta }: { oc: Ocurrencia; etiqueta: Etiqueta | null }
       {...listeners}
       role="button"
       tabIndex={0}
-      onClick={() => !acabaDeArrastrar() && poner({ editorBloque: { ocurrencia: oc, borrador: null } })}
-      onKeyDown={(e) => e.key === 'Enter' && poner({ editorBloque: { ocurrencia: oc, borrador: null } })}
+      onClick={() =>
+        !acabaDeArrastrar() && poner({ editorBloque: { ocurrencia: oc, borrador: null } })
+      }
+      onKeyDown={(e) =>
+        e.key === 'Enter' && poner({ editorBloque: { ocurrencia: oc, borrador: null } })
+      }
       className={`flex items-center gap-1 truncate rounded-[6px] px-1.5 py-0.5 text-[11px] font-semibold ${isDragging ? 'opacity-30' : ''} ${oc.completado ? 'line-through opacity-60' : ''}`}
-      style={{ background: `color-mix(in oklab, ${color} 18%, transparent)`, color: `color-mix(in oklab, ${color} 35%, var(--mos-texto))`, touchAction: 'manipulation' }}
+      style={{
+        background: `color-mix(in oklab, ${color} 18%, transparent)`,
+        color: `color-mix(in oklab, ${color} 35%, var(--mos-texto))`,
+        touchAction: 'manipulation',
+      }}
     >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
-      {!oc.evento.todoElDia && <span className="numeros hidden opacity-75 sm:inline">{formatearHora(oc.inicioMs, formato24h)}</span>}
+      <span
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{ background: color }}
+        aria-hidden
+      />
+      {!oc.evento.todoElDia && (
+        <span className="numeros hidden opacity-75 sm:inline">
+          {formatearHora(oc.inicioMs, formato24h)}
+        </span>
+      )}
       <span className="truncate">{oc.titulo}</span>
     </div>
   );

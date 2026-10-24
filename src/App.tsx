@@ -28,8 +28,14 @@ const PantallaTareas = perezoso(() => import('./PantallaTareas'), 'PantallaTarea
 const PantallaFoco = perezoso(() => import('./PantallaFoco'), 'PantallaFoco');
 const PantallaCiclos = perezoso(() => import('./PantallaCiclos'), 'PantallaCiclos');
 const PantallaRutinas = perezoso(() => import('./PantallaRutinas'), 'PantallaRutinas');
-const PantallaEjecutarRutina = perezoso(() => import('./PantallaEjecutarRutina'), 'PantallaEjecutarRutina');
-const PantallaEstadisticas = perezoso(() => import('./PantallaEstadisticas'), 'PantallaEstadisticas');
+const PantallaEjecutarRutina = perezoso(
+  () => import('./PantallaEjecutarRutina'),
+  'PantallaEjecutarRutina',
+);
+const PantallaEstadisticas = perezoso(
+  () => import('./PantallaEstadisticas'),
+  'PantallaEstadisticas',
+);
 const PantallaEtiquetas = perezoso(() => import('./PantallaEtiquetas'), 'PantallaEtiquetas');
 const PantallaAvisos = perezoso(() => import('./PantallaAvisos'), 'PantallaAvisos');
 const PantallaAjustes = perezoso(() => import('./PantallaAjustes'), 'PantallaAjustes');

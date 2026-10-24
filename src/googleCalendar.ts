@@ -14,7 +14,15 @@ import { addDays } from 'date-fns';
 import { obtenerAuth } from './firebase';
 import { useDatos } from './almacenDatos';
 import { useUI } from './almacenUI';
-import { COLECCIONES, borrar, eventos as dbEventos, excepciones as dbExcepciones, guardarIntegracionGoogle, refDoc, limpiar } from './datos';
+import {
+  COLECCIONES,
+  borrar,
+  eventos as dbEventos,
+  excepciones as dbExcepciones,
+  guardarIntegracionGoogle,
+  refDoc,
+  limpiar,
+} from './datos';
 import { setDoc } from 'firebase/firestore';
 import { eventoVacio } from './operaciones';
 import { expandirOcurrencias } from './recurrencia';
@@ -92,7 +100,11 @@ export function tokenVigente(): string | null {
 async function llamar<T>(token: string, ruta: string, opciones: RequestInit = {}): Promise<T> {
   const respuesta = await fetch(`${API}${ruta}`, {
     ...opciones,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...opciones.headers },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...opciones.headers,
+    },
   });
   if (respuesta.status === 401) {
     useUI.getState().poner({ tokenGoogle: null });
@@ -104,10 +116,9 @@ async function llamar<T>(token: string, ruta: string, opciones: RequestInit = {}
 }
 
 export async function listarCalendarios(token: string): Promise<CalendarioGoogle[]> {
-  const datos = await llamar<{ items?: Array<{ id: string; summary: string; primary?: boolean; accessRole: string }> }>(
-    token,
-    '/users/me/calendarList?minAccessRole=reader',
-  );
+  const datos = await llamar<{
+    items?: Array<{ id: string; summary: string; primary?: boolean; accessRole: string }>;
+  }>(token, '/users/me/calendarList?minAccessRole=reader');
   return (datos.items ?? []).map((c) => ({
     id: c.id,
     nombre: c.summary,
@@ -117,7 +128,13 @@ export async function listarCalendarios(token: string): Promise<CalendarioGoogle
 }
 
 /** Todos los eventos (con paginación) de un calendario en un rango. */
-async function listarEventos(token: string, calendarioId: string, desde: number, hasta: number, extra = ''): Promise<EventoGoogle[]> {
+async function listarEventos(
+  token: string,
+  calendarioId: string,
+  desde: number,
+  hasta: number,
+  extra = '',
+): Promise<EventoGoogle[]> {
   const lista: EventoGoogle[] = [];
   let pagina: string | undefined;
   do {
@@ -143,28 +160,51 @@ async function listarEventos(token: string, calendarioId: string, desde: number,
 function idImportado(calendarioId: string, eventoId: string): string {
   let hash = 0;
   for (const c of calendarioId) hash = (hash * 31 + c.charCodeAt(0)) | 0;
-  return `gcal-${Math.abs(hash).toString(36)}-${eventoId}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 300);
+  return `gcal-${Math.abs(hash).toString(36)}-${eventoId}`
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 300);
 }
 
-function tiemposDe(g: EventoGoogle): { inicioMs: number; finMs: number; todoElDia: boolean } | null {
+function tiemposDe(
+  g: EventoGoogle,
+): { inicioMs: number; finMs: number; todoElDia: boolean } | null {
   if (g.start?.dateTime && g.end?.dateTime) {
-    return { inicioMs: Date.parse(g.start.dateTime), finMs: Date.parse(g.end.dateTime), todoElDia: false };
+    return {
+      inicioMs: Date.parse(g.start.dateTime),
+      finMs: Date.parse(g.end.dateTime),
+      todoElDia: false,
+    };
   }
   if (g.start?.date && g.end?.date) {
     const [a, m, d] = g.start.date.split('-').map(Number);
     const [a2, m2, d2] = g.end.date.split('-').map(Number);
-    return { inicioMs: new Date(a, m - 1, d).getTime(), finMs: new Date(a2, m2 - 1, d2).getTime(), todoElDia: true };
+    return {
+      inicioMs: new Date(a, m - 1, d).getTime(),
+      finMs: new Date(a2, m2 - 1, d2).getTime(),
+      todoElDia: true,
+    };
   }
   return null;
 }
 
-function cuerpoGoogle(titulo: string, notas: string, inicioMs: number, finMs: number, todoElDia: boolean, mosId?: string) {
+function cuerpoGoogle(
+  titulo: string,
+  notas: string,
+  inicioMs: number,
+  finMs: number,
+  todoElDia: boolean,
+  mosId?: string,
+) {
   const zona = zonaDelDispositivo();
   return {
     summary: titulo,
     description: notas || undefined,
-    start: todoElDia ? { date: claveDia(inicioMs) } : { dateTime: new Date(inicioMs).toISOString(), timeZone: zona },
-    end: todoElDia ? { date: claveDia(finMs) } : { dateTime: new Date(finMs).toISOString(), timeZone: zona },
+    start: todoElDia
+      ? { date: claveDia(inicioMs) }
+      : { dateTime: new Date(inicioMs).toISOString(), timeZone: zona },
+    end: todoElDia
+      ? { date: claveDia(finMs) }
+      : { dateTime: new Date(finMs).toISOString(), timeZone: zona },
     ...(mosId ? { extendedProperties: { private: { mosApp: '1', mosId } } } : {}),
   };
 }
@@ -175,7 +215,10 @@ export interface ResultadoSincronizacion {
 }
 
 /** Sincroniza en los dos sentidos según los calendarios elegidos. */
-export async function sincronizarAhora(token: string, integracion: IntegracionGoogle): Promise<ResultadoSincronizacion> {
+export async function sincronizarAhora(
+  token: string,
+  integracion: IntegracionGoogle,
+): Promise<ResultadoSincronizacion> {
   const ahora = Date.now();
   const desde = addDays(ahora, -30).getTime();
   const hasta = addDays(ahora, 90).getTime();
@@ -201,7 +244,11 @@ export async function sincronizarAhora(token: string, integracion: IntegracionGo
         await setDoc(
           refDoc(COLECCIONES.eventos, id),
           limpiar({
-            ...eventoVacio({ ...tiempos, titulo: g.summary || '(Sin título)', notas: g.description ?? '' }),
+            ...eventoVacio({
+              ...tiempos,
+              titulo: g.summary || '(Sin título)',
+              notas: g.description ?? '',
+            }),
             // Guardamos cuándo lo sincronizamos: así distinguimos cambios posteriores en cada lado
             origenGoogle: { calendarioId: idImp, eventoId: g.id, actualizadoMs: ahora },
             creadoEnMs: ahora,
@@ -209,7 +256,10 @@ export async function sincronizarAhora(token: string, integracion: IntegracionGo
           }),
         );
         importados++;
-      } else if (actualizadoGoogle > (local.origenGoogle?.actualizadoMs ?? 0) && actualizadoGoogle > local.actualizadoEnMs) {
+      } else if (
+        actualizadoGoogle > (local.origenGoogle?.actualizadoMs ?? 0) &&
+        actualizadoGoogle > local.actualizadoEnMs
+      ) {
         // Cambió en Google después que en la app: gana Google
         await dbEventos.actualizar(id, {
           ...tiempos,
@@ -218,15 +268,36 @@ export async function sincronizarAhora(token: string, integracion: IntegracionGo
           origenGoogle: { calendarioId: idImp, eventoId: g.id, actualizadoMs: Date.now() },
         });
         importados++;
-      } else if (local.actualizadoEnMs > Math.max(actualizadoGoogle, local.origenGoogle?.actualizadoMs ?? 0) + 2000) {
+      } else if (
+        local.actualizadoEnMs >
+        Math.max(actualizadoGoogle, local.origenGoogle?.actualizadoMs ?? 0) + 2000
+      ) {
         // Cambió en la app después: lo llevamos a Google (si el calendario lo permite)
         try {
-          const g2 = await llamar<EventoGoogle>(token, `/calendars/${encodeURIComponent(idImp)}/events/${encodeURIComponent(g.id)}`, {
-            method: 'PATCH',
-            body: JSON.stringify(cuerpoGoogle(local.titulo, local.notas, local.inicioMs, local.finMs, local.todoElDia)),
-          });
+          const g2 = await llamar<EventoGoogle>(
+            token,
+            `/calendars/${encodeURIComponent(idImp)}/events/${encodeURIComponent(g.id)}`,
+            {
+              method: 'PATCH',
+              body: JSON.stringify(
+                cuerpoGoogle(
+                  local.titulo,
+                  local.notas,
+                  local.inicioMs,
+                  local.finMs,
+                  local.todoElDia,
+                ),
+              ),
+            },
+          );
           const enGoogle = g2?.updated ? Date.parse(g2.updated) : 0;
-          await dbEventos.actualizar(id, { origenGoogle: { calendarioId: idImp, eventoId: g.id, actualizadoMs: Math.max(enGoogle, Date.now()) } });
+          await dbEventos.actualizar(id, {
+            origenGoogle: {
+              calendarioId: idImp,
+              eventoId: g.id,
+              actualizadoMs: Math.max(enGoogle, Date.now()),
+            },
+          });
         } catch (e) {
           if (e instanceof TokenCaducado) throw e;
           // Calendario de solo lectura: se queda la versión de la app
@@ -235,7 +306,12 @@ export async function sincronizarAhora(token: string, integracion: IntegracionGo
     }
     // Lo que se borró en Google se borra también en la app
     for (const e of eventos) {
-      if (e.origenGoogle?.calendarioId === idImp && e.inicioMs >= desde && e.inicioMs < hasta && !vistos.has(e.id)) {
+      if (
+        e.origenGoogle?.calendarioId === idImp &&
+        e.inicioMs >= desde &&
+        e.inicioMs < hasta &&
+        !vistos.has(e.id)
+      ) {
         await borrar(COLECCIONES.eventos, e.id);
       }
     }
@@ -247,29 +323,58 @@ export async function sincronizarAhora(token: string, integracion: IntegracionGo
     const { eventos, excepciones } = useDatos.getState();
     const propios = eventos.filter((e) => !e.origenGoogle);
     const ocurrencias = expandirOcurrencias(propios, excepciones, desde, hasta).slice(0, 800);
-    const existentes = await listarEventos(token, idExp, desde, hasta, '&privateExtendedProperty=mosApp%3D1');
-    const porMosId = new Map(existentes.map((g) => [g.extendedProperties?.private?.mosId ?? '', g]));
+    const existentes = await listarEventos(
+      token,
+      idExp,
+      desde,
+      hasta,
+      '&privateExtendedProperty=mosApp%3D1',
+    );
+    const porMosId = new Map(
+      existentes.map((g) => [g.extendedProperties?.private?.mosId ?? '', g]),
+    );
     const deseados = new Set<string>();
     for (const o of ocurrencias) {
       deseados.add(o.clave);
       const g = porMosId.get(o.clave);
       const actualizadoApp = Math.max(o.evento.actualizadoEnMs, o.excepcion?.actualizadoEnMs ?? 0);
-      const cuerpo = cuerpoGoogle(o.titulo, o.notas, o.inicioMs, o.finMs, o.evento.todoElDia, o.clave);
+      const cuerpo = cuerpoGoogle(
+        o.titulo,
+        o.notas,
+        o.inicioMs,
+        o.finMs,
+        o.evento.todoElDia,
+        o.clave,
+      );
       if (!g) {
-        await llamar(token, `/calendars/${encodeURIComponent(idExp)}/events`, { method: 'POST', body: JSON.stringify(cuerpo) });
+        await llamar(token, `/calendars/${encodeURIComponent(idExp)}/events`, {
+          method: 'POST',
+          body: JSON.stringify(cuerpo),
+        });
         exportados++;
         continue;
       }
       const actualizadoGoogle = g.updated ? Date.parse(g.updated) : 0;
       const tiempos = tiemposDe(g);
-      const igual = tiempos && tiempos.inicioMs === o.inicioMs && tiempos.finMs === o.finMs && (g.summary ?? '') === o.titulo;
+      const igual =
+        tiempos &&
+        tiempos.inicioMs === o.inicioMs &&
+        tiempos.finMs === o.finMs &&
+        (g.summary ?? '') === o.titulo;
       if (igual) continue;
       if (actualizadoApp >= actualizadoGoogle) {
-        await llamar(token, `/calendars/${encodeURIComponent(idExp)}/events/${encodeURIComponent(g.id)}`, { method: 'PATCH', body: JSON.stringify(cuerpo) });
+        await llamar(
+          token,
+          `/calendars/${encodeURIComponent(idExp)}/events/${encodeURIComponent(g.id)}`,
+          { method: 'PATCH', body: JSON.stringify(cuerpo) },
+        );
         exportados++;
       } else if (tiempos) {
         // Se editó en Google más tarde: aplicamos el cambio en la app
-        await aplicarCambioDesdeGoogle(o.evento, o.inicioOriginalMs, o.excepcion, { ...tiempos, titulo: g.summary ?? o.titulo });
+        await aplicarCambioDesdeGoogle(o.evento, o.inicioOriginalMs, o.excepcion, {
+          ...tiempos,
+          titulo: g.summary ?? o.titulo,
+        });
         importados++;
       }
     }
@@ -277,12 +382,20 @@ export async function sincronizarAhora(token: string, integracion: IntegracionGo
     for (const g of existentes) {
       const mosId = g.extendedProperties?.private?.mosId;
       if (mosId && !deseados.has(mosId)) {
-        await llamar(token, `/calendars/${encodeURIComponent(idExp)}/events/${encodeURIComponent(g.id)}`, { method: 'DELETE' });
+        await llamar(
+          token,
+          `/calendars/${encodeURIComponent(idExp)}/events/${encodeURIComponent(g.id)}`,
+          { method: 'DELETE' },
+        );
       }
     }
   }
 
-  await guardarIntegracionGoogle({ ...integracion, ultimaSincronizacionMs: Date.now(), actualizadoEnMs: Date.now() });
+  await guardarIntegracionGoogle({
+    ...integracion,
+    ultimaSincronizacionMs: Date.now(),
+    actualizadoEnMs: Date.now(),
+  });
   return { importados, exportados };
 }
 
@@ -293,7 +406,11 @@ async function aplicarCambioDesdeGoogle(
   cambios: { inicioMs: number; finMs: number; titulo: string },
 ): Promise<void> {
   if (!evento.recurrencia) {
-    await dbEventos.actualizar(evento.id, { inicioMs: cambios.inicioMs, finMs: cambios.finMs, titulo: cambios.titulo });
+    await dbEventos.actualizar(evento.id, {
+      inicioMs: cambios.inicioMs,
+      finMs: cambios.finMs,
+      titulo: cambios.titulo,
+    });
     return;
   }
   await dbExcepciones.guardar(
@@ -302,7 +419,12 @@ async function aplicarCambioDesdeGoogle(
       inicioOriginalMs,
       cancelada: false,
       completado: excepcion?.completado ?? false,
-      cambios: { ...excepcion?.cambios, inicioMs: cambios.inicioMs, finMs: cambios.finMs, titulo: cambios.titulo },
+      cambios: {
+        ...excepcion?.cambios,
+        inicioMs: cambios.inicioMs,
+        finMs: cambios.finMs,
+        titulo: cambios.titulo,
+      },
     },
     excepcion,
   );

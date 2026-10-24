@@ -11,7 +11,9 @@ export function PantallaConfiguracionPendiente() {
         <div className="mb-4 flex items-center gap-3">
           <Logo tamano={44} />
           <div>
-            <p className="text-xs font-semibold tracking-wide text-texto-tenue uppercase">{t.app.nombre}</p>
+            <p className="text-xs font-semibold tracking-wide text-texto-tenue uppercase">
+              {t.app.nombre}
+            </p>
             <h1 className="flex items-center gap-2 text-xl font-extrabold">
               <Settings size={20} className="text-acento" aria-hidden />
               {t.configuracion.titulo}

@@ -22,15 +22,23 @@ function duracionEnCalendario(rutina: DatosNuevos<Rutina>): number {
   return duracionRutinaMin(rutina) || 30;
 }
 
-export async function guardarRutina(datos: DatosNuevos<Rutina>, previa: Rutina | null): Promise<Rutina | null> {
+export async function guardarRutina(
+  datos: DatosNuevos<Rutina>,
+  previa: Rutina | null,
+): Promise<Rutina | null> {
   try {
-    const rutina = previa ? { ...previa, ...datos } : await dbRutinas.crear({ ...datos, eventoCalendarioId: null });
+    const rutina = previa
+      ? { ...previa, ...datos }
+      : await dbRutinas.crear({ ...datos, eventoCalendarioId: null });
     const quiereEvento = datos.mostrarEnCalendario && !!datos.programacion.hora && !datos.archivada;
     let eventoId = previa?.eventoCalendarioId ?? null;
     const existe = eventoId ? useDatos.getState().eventos.some((e) => e.id === eventoId) : false;
 
     if (quiereEvento) {
-      const inicio = conHora(startOfDay(previa?.creadoEnMs ?? Date.now()), datos.programacion.hora!).getTime();
+      const inicio = conHora(
+        startOfDay(previa?.creadoEnMs ?? Date.now()),
+        datos.programacion.hora!,
+      ).getTime();
       const campos = {
         tipo: 'rutina' as const,
         titulo: datos.nombre,
@@ -60,7 +68,10 @@ export async function guardarRutina(datos: DatosNuevos<Rutina>, previa: Rutina |
 }
 
 export async function borrarRutina(rutina: Rutina): Promise<void> {
-  if (rutina.eventoCalendarioId && useDatos.getState().eventos.some((e) => e.id === rutina.eventoCalendarioId)) {
+  if (
+    rutina.eventoCalendarioId &&
+    useDatos.getState().eventos.some((e) => e.id === rutina.eventoCalendarioId)
+  ) {
     await dbEventos.borrar(rutina.eventoCalendarioId, useDatos.getState().excepciones);
   }
   await dbRutinas.borrar(rutina.id);

@@ -68,7 +68,12 @@ export function EditorTarea() {
   const activas = useMemo(() => etiquetasActivas(etiquetas), [etiquetas]);
   const cerrar = () => poner({ editorTarea: null });
 
-  if (!estado || !f) return <Modal abierto={false} alCerrar={cerrar} titulo="">{null}</Modal>;
+  if (!estado || !f)
+    return (
+      <Modal abierto={false} alCerrar={cerrar} titulo="">
+        {null}
+      </Modal>
+    );
   const actualizar = (p: Partial<Formulario>) => setF({ ...f, ...p });
 
   const planificacion = (): Planificacion => {
@@ -77,7 +82,9 @@ export function EditorTarea() {
     if (f.tipoPlan === 'semana') {
       // Si ya estaba en una semana concreta la respetamos
       const previa = tarea?.planificacion;
-      return previa?.tipo === 'semana' ? previa : { tipo: 'semana', semana: claveDia(inicioDeSemana(new Date(), inicioSemana)) };
+      return previa?.tipo === 'semana'
+        ? previa
+        : { tipo: 'semana', semana: claveDia(inicioDeSemana(new Date(), inicioSemana)) };
     }
     return { tipo: 'sinFecha' };
   };
@@ -114,7 +121,12 @@ export function EditorTarea() {
 
   const borrar = async () => {
     if (!tarea) return;
-    const ok = await confirmar({ titulo: t.tareas.borrarTitulo, mensaje: t.tareas.borrarTexto, textoConfirmar: t.comun.borrar, peligro: true });
+    const ok = await confirmar({
+      titulo: t.tareas.borrarTitulo,
+      mensaje: t.tareas.borrarTexto,
+      textoConfirmar: t.comun.borrar,
+      peligro: true,
+    });
     if (!ok) return;
     await dbTareas.borrar(tarea.id);
     cerrar();
@@ -138,7 +150,13 @@ export function EditorTarea() {
           <>
             {tarea && (
               <div className="mr-auto flex gap-1">
-                <Boton variante="fantasma" tamano="icono" onClick={borrar} aria-label={t.comun.borrar} title={t.comun.borrar}>
+                <Boton
+                  variante="fantasma"
+                  tamano="icono"
+                  onClick={borrar}
+                  aria-label={t.comun.borrar}
+                  title={t.comun.borrar}
+                >
                   <Trash2 size={18} className="text-peligro" />
                 </Boton>
                 <Boton
@@ -170,14 +188,26 @@ export function EditorTarea() {
         >
           <Campo etiqueta={t.comun.titulo}>
             {(id) => (
-              <input id={id} className="campo text-base font-semibold" value={f.titulo} maxLength={300} onChange={(e) => actualizar({ titulo: e.target.value })} data-autofoco />
+              <input
+                id={id}
+                className="campo text-base font-semibold"
+                value={f.titulo}
+                maxLength={300}
+                onChange={(e) => actualizar({ titulo: e.target.value })}
+                data-autofoco
+              />
             )}
           </Campo>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Campo etiqueta={t.comun.etiqueta}>
               {(id) => (
-                <select id={id} className="campo" value={f.etiquetaId ?? ''} onChange={(e) => actualizar({ etiquetaId: e.target.value || null })}>
+                <select
+                  id={id}
+                  className="campo"
+                  value={f.etiquetaId ?? ''}
+                  onChange={(e) => actualizar({ etiquetaId: e.target.value || null })}
+                >
                   <option value="">{t.comun.sinEtiqueta}</option>
                   {activas.map((e) => (
                     <option key={e.id} value={e.id}>
@@ -200,7 +230,11 @@ export function EditorTarea() {
                     className="flex-1 rounded-sm border px-2 py-2 text-xs font-bold transition-all"
                     style={
                       f.prioridad === p
-                        ? { background: COLORES_PRIORIDAD[p], color: '#fff', borderColor: COLORES_PRIORIDAD[p] }
+                        ? {
+                            background: COLORES_PRIORIDAD[p],
+                            color: '#fff',
+                            borderColor: COLORES_PRIORIDAD[p],
+                          }
                         : { borderColor: 'var(--mos-borde-fuerte)', color: COLORES_PRIORIDAD[p] }
                     }
                   >
@@ -214,7 +248,12 @@ export function EditorTarea() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Campo etiqueta={t.tareas.planificada}>
               {(id) => (
-                <select id={id} className="campo" value={f.tipoPlan} onChange={(e) => actualizar({ tipoPlan: e.target.value as TipoPlan })}>
+                <select
+                  id={id}
+                  className="campo"
+                  value={f.tipoPlan}
+                  onChange={(e) => actualizar({ tipoPlan: e.target.value as TipoPlan })}
+                >
                   <option value="hoy">{t.tareas.planHoy}</option>
                   <option value="dia">{t.tareas.planDia}</option>
                   <option value="semana">{t.tareas.planSemana}</option>
@@ -224,7 +263,15 @@ export function EditorTarea() {
             </Campo>
             {f.tipoPlan === 'dia' && (
               <Campo etiqueta={t.comun.fecha}>
-                {(id) => <input id={id} type="date" className="campo" value={f.fechaPlan} onChange={(e) => e.target.value && actualizar({ fechaPlan: e.target.value })} />}
+                {(id) => (
+                  <input
+                    id={id}
+                    type="date"
+                    className="campo"
+                    value={f.fechaPlan}
+                    onChange={(e) => e.target.value && actualizar({ fechaPlan: e.target.value })}
+                  />
+                )}
               </Campo>
             )}
           </div>
@@ -233,17 +280,35 @@ export function EditorTarea() {
             <Campo etiqueta={`${t.tareas.fechaLimite} (${t.comun.opcional})`}>
               {(id) => (
                 <div className="flex gap-1">
-                  <input id={id} type="datetime-local" className="campo" value={f.fechaLimite} onChange={(e) => actualizar({ fechaLimite: e.target.value })} />
+                  <input
+                    id={id}
+                    type="datetime-local"
+                    className="campo"
+                    value={f.fechaLimite}
+                    onChange={(e) => actualizar({ fechaLimite: e.target.value })}
+                  />
                   {!f.fechaLimite ? (
                     <Boton
                       variante="fantasma"
                       tamano="sm"
-                      onClick={() => actualizar({ fechaLimite: format(addHours(startOfHour(new Date()), 24), "yyyy-MM-dd'T'HH:mm") })}
+                      onClick={() =>
+                        actualizar({
+                          fechaLimite: format(
+                            addHours(startOfHour(new Date()), 24),
+                            "yyyy-MM-dd'T'HH:mm",
+                          ),
+                        })
+                      }
                     >
                       +1 día
                     </Boton>
                   ) : (
-                    <Boton variante="fantasma" tamano="icono" aria-label="Quitar fecha límite" onClick={() => actualizar({ fechaLimite: '' })}>
+                    <Boton
+                      variante="fantasma"
+                      tamano="icono"
+                      aria-label="Quitar fecha límite"
+                      onClick={() => actualizar({ fechaLimite: '' })}
+                    >
                       <X size={16} />
                     </Boton>
                   )}
@@ -252,7 +317,16 @@ export function EditorTarea() {
             </Campo>
             <Campo etiqueta={`${t.tareas.estimacion} (${t.comun.minutos})`}>
               {(id) => (
-                <input id={id} type="number" min={1} max={6000} className="campo" value={f.estimacionMin} placeholder="30" onChange={(e) => actualizar({ estimacionMin: e.target.value })} />
+                <input
+                  id={id}
+                  type="number"
+                  min={1}
+                  max={6000}
+                  className="campo"
+                  value={f.estimacionMin}
+                  placeholder="30"
+                  onChange={(e) => actualizar({ estimacionMin: e.target.value })}
+                />
               )}
             </Campo>
           </div>
@@ -267,19 +341,33 @@ export function EditorTarea() {
                     checked={s.hecha}
                     aria-label={s.titulo}
                     className="h-4 w-4 accent-[var(--mos-acento)]"
-                    onChange={() => actualizar({ subtareas: f.subtareas.map((x) => (x.id === s.id ? { ...x, hecha: !x.hecha } : x)) })}
+                    onChange={() =>
+                      actualizar({
+                        subtareas: f.subtareas.map((x) =>
+                          x.id === s.id ? { ...x, hecha: !x.hecha } : x,
+                        ),
+                      })
+                    }
                   />
                   <input
                     className="campo py-1"
                     value={s.titulo}
                     aria-label={t.tareas.subtareas}
-                    onChange={(e) => actualizar({ subtareas: f.subtareas.map((x) => (x.id === s.id ? { ...x, titulo: e.target.value } : x)) })}
+                    onChange={(e) =>
+                      actualizar({
+                        subtareas: f.subtareas.map((x) =>
+                          x.id === s.id ? { ...x, titulo: e.target.value } : x,
+                        ),
+                      })
+                    }
                   />
                   <button
                     type="button"
                     className="text-texto-tenue hover:text-peligro"
                     aria-label={t.comun.borrar}
-                    onClick={() => actualizar({ subtareas: f.subtareas.filter((x) => x.id !== s.id) })}
+                    onClick={() =>
+                      actualizar({ subtareas: f.subtareas.filter((x) => x.id !== s.id) })
+                    }
                   >
                     <X size={16} />
                   </button>
@@ -300,7 +388,12 @@ export function EditorTarea() {
                   }
                 }}
               />
-              <Boton variante="suave" tamano="icono" onClick={añadirSub} aria-label={t.tareas.nuevaSubtarea}>
+              <Boton
+                variante="suave"
+                tamano="icono"
+                onClick={añadirSub}
+                aria-label={t.tareas.nuevaSubtarea}
+              >
                 <Plus size={16} />
               </Boton>
             </div>
@@ -316,7 +409,11 @@ export function EditorTarea() {
                   onChange={(e) =>
                     actualizar({
                       repeticion: e.target.value
-                        ? { frecuencia: e.target.value as RepeticionTarea['frecuencia'], intervalo: f.repeticion?.intervalo ?? 1, diasSemana: f.repeticion?.diasSemana }
+                        ? {
+                            frecuencia: e.target.value as RepeticionTarea['frecuencia'],
+                            intervalo: f.repeticion?.intervalo ?? 1,
+                            diasSemana: f.repeticion?.diasSemana,
+                          }
                         : null,
                     })
                   }
@@ -338,7 +435,14 @@ export function EditorTarea() {
                     max={99}
                     className="campo w-16 py-1"
                     value={f.repeticion.intervalo}
-                    onChange={(e) => actualizar({ repeticion: { ...f.repeticion!, intervalo: Math.max(1, Number(e.target.value) || 1) } })}
+                    onChange={(e) =>
+                      actualizar({
+                        repeticion: {
+                          ...f.repeticion!,
+                          intervalo: Math.max(1, Number(e.target.value) || 1),
+                        },
+                      })
+                    }
                   />
                 </label>
                 {f.repeticion.frecuencia === 'semanal' && (
@@ -346,7 +450,9 @@ export function EditorTarea() {
                     etiqueta={t.recurrencia.enDias}
                     inicioSemana={inicioSemana}
                     valor={f.repeticion.diasSemana ?? []}
-                    alCambiar={(dias) => actualizar({ repeticion: { ...f.repeticion!, diasSemana: dias } })}
+                    alCambiar={(dias) =>
+                      actualizar({ repeticion: { ...f.repeticion!, diasSemana: dias } })
+                    }
                   />
                 )}
               </div>
@@ -354,7 +460,16 @@ export function EditorTarea() {
           </div>
 
           <Campo etiqueta={t.comun.notas}>
-            {(id) => <textarea id={id} rows={3} maxLength={10000} className="campo resize-y" value={f.notas} onChange={(e) => actualizar({ notas: e.target.value })} />}
+            {(id) => (
+              <textarea
+                id={id}
+                rows={3}
+                maxLength={10000}
+                className="campo resize-y"
+                value={f.notas}
+                onChange={(e) => actualizar({ notas: e.target.value })}
+              />
+            )}
           </Campo>
           <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
         </form>

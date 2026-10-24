@@ -5,7 +5,11 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { readFileSync } from 'node:fs';
 
-const version = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }).version;
+const version = (
+  JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as {
+    version: string;
+  }
+).version;
 
 // Configuración de Vite: React, Tailwind y la PWA con un único service worker propio (src/sw.ts)
 // que gestiona la caché de la app y las notificaciones de Firebase Cloud Messaging.
@@ -33,7 +37,8 @@ export default defineConfig({
       manifest: {
         name: 'MyOrganizationSchedule',
         short_name: 'MOS',
-        description: 'Planifica tu día, tu semana y tu mes con calendario, rutinas, tareas y sesiones de foco.',
+        description:
+          'Planifica tu día, tu semana y tu mes con calendario, rutinas, tareas y sesiones de foco.',
         lang: 'es',
         start_url: '/',
         scope: '/',

@@ -3,7 +3,15 @@
 // la Cloud Function programada se encarga de enviarlos cuando llega su `fireAt`.
 
 import { addDays, startOfDay } from 'date-fns';
-import type { Ajustes, AvisoCarga, Ocurrencia, Recordatorio, Rutina, Tarea, TipoNotificacion } from './tipos';
+import type {
+  Ajustes,
+  AvisoCarga,
+  Ocurrencia,
+  Recordatorio,
+  Rutina,
+  Tarea,
+  TipoNotificacion,
+} from './tipos';
 import { MS_HORA, MS_MINUTO, claveDia, conHora, enFranja, formatear } from './fechas';
 import { rutinaTocaEnDia } from './rutinas';
 
@@ -35,26 +43,69 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
   const hora = (ms: number) => formatear(ms, e.ajustes.formato24h ? 'HH:mm' : 'h:mm a');
   const lista: RecordatorioNuevo[] = [];
 
-  const añadir = (tipo: TipoNotificacion, refId: string, fireAt: number, titulo: string, cuerpo: string, url: string) => {
+  const añadir = (
+    tipo: TipoNotificacion,
+    refId: string,
+    fireAt: number,
+    titulo: string,
+    cuerpo: string,
+    url: string,
+  ) => {
     if (!notificaciones.tipos[tipo]) return;
     if (fireAt <= e.ahoraMs || fireAt > limite) return;
-    if (notificaciones.silencio.activo && enFranja(fireAt, notificaciones.silencio.inicio, notificaciones.silencio.fin)) return;
-    lista.push({ id: idRecordatorio(tipo, refId, fireAt), uid: e.uid, tipo, refId, fireAt, titulo, cuerpo, url, enviado: false });
+    if (
+      notificaciones.silencio.activo &&
+      enFranja(fireAt, notificaciones.silencio.inicio, notificaciones.silencio.fin)
+    )
+      return;
+    lista.push({
+      id: idRecordatorio(tipo, refId, fireAt),
+      uid: e.uid,
+      tipo,
+      refId,
+      fireAt,
+      titulo,
+      cuerpo,
+      url,
+      enviado: false,
+    });
   };
 
   // Inicio de bloque
   for (const o of e.ocurrencias) {
     if (o.evento.todoElDia || o.evento.tipo === 'protegido') continue;
     const fireAt = o.inicioMs - notificaciones.antelacionMin * MS_MINUTO;
-    const cuando = notificaciones.antelacionMin > 0 ? `En ${notificaciones.antelacionMin} min` : 'Ahora';
-    añadir('inicioBloque', o.clave, fireAt, `${o.titulo}`, `${cuando} · ${hora(o.inicioMs)}–${hora(o.finMs)}`, `/calendario?fecha=${claveDia(o.inicioMs)}`);
+    const cuando =
+      notificaciones.antelacionMin > 0 ? `En ${notificaciones.antelacionMin} min` : 'Ahora';
+    añadir(
+      'inicioBloque',
+      o.clave,
+      fireAt,
+      `${o.titulo}`,
+      `${cuando} · ${hora(o.inicioMs)}–${hora(o.finMs)}`,
+      `/calendario?fecha=${claveDia(o.inicioMs)}`,
+    );
   }
 
   // Fechas límite: un día antes y una hora antes
   for (const t of e.tareas) {
     if (t.completada || t.fechaLimiteMs === null) continue;
-    añadir('fechaLimite', `${t.id}-24h`, t.fechaLimiteMs - 24 * MS_HORA, `Mañana vence: ${t.titulo}`, `Fecha límite ${formatear(t.fechaLimiteMs, "EEEE d 'a las' HH:mm")}`, '/tareas');
-    añadir('fechaLimite', `${t.id}-1h`, t.fechaLimiteMs - MS_HORA, `Vence en 1 hora: ${t.titulo}`, 'Último empujón 💪', '/tareas');
+    añadir(
+      'fechaLimite',
+      `${t.id}-24h`,
+      t.fechaLimiteMs - 24 * MS_HORA,
+      `Mañana vence: ${t.titulo}`,
+      `Fecha límite ${formatear(t.fechaLimiteMs, "EEEE d 'a las' HH:mm")}`,
+      '/tareas',
+    );
+    añadir(
+      'fechaLimite',
+      `${t.id}-1h`,
+      t.fechaLimiteMs - MS_HORA,
+      `Vence en 1 hora: ${t.titulo}`,
+      'Último empujón 💪',
+      '/tareas',
+    );
   }
 
   // Rutinas: aviso de inicio y pasos con hora y aviso activado
@@ -63,12 +114,26 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
       if (!rutinaTocaEnDia(r, d)) continue;
       if (r.avisos.activo && r.programacion.hora) {
         const inicio = conHora(d, r.programacion.hora).getTime();
-        añadir('pasoRutina', `${r.id}-${claveDia(d)}`, inicio - r.avisos.minutosAntes * MS_MINUTO, `Rutina: ${r.nombre}`, `Empieza a las ${hora(inicio)}`, `/rutinas/${r.id}/empezar`);
+        añadir(
+          'pasoRutina',
+          `${r.id}-${claveDia(d)}`,
+          inicio - r.avisos.minutosAntes * MS_MINUTO,
+          `Rutina: ${r.nombre}`,
+          `Empieza a las ${hora(inicio)}`,
+          `/rutinas/${r.id}/empezar`,
+        );
       }
       for (const p of r.pasos) {
         if (!p.aviso || !p.hora) continue;
         const ms = conHora(d, p.hora).getTime();
-        añadir('pasoRutina', `${r.id}-${p.id}-${claveDia(d)}`, ms, `${r.nombre}: ${p.titulo}`, p.descripcion || 'Es la hora de este paso', `/rutinas/${r.id}/empezar`);
+        añadir(
+          'pasoRutina',
+          `${r.id}-${p.id}-${claveDia(d)}`,
+          ms,
+          `${r.nombre}: ${p.titulo}`,
+          p.descripcion || 'Es la hora de este paso',
+          `/rutinas/${r.id}/empezar`,
+        );
       }
     }
   }
@@ -77,8 +142,12 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
   for (let d = startOfDay(e.ahoraMs); d.getTime() < limite; d = addDays(d, 1)) {
     const clave = claveDia(d);
     const fireAt = conHora(d, notificaciones.resumenDiarioHora).getTime();
-    const bloques = e.ocurrencias.filter((o) => claveDia(o.inicioMs) === clave && o.evento.tipo !== 'protegido');
-    const tareas = e.tareas.filter((t) => !t.completada && t.planificacion.tipo === 'dia' && t.planificacion.fecha === clave);
+    const bloques = e.ocurrencias.filter(
+      (o) => claveDia(o.inicioMs) === clave && o.evento.tipo !== 'protegido',
+    );
+    const tareas = e.tareas.filter(
+      (t) => !t.completada && t.planificacion.tipo === 'dia' && t.planificacion.fecha === clave,
+    );
     if (bloques.length || tareas.length) {
       const primero = bloques.find((b) => !b.evento.todoElDia);
       añadir(
@@ -92,7 +161,14 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
     }
     const delDia = e.avisos.filter((a) => a.fecha === clave);
     if (delDia.length) {
-      añadir('sobrecarga', clave, fireAt + MS_MINUTO, `${delDia.length} ${delDia.length === 1 ? 'aviso' : 'avisos'} en tu planificación`, delDia[0].titulo + (delDia.length > 1 ? ' y más' : ''), '/avisos');
+      añadir(
+        'sobrecarga',
+        clave,
+        fireAt + MS_MINUTO,
+        `${delDia.length} ${delDia.length === 1 ? 'aviso' : 'avisos'} en tu planificación`,
+        delDia[0].titulo + (delDia.length > 1 ? ' y más' : ''),
+        '/avisos',
+      );
     }
   }
 
@@ -110,6 +186,8 @@ export function diferenciaRecordatorios(
     const a = actuales.get(d.id);
     return !a || a.titulo !== d.titulo || a.cuerpo !== d.cuerpo;
   });
-  const borrar = existentes.filter((r) => r.tipo !== 'faseTemporizador' && !nuevos.has(r.id)).map((r) => r.id);
+  const borrar = existentes
+    .filter((r) => r.tipo !== 'faseTemporizador' && !nuevos.has(r.id))
+    .map((r) => r.id);
   return { crear, borrar };
 }

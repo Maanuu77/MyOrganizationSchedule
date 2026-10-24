@@ -7,10 +7,16 @@ import { AnilloProgreso } from './AnilloProgreso';
 import { t } from './textos';
 
 export function MiniContador({ compacto }: { compacto?: boolean }) {
-  const { activo, contador, fase, restanteMs, transcurridoMs, progreso, cicloTerminado } = useEstadoContador();
+  const { activo, contador, fase, restanteMs, transcurridoMs, progreso, cicloTerminado } =
+    useEstadoContador();
   if (!activo || !contador) return null;
   const pausado = contador.estado === 'pausado';
-  const texto = contador.modo === 'cronometro' ? relojTexto(transcurridoMs) : cicloTerminado ? '✓' : relojTexto(restanteMs);
+  const texto =
+    contador.modo === 'cronometro'
+      ? relojTexto(transcurridoMs)
+      : cicloTerminado
+        ? '✓'
+        : relojTexto(restanteMs);
   const color = fase?.color ?? 'var(--mos-acento)';
 
   if (compacto) {
@@ -27,12 +33,17 @@ export function MiniContador({ compacto }: { compacto?: boolean }) {
   }
 
   return (
-    <Link to="/foco" className="tarjeta-plana mt-3 flex items-center gap-3 p-2.5 shadow-suave hover:shadow-media">
+    <Link
+      to="/foco"
+      className="tarjeta-plana mt-3 flex items-center gap-3 p-2.5 shadow-suave hover:shadow-media"
+    >
       <AnilloProgreso progreso={progreso} tamano={40} grosor={5} color={color} suavidad={0.3}>
         {pausado ? <Pause size={13} /> : <Play size={13} />}
       </AnilloProgreso>
       <div className="min-w-0">
-        <p className="truncate text-xs font-semibold text-texto-suave">{fase?.nombre ?? t.foco.cicloTerminado}</p>
+        <p className="truncate text-xs font-semibold text-texto-suave">
+          {fase?.nombre ?? t.foco.cicloTerminado}
+        </p>
         <p className="numeros text-lg leading-tight font-extrabold">{texto}</p>
       </div>
     </Link>

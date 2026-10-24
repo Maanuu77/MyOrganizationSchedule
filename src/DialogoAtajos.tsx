@@ -15,7 +15,12 @@ export function DialogoAtajos() {
   const abierto = useUI((s) => s.mostrarAtajos);
   const poner = useUI((s) => s.poner);
   return (
-    <Modal abierto={abierto} alCerrar={() => poner({ mostrarAtajos: false })} titulo={t.atajos.titulo} ancho="sm">
+    <Modal
+      abierto={abierto}
+      alCerrar={() => poner({ mostrarAtajos: false })}
+      titulo={t.atajos.titulo}
+      ancho="sm"
+    >
       <dl className="space-y-2.5">
         {ATAJOS.map(([teclas, texto]) => (
           <div key={texto} className="flex items-center justify-between gap-4">

@@ -11,19 +11,19 @@ La idea central: arrastras una **etiqueta** (una asignatura, un proyecto…) al 
 
 ## Funcionalidades
 
-| Área | Qué incluye |
-| --- | --- |
-| Acceso | Inicio de sesión con Google, onboarding (etiquetas, tema, notificaciones) |
-| Etiquetas | Nombre, color, icono, duración por defecto y objetivo semanal; archivar y borrar |
-| Calendario | Vistas Día, Semana, Mes y Agenda; crear arrastrando; mover, redimensionar y duplicar; recurrencia (diaria, semanal, mensual, personalizada) con "solo este / este y siguientes / todos"; bloques protegidos; plantilla semanal; panel de etiquetas y tareas arrastrables |
-| Foco | Editor de ciclos (fases de foco, descansos y personalizadas), plantillas de arranque opcionales (25/5, 50/10, 90/20), contador sincronizado entre dispositivos, +5 min, saltar fase, cronómetro libre, aviso de foco continuo, aviso si invades un bloque protegido, registro de sesión con nota y valoración |
-| Rutinas | Ámbitos día, semana y mes; pasos con hora, duración, etiqueta y avisos; modo guiado "Empezar rutina"; rutinas de estudio con ciclo; racha y cumplimiento |
-| Tareas | Vista Hoy (pestaña, panel fijo en escritorio y hoja en móvil), prioridades, fecha límite, estimación, subtareas, repetición, backlog flexible ("Esta semana" y "Sin fecha"), arrastrar al calendario |
-| Avisos | Solapes, exceso de foco, sesiones seguidas sin descanso, fechas límite sin tiempo, bloques en horario de sueño |
-| Estadísticas | Día, semana, mes, año y rango con comparación; planificado vs. real por etiqueta; objetivos; mapa de calor anual; distribución por día y hora; rachas; exportación CSV y JSON |
-| Notificaciones | Push con Firebase Cloud Messaging (Cloud Function cada minuto), silencio nocturno, ajuste por tipo y por dispositivo; avisos en primer plano sin servidor |
-| Google Calendar | Importar y exportar con "Sincronizar ahora", sin duplicados, gana el último cambio |
-| Ajustes | Tema claro/oscuro/sistema, color de acento, densidad, pantalla de inicio, formato horario, zona horaria, umbrales, sonidos, exportar/importar JSON, borrar cuenta |
+| Área            | Qué incluye                                                                                                                                                                                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Acceso          | Inicio de sesión con Google, onboarding (etiquetas, tema, notificaciones)                                                                                                                                                                                                                                     |
+| Etiquetas       | Nombre, color, icono, duración por defecto y objetivo semanal; archivar y borrar                                                                                                                                                                                                                              |
+| Calendario      | Vistas Día, Semana, Mes y Agenda; crear arrastrando; mover, redimensionar y duplicar; recurrencia (diaria, semanal, mensual, personalizada) con "solo este / este y siguientes / todos"; bloques protegidos; plantilla semanal; panel de etiquetas y tareas arrastrables                                      |
+| Foco            | Editor de ciclos (fases de foco, descansos y personalizadas), plantillas de arranque opcionales (25/5, 50/10, 90/20), contador sincronizado entre dispositivos, +5 min, saltar fase, cronómetro libre, aviso de foco continuo, aviso si invades un bloque protegido, registro de sesión con nota y valoración |
+| Rutinas         | Ámbitos día, semana y mes; pasos con hora, duración, etiqueta y avisos; modo guiado "Empezar rutina"; rutinas de estudio con ciclo; racha y cumplimiento                                                                                                                                                      |
+| Tareas          | Vista Hoy (pestaña, panel fijo en escritorio y hoja en móvil), prioridades, fecha límite, estimación, subtareas, repetición, backlog flexible ("Esta semana" y "Sin fecha"), arrastrar al calendario                                                                                                          |
+| Avisos          | Solapes, exceso de foco, sesiones seguidas sin descanso, fechas límite sin tiempo, bloques en horario de sueño                                                                                                                                                                                                |
+| Estadísticas    | Día, semana, mes, año y rango con comparación; planificado vs. real por etiqueta; objetivos; mapa de calor anual; distribución por día y hora; rachas; exportación CSV y JSON                                                                                                                                 |
+| Notificaciones  | Push con Firebase Cloud Messaging (Cloud Function cada minuto), silencio nocturno, ajuste por tipo y por dispositivo; avisos en primer plano sin servidor                                                                                                                                                     |
+| Google Calendar | Importar y exportar con "Sincronizar ahora", sin duplicados, gana el último cambio                                                                                                                                                                                                                            |
+| Ajustes         | Tema claro/oscuro/sistema, color de acento, densidad, pantalla de inicio, formato horario, zona horaria, umbrales, sonidos, exportar/importar JSON, borrar cuenta                                                                                                                                             |
 
 ## Cómo ejecutarla
 
@@ -52,34 +52,34 @@ npx firebase emulators:start --only auth,firestore --project demo-mos
 
 ## Scripts
 
-| Script | Qué hace |
-| --- | --- |
-| `npm run dev` | Servidor de desarrollo de Vite |
-| `npm run build` | Comprueba los tipos y compila la app para producción en `dist/` |
-| `npm run preview` | Sirve la versión compilada |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier |
-| `npm run typecheck` | Solo comprobación de tipos |
-| `npm test` | Tests unitarios (Vitest) de los motores: ciclos y contador, recurrencia, avisos, estadísticas, rutinas y recordatorios |
-| `npm run test:reglas` | Pruebas de `firestore.rules` con el emulador de Firestore |
-| `npm run deploy` | Compila y despliega todo con Firebase CLI |
+| Script                | Qué hace                                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`         | Servidor de desarrollo de Vite                                                                                         |
+| `npm run build`       | Comprueba los tipos y compila la app para producción en `dist/`                                                        |
+| `npm run preview`     | Sirve la versión compilada                                                                                             |
+| `npm run lint`        | ESLint                                                                                                                 |
+| `npm run format`      | Prettier                                                                                                               |
+| `npm run typecheck`   | Solo comprobación de tipos                                                                                             |
+| `npm test`            | Tests unitarios (Vitest) de los motores: ciclos y contador, recurrencia, avisos, estadísticas, rutinas y recordatorios |
+| `npm run test:reglas` | Pruebas de `firestore.rules` con el emulador de Firestore                                                              |
+| `npm run deploy`      | Compila y despliega todo con Firebase CLI                                                                              |
 
 ## Estructura del proyecto
 
 La carpeta `src/` es **plana**: un archivo por pantalla, componente, hook o módulo de lógica, sin subcarpetas. Los nombres indican qué es cada cosa:
 
-| Prefijo / tipo | Ejemplos | Qué contiene |
-| --- | --- | --- |
-| `Pantalla*.tsx` | `PantallaCalendario.tsx`, `PantallaFoco.tsx` | Una pantalla (ruta) de la app. Se cargan bajo demanda |
-| `Vista*.tsx` | `VistaTiempo.tsx`, `VistaMes.tsx` | Vistas del calendario |
-| `Editor*.tsx`, `Dialogo*.tsx` | `EditorBloque.tsx`, `DialogoFechaHora.tsx` | Formularios en hoja modal |
-| Componentes (PascalCase) | `TarjetaTarea.tsx`, `AnilloProgreso.tsx`, `Modal.tsx` | Piezas de interfaz reutilizables |
-| `use*.ts` | `useTemporizador.ts`, `useSincronizacion.ts` | Hooks de React |
-| `almacen*.ts` | `almacenDatos.ts`, `almacenUI.ts` | Estado global con Zustand (datos de Firestore y estado de interfaz) |
-| Lógica pura (minúsculas) | `recurrencia.ts`, `ciclos.ts`, `avisosCarga.ts`, `estadisticas.ts`, `rutinas.ts`, `recordatorios.ts`, `distribucion.ts` | Motores sin React ni Firebase, probados con Vitest |
-| Acceso a datos | `datos.ts`, `operaciones.ts`, `temporizador.ts`, `googleCalendar.ts` | Lecturas/escrituras en Firestore y APIs externas |
-| Base | `tipos.ts`, `textos.ts`, `tema.css`, `fechas.ts`, `firebase.ts`, `sw.ts` | Tipos compartidos, textos, tokens de diseño, utilidades, Firebase y service worker |
-| `*.test.ts` | `recurrencia.test.ts` | Tests unitarios junto al módulo que prueban |
+| Prefijo / tipo                | Ejemplos                                                                                                                | Qué contiene                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `Pantalla*.tsx`               | `PantallaCalendario.tsx`, `PantallaFoco.tsx`                                                                            | Una pantalla (ruta) de la app. Se cargan bajo demanda                              |
+| `Vista*.tsx`                  | `VistaTiempo.tsx`, `VistaMes.tsx`                                                                                       | Vistas del calendario                                                              |
+| `Editor*.tsx`, `Dialogo*.tsx` | `EditorBloque.tsx`, `DialogoFechaHora.tsx`                                                                              | Formularios en hoja modal                                                          |
+| Componentes (PascalCase)      | `TarjetaTarea.tsx`, `AnilloProgreso.tsx`, `Modal.tsx`                                                                   | Piezas de interfaz reutilizables                                                   |
+| `use*.ts`                     | `useTemporizador.ts`, `useSincronizacion.ts`                                                                            | Hooks de React                                                                     |
+| `almacen*.ts`                 | `almacenDatos.ts`, `almacenUI.ts`                                                                                       | Estado global con Zustand (datos de Firestore y estado de interfaz)                |
+| Lógica pura (minúsculas)      | `recurrencia.ts`, `ciclos.ts`, `avisosCarga.ts`, `estadisticas.ts`, `rutinas.ts`, `recordatorios.ts`, `distribucion.ts` | Motores sin React ni Firebase, probados con Vitest                                 |
+| Acceso a datos                | `datos.ts`, `operaciones.ts`, `temporizador.ts`, `googleCalendar.ts`                                                    | Lecturas/escrituras en Firestore y APIs externas                                   |
+| Base                          | `tipos.ts`, `textos.ts`, `tema.css`, `fechas.ts`, `firebase.ts`, `sw.ts`                                                | Tipos compartidos, textos, tokens de diseño, utilidades, Firebase y service worker |
+| `*.test.ts`                   | `recurrencia.test.ts`                                                                                                   | Tests unitarios junto al módulo que prueban                                        |
 
 Fuera de `src/`:
 

@@ -98,12 +98,23 @@ function sinId<T extends { id: string }>(datos: T): Omit<T, 'id'> {
 // Operaciones genéricas
 // ---------------------------------------------------------------------------
 
-export type DatosNuevos<T extends DocumentoBase> = Omit<T, 'id' | 'creadoEnMs' | 'actualizadoEnMs'> & { id?: string };
+export type DatosNuevos<T extends DocumentoBase> = Omit<
+  T,
+  'id' | 'creadoEnMs' | 'actualizadoEnMs'
+> & { id?: string };
 
 /** Crea un documento con id, creadoEnMs y actualizadoEnMs. Devuelve el documento completo. */
-export async function crear<T extends DocumentoBase>(coleccion: NombreColeccion, datos: DatosNuevos<T>): Promise<T> {
+export async function crear<T extends DocumentoBase>(
+  coleccion: NombreColeccion,
+  datos: DatosNuevos<T>,
+): Promise<T> {
   const ahora = Date.now();
-  const completo = { ...datos, id: datos.id ?? nuevoId(), creadoEnMs: ahora, actualizadoEnMs: ahora } as T;
+  const completo = {
+    ...datos,
+    id: datos.id ?? nuevoId(),
+    creadoEnMs: ahora,
+    actualizadoEnMs: ahora,
+  } as T;
   await setDoc(refDoc(coleccion, completo.id), limpiar(sinId(completo)) as DocumentData);
   return completo;
 }
@@ -114,12 +125,21 @@ export async function actualizar<T extends DocumentoBase>(
   id: string,
   cambios: Partial<Omit<T, 'id' | 'creadoEnMs'>>,
 ): Promise<void> {
-  await updateDoc(refDoc(coleccion, id), limpiar({ ...cambios, actualizadoEnMs: Date.now() }) as DocumentData);
+  await updateDoc(
+    refDoc(coleccion, id),
+    limpiar({ ...cambios, actualizadoEnMs: Date.now() }) as DocumentData,
+  );
 }
 
 /** Reemplaza un documento completo (manteniendo su id). */
-export async function reemplazar<T extends DocumentoBase>(coleccion: NombreColeccion, datos: T): Promise<void> {
-  await setDoc(refDoc(coleccion, datos.id), limpiar({ ...sinId(datos), actualizadoEnMs: Date.now() }) as DocumentData);
+export async function reemplazar<T extends DocumentoBase>(
+  coleccion: NombreColeccion,
+  datos: T,
+): Promise<void> {
+  await setDoc(
+    refDoc(coleccion, datos.id),
+    limpiar({ ...sinId(datos), actualizadoEnMs: Date.now() }) as DocumentData,
+  );
 }
 
 export async function borrar(coleccion: NombreColeccion, id: string): Promise<void> {
@@ -127,7 +147,10 @@ export async function borrar(coleccion: NombreColeccion, id: string): Promise<vo
 }
 
 /** Ejecuta muchas escrituras en lotes de 450 (Firestore admite 500 por lote). */
-export async function enLotes<T>(elementos: T[], operacion: (lote: WriteBatch, elemento: T) => void): Promise<void> {
+export async function enLotes<T>(
+  elementos: T[],
+  operacion: (lote: WriteBatch, elemento: T) => void,
+): Promise<void> {
   const db = obtenerDb();
   for (let i = 0; i < elementos.length; i += 450) {
     const lote = writeBatch(db);
@@ -137,11 +160,19 @@ export async function enLotes<T>(elementos: T[], operacion: (lote: WriteBatch, e
 }
 
 /** Crea muchos documentos a la vez. */
-export async function crearVarios<T extends DocumentoBase>(coleccion: NombreColeccion, lista: DatosNuevos<T>[]): Promise<T[]> {
+export async function crearVarios<T extends DocumentoBase>(
+  coleccion: NombreColeccion,
+  lista: DatosNuevos<T>[],
+): Promise<T[]> {
   const ahora = Date.now();
   // Sumamos el índice para conservar el orden de creación al ordenar por creadoEnMs
-  const completos = lista.map((d, i) => ({ ...d, id: d.id ?? nuevoId(), creadoEnMs: ahora + i, actualizadoEnMs: ahora + i }) as T);
-  await enLotes(completos, (lote, d) => lote.set(refDoc(coleccion, d.id), limpiar(sinId(d)) as DocumentData));
+  const completos = lista.map(
+    (d, i) =>
+      ({ ...d, id: d.id ?? nuevoId(), creadoEnMs: ahora + i, actualizadoEnMs: ahora + i }) as T,
+  );
+  await enLotes(completos, (lote, d) =>
+    lote.set(refDoc(coleccion, d.id), limpiar(sinId(d)) as DocumentData),
+  );
   return completos;
 }
 
@@ -157,7 +188,9 @@ export function escuchar<T extends { id: string }>(
   alFallar: (error: Error) => void,
   ...filtros: QueryConstraint[]
 ): Unsubscribe {
-  const q = filtros.length ? query(refColeccion(coleccion, uid), ...filtros) : refColeccion(coleccion, uid);
+  const q = filtros.length
+    ? query(refColeccion(coleccion, uid), ...filtros)
+    : refColeccion(coleccion, uid);
   return onSnapshot(
     q,
     (snap) => alCambiar(snap.docs.map((d) => ({ ...(d.data() as Omit<T, 'id'>), id: d.id }) as T)),
@@ -170,7 +203,11 @@ export function escuchar<T extends { id: string }>(
 // ---------------------------------------------------------------------------
 
 /** Crea o actualiza el documento raíz del usuario (users/{uid}). */
-export async function registrarPerfil(uid: string, email: string | null, nombre: string | null): Promise<void> {
+export async function registrarPerfil(
+  uid: string,
+  email: string | null,
+  nombre: string | null,
+): Promise<void> {
   const ref = doc(obtenerDb(), 'users', uid);
   const existe = await getDoc(ref);
   const ahora = Date.now();
@@ -210,7 +247,8 @@ export async function actualizarAjustes(parcial: Partial<Ajustes>): Promise<void
 
 export const etiquetas = {
   crear: (d: DatosNuevos<Etiqueta>) => crear<Etiqueta>(COLECCIONES.etiquetas, d),
-  actualizar: (id: string, c: Partial<Etiqueta>) => actualizar<Etiqueta>(COLECCIONES.etiquetas, id, c),
+  actualizar: (id: string, c: Partial<Etiqueta>) =>
+    actualizar<Etiqueta>(COLECCIONES.etiquetas, id, c),
   borrar: (id: string) => borrar(COLECCIONES.etiquetas, id),
 };
 
@@ -232,7 +270,10 @@ export const eventos = {
 export const excepciones = {
   /** Id determinista: un único documento por ocurrencia. */
   id: (eventoId: string, inicioOriginalMs: number) => `${eventoId}_${inicioOriginalMs}`,
-  guardar: async (ex: Omit<ExcepcionEvento, 'id' | 'creadoEnMs' | 'actualizadoEnMs'>, previa: ExcepcionEvento | null) => {
+  guardar: async (
+    ex: Omit<ExcepcionEvento, 'id' | 'creadoEnMs' | 'actualizadoEnMs'>,
+    previa: ExcepcionEvento | null,
+  ) => {
     const id = excepciones.id(ex.eventoId, ex.inicioOriginalMs);
     const ahora = Date.now();
     await setDoc(
@@ -250,14 +291,17 @@ export const tareas = {
 
 export const ciclos = {
   crear: (d: DatosNuevos<PlantillaCiclo>) => crear<PlantillaCiclo>(COLECCIONES.ciclos, d),
-  crearVarios: (l: DatosNuevos<PlantillaCiclo>[]) => crearVarios<PlantillaCiclo>(COLECCIONES.ciclos, l),
-  actualizar: (id: string, c: Partial<PlantillaCiclo>) => actualizar<PlantillaCiclo>(COLECCIONES.ciclos, id, c),
+  crearVarios: (l: DatosNuevos<PlantillaCiclo>[]) =>
+    crearVarios<PlantillaCiclo>(COLECCIONES.ciclos, l),
+  actualizar: (id: string, c: Partial<PlantillaCiclo>) =>
+    actualizar<PlantillaCiclo>(COLECCIONES.ciclos, id, c),
   borrar: (id: string) => borrar(COLECCIONES.ciclos, id),
 };
 
 export const registros = {
   crear: (d: DatosNuevos<RegistroSesion>) => crear<RegistroSesion>(COLECCIONES.registros, d),
-  actualizar: (id: string, c: Partial<RegistroSesion>) => actualizar<RegistroSesion>(COLECCIONES.registros, id, c),
+  actualizar: (id: string, c: Partial<RegistroSesion>) =>
+    actualizar<RegistroSesion>(COLECCIONES.registros, id, c),
   borrar: (id: string) => borrar(COLECCIONES.registros, id),
 };
 
@@ -269,17 +313,22 @@ export const rutinas = {
 
 export const ejecuciones = {
   crear: (d: DatosNuevos<EjecucionRutina>) => crear<EjecucionRutina>(COLECCIONES.ejecuciones, d),
-  actualizar: (id: string, c: Partial<EjecucionRutina>) => actualizar<EjecucionRutina>(COLECCIONES.ejecuciones, id, c),
+  actualizar: (id: string, c: Partial<EjecucionRutina>) =>
+    actualizar<EjecucionRutina>(COLECCIONES.ejecuciones, id, c),
 };
 
 export const plantillas = {
   crear: (d: DatosNuevos<PlantillaSemanal>) => crear<PlantillaSemanal>(COLECCIONES.plantillas, d),
-  actualizar: (id: string, c: Partial<PlantillaSemanal>) => actualizar<PlantillaSemanal>(COLECCIONES.plantillas, id, c),
+  actualizar: (id: string, c: Partial<PlantillaSemanal>) =>
+    actualizar<PlantillaSemanal>(COLECCIONES.plantillas, id, c),
   borrar: (id: string) => borrar(COLECCIONES.plantillas, id),
 };
 
 export async function guardarIntegracionGoogle(datos: IntegracionGoogle): Promise<void> {
-  await setDoc(refDoc(COLECCIONES.integraciones, 'googleCalendar'), limpiar({ ...datos, actualizadoEnMs: Date.now() }));
+  await setDoc(
+    refDoc(COLECCIONES.integraciones, 'googleCalendar'),
+    limpiar({ ...datos, actualizadoEnMs: Date.now() }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -294,10 +343,19 @@ export interface CopiaSeguridad {
 }
 
 /** Colecciones que no tiene sentido exportar (dependen del dispositivo o son temporales). */
-const NO_EXPORTAR: NombreColeccion[] = [COLECCIONES.recordatorios, COLECCIONES.dispositivos, COLECCIONES.contador];
+const NO_EXPORTAR: NombreColeccion[] = [
+  COLECCIONES.recordatorios,
+  COLECCIONES.dispositivos,
+  COLECCIONES.contador,
+];
 
 export async function exportarTodo(): Promise<CopiaSeguridad> {
-  const copia: CopiaSeguridad = { app: 'MyOrganizationSchedule', version: 1, exportadoEnMs: Date.now(), colecciones: {} };
+  const copia: CopiaSeguridad = {
+    app: 'MyOrganizationSchedule',
+    version: 1,
+    exportadoEnMs: Date.now(),
+    colecciones: {},
+  };
   for (const nombre of COLECCIONES_USUARIO) {
     if (NO_EXPORTAR.includes(nombre)) continue;
     const snap = await getDocs(refColeccion(nombre));
@@ -308,7 +366,12 @@ export async function exportarTodo(): Promise<CopiaSeguridad> {
 
 export function esCopiaValida(datos: unknown): datos is CopiaSeguridad {
   const c = datos as CopiaSeguridad;
-  return !!c && c.app === 'MyOrganizationSchedule' && c.version === 1 && typeof c.colecciones === 'object';
+  return (
+    !!c &&
+    c.app === 'MyOrganizationSchedule' &&
+    c.version === 1 &&
+    typeof c.colecciones === 'object'
+  );
 }
 
 export async function importarTodo(copia: CopiaSeguridad): Promise<number> {
@@ -317,7 +380,9 @@ export async function importarTodo(copia: CopiaSeguridad): Promise<number> {
     if (NO_EXPORTAR.includes(nombre)) continue;
     const lista = copia.colecciones[nombre];
     if (!Array.isArray(lista)) continue;
-    const validos = lista.filter((d) => typeof d.id === 'string' && d.id.length > 0 && d.id.length < 200);
+    const validos = lista.filter(
+      (d) => typeof d.id === 'string' && d.id.length > 0 && d.id.length < 200,
+    );
     await enLotes(validos, (lote, d) => {
       const { id, ...resto } = d;
       lote.set(refDoc(nombre, id as string), limpiar(resto));
@@ -338,6 +403,11 @@ export async function borrarTodosLosDatos(uid: string): Promise<void> {
 
 /** Recordatorios pendientes (para calcular la diferencia con los deseados). */
 export async function recordatoriosPendientes() {
-  const snap = await getDocs(query(refColeccion(COLECCIONES.recordatorios), where('enviado', '==', false)));
-  return snap.docs.map((d) => ({ ...(d.data() as { fireAt: number; titulo: string; cuerpo: string; tipo: string }), id: d.id }));
+  const snap = await getDocs(
+    query(refColeccion(COLECCIONES.recordatorios), where('enviado', '==', false)),
+  );
+  return snap.docs.map((d) => ({
+    ...(d.data() as { fireAt: number; titulo: string; cuerpo: string; tipo: string }),
+    id: d.id,
+  }));
 }

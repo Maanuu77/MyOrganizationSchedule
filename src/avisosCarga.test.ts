@@ -14,14 +14,21 @@ const dia = (h: number, m = 0) => new Date(2026, 2, 10, h, m);
 
 describe('detectarSolapes', () => {
   it('encuentra dos bloques que coinciden', () => {
-    const avisos = detectarSolapes([oc('a', dia(9), 60), oc('b', dia(9, 30), 60), oc('c', dia(11), 30)]);
+    const avisos = detectarSolapes([
+      oc('a', dia(9), 60),
+      oc('b', dia(9, 30), 60),
+      oc('c', dia(11), 30),
+    ]);
     expect(avisos).toHaveLength(1);
     expect(avisos[0].claves).toHaveLength(2);
     expect(avisos[0].severidad).toBe('aviso');
   });
 
   it('marca como grave pisar un bloque protegido', () => {
-    const avisos = detectarSolapes([oc('comida', dia(14), 60, { tipo: 'protegido' }), oc('b', dia(14, 30), 30)]);
+    const avisos = detectarSolapes([
+      oc('comida', dia(14), 60, { tipo: 'protegido' }),
+      oc('b', dia(14, 30), 30),
+    ]);
     expect(avisos[0].severidad).toBe('grave');
   });
 
@@ -30,17 +37,27 @@ describe('detectarSolapes', () => {
   });
 
   it('ignora los eventos de todo el día', () => {
-    expect(detectarSolapes([oc('a', dia(0), 1440, { todoElDia: true }), oc('b', dia(10), 60)])).toHaveLength(0);
+    expect(
+      detectarSolapes([oc('a', dia(0), 1440, { todoElDia: true }), oc('b', dia(10), 60)]),
+    ).toHaveLength(0);
   });
 });
 
 describe('sobrecarga de foco', () => {
   const ajustes = ajustesPrueba({
-    umbrales: { focoDiarioMaxHoras: 3, sesionesSeguidasMax: 2, descansoMinimoMin: 10, diasAvisoFechaLimite: 3 },
+    umbrales: {
+      focoDiarioMaxHoras: 3,
+      sesionesSeguidasMax: 2,
+      descansoMinimoMin: 10,
+      diasAvisoFechaLimite: 3,
+    },
   });
 
   it('avisa si se supera el umbral diario', () => {
-    const sesiones = [oc('a', dia(8), 120, { tipo: 'sesion' }), oc('b', dia(12), 90, { tipo: 'sesion' })];
+    const sesiones = [
+      oc('a', dia(8), 120, { tipo: 'sesion' }),
+      oc('b', dia(12), 90, { tipo: 'sesion' }),
+    ];
     expect(detectarFocoExcesivo(sesiones, ajustes)).toHaveLength(1);
     expect(detectarFocoExcesivo(sesiones.slice(0, 1), ajustes)).toHaveLength(0);
   });

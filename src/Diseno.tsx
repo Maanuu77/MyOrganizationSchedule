@@ -99,7 +99,9 @@ export function Diseno() {
 
   const claseEnlace = ({ isActive }: { isActive: boolean }) =>
     `group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-      isActive ? 'bg-acento/12 text-acento' : 'text-texto-suave hover:bg-superficie-2 hover:text-texto'
+      isActive
+        ? 'bg-acento/12 text-acento'
+        : 'text-texto-suave hover:bg-superficie-2 hover:text-texto'
     }`;
 
   return (
@@ -121,7 +123,10 @@ export function Diseno() {
               <p className="text-xs font-semibold text-texto-tenue">Schedule</p>
             </div>
           </div>
-          <nav aria-label={t.nav.principal} className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+          <nav
+            aria-label={t.nav.principal}
+            className="flex flex-1 flex-col gap-0.5 overflow-y-auto"
+          >
             {PRINCIPALES.map((e) => (
               <NavLink key={e.ruta} to={e.ruta} className={claseEnlace}>
                 <e.icono size={18} aria-hidden />
@@ -140,7 +145,12 @@ export function Diseno() {
           <MiniContador />
           <div className="mt-3 flex items-center gap-2 border-t border-borde px-2 pt-3">
             {usuario?.foto ? (
-              <img src={usuario.foto} alt="" className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />
+              <img
+                src={usuario.foto}
+                alt=""
+                className="h-8 w-8 rounded-full"
+                referrerPolicy="no-referrer"
+              />
             ) : (
               <div className="grid h-8 w-8 place-items-center rounded-full bg-acento/15 text-sm font-bold text-acento">
                 {(usuario?.nombre ?? '?').charAt(0)}
@@ -177,13 +187,18 @@ export function Diseno() {
                 aria-label={`${t.nav.avisos} (${graves})`}
               >
                 <Bell size={19} />
-                {graves > 0 && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-peligro" />}
+                {graves > 0 && (
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-peligro" />
+                )}
               </button>
             </div>
           </header>
         )}
 
-        <main id="contenido" className={`flex-1 ${esMovil ? 'px-4 pt-4 pb-28' : 'px-6 py-6 lg:px-8'}`}>
+        <main
+          id="contenido"
+          className={`flex-1 ${esMovil ? 'px-4 pt-4 pb-28' : 'px-6 py-6 lg:px-8'}`}
+        >
           <motion.div
             key={ubicacion.pathname}
             initial={{ opacity: 0, y: 10 }}
@@ -246,14 +261,24 @@ export function Diseno() {
           onClick={() => poner({ hojaHoy: true })}
           className={`fixed right-4 z-30 grid h-12 w-12 place-items-center rounded-full degradado-marca text-white shadow-elevada ${
             // En el calendario móvil hay una hoja de etiquetas abajo: subimos el botón por encima
-            esMovil ? (ubicacion.pathname.startsWith('/calendario') || ubicacion.pathname.startsWith('/semana') ? 'bottom-36' : 'bottom-24') : 'bottom-6'
+            esMovil
+              ? ubicacion.pathname.startsWith('/calendario') ||
+                ubicacion.pathname.startsWith('/semana')
+                ? 'bottom-36'
+                : 'bottom-24'
+              : 'bottom-6'
           }`}
           aria-label={t.nav.abrirHoy}
         >
           <CalendarCheck size={20} />
         </button>
       )}
-      <Modal abierto={hojaHoy} alCerrar={() => poner({ hojaHoy: false })} titulo={t.nav.hoy} ancho="md">
+      <Modal
+        abierto={hojaHoy}
+        alCerrar={() => poner({ hojaHoy: false })}
+        titulo={t.nav.hoy}
+        ancho="md"
+      >
         <PanelHoy compacto />
       </Modal>
 

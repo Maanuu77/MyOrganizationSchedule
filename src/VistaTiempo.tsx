@@ -9,7 +9,14 @@ import { isToday, startOfDay } from 'date-fns';
 import type { AvisoCarga, Etiqueta, Ocurrencia } from './tipos';
 import { colocarBloques } from './distribucion';
 import { BloqueCalendario } from './BloqueCalendario';
-import { capitalizar, claveDia, formatear, minutosAHora, minutosDelDia, tramosSueno } from './fechas';
+import {
+  capitalizar,
+  claveDia,
+  formatear,
+  minutosAHora,
+  minutosDelDia,
+  tramosSueno,
+} from './fechas';
 import { useReloj } from './useReloj';
 import { useDatos } from './almacenDatos';
 import { useUI } from './almacenUI';
@@ -22,7 +29,9 @@ export function useAltoHora(): number {
   const densidad = useDatos((s) => s.ajustes.densidad);
   const [alto, setAlto] = useState(56);
   useLayoutEffect(() => {
-    const valor = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mos-hora'));
+    const valor = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--mos-hora'),
+    );
     if (valor) setAlto(valor);
   }, [densidad]);
   return alto;
@@ -45,7 +54,15 @@ interface Props {
   alElegirDia: (dia: Date) => void;
 }
 
-export function VistaTiempo({ dias, ocurrencias, etiquetas, avisos, previsualizacion, alCrear, alElegirDia }: Props) {
+export function VistaTiempo({
+  dias,
+  ocurrencias,
+  etiquetas,
+  avisos,
+  previsualizacion,
+  alCrear,
+  alElegirDia,
+}: Props) {
   const altoHora = useAltoHora();
   const formato24h = useDatos((s) => s.ajustes.formato24h);
   const sueno = useDatos((s) => s.ajustes.sueno);
@@ -86,7 +103,10 @@ export function VistaTiempo({ dias, ocurrencias, etiquetas, avisos, previsualiza
           const hoy = isToday(d);
           const delDia = todoElDia.filter((o) => claveDia(o.inicioMs) === claveDia(d));
           return (
-            <div key={claveDia(d)} className="min-w-0 flex-1 border-l border-borde px-0.5 py-1.5 text-center sm:px-1">
+            <div
+              key={claveDia(d)}
+              className="min-w-0 flex-1 border-l border-borde px-0.5 py-1.5 text-center sm:px-1"
+            >
               <button
                 type="button"
                 onClick={() => alElegirDia(d)}
@@ -94,15 +114,25 @@ export function VistaTiempo({ dias, ocurrencias, etiquetas, avisos, previsualiza
                 aria-current={hoy ? 'date' : undefined}
                 className="mx-auto flex flex-col items-center rounded-md px-0.5 hover:bg-superficie-2 sm:px-2"
               >
-                <span className={`text-[10px] font-bold uppercase sm:text-[11px] ${hoy ? 'text-acento' : 'text-texto-tenue'}`}>{formatear(d, 'EEE')}</span>
-                <span className={`grid h-7 w-7 place-items-center rounded-full text-sm font-extrabold sm:h-8 sm:w-8 sm:text-base ${hoy ? 'degradado-marca text-white shadow-media' : ''}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase sm:text-[11px] ${hoy ? 'text-acento' : 'text-texto-tenue'}`}
+                >
+                  {formatear(d, 'EEE')}
+                </span>
+                <span
+                  className={`grid h-7 w-7 place-items-center rounded-full text-sm font-extrabold sm:h-8 sm:w-8 sm:text-base ${hoy ? 'degradado-marca text-white shadow-media' : ''}`}
+                >
                   {formatear(d, 'd')}
                 </span>
               </button>
               {delDia.map((o) => {
                 const e = o.etiquetaId ? etiquetas.get(o.etiquetaId) : undefined;
                 return (
-                  <ChipTodoElDia key={o.clave} oc={o} color={o.evento.color ?? e?.color ?? '#6D5CF0'} />
+                  <ChipTodoElDia
+                    key={o.clave}
+                    oc={o}
+                    color={o.evento.color ?? e?.color ?? '#6D5CF0'}
+                  />
                 );
               })}
             </div>
@@ -111,12 +141,23 @@ export function VistaTiempo({ dias, ocurrencias, etiquetas, avisos, previsualiza
       </div>
 
       {/* Rejilla desplazable */}
-      <div ref={contenedor} className="desplazable relative flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+      <div
+        ref={contenedor}
+        className="desplazable relative flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+      >
         <div className="flex" style={{ height: 24 * altoHora }}>
           <div className="relative w-10 shrink-0 sm:w-14" aria-hidden>
             {horas.map((h) => (
-              <span key={h} className="numeros absolute right-1 -translate-y-1/2 text-[10px] font-medium text-texto-tenue sm:right-2 sm:text-[11px]" style={{ top: h * altoHora }}>
-                {h === 0 ? '' : formato24h ? minutosAHora(h * 60) : `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`}
+              <span
+                key={h}
+                className="numeros absolute right-1 -translate-y-1/2 text-[10px] font-medium text-texto-tenue sm:right-2 sm:text-[11px]"
+                style={{ top: h * altoHora }}
+              >
+                {h === 0
+                  ? ''
+                  : formato24h
+                    ? minutosAHora(h * 60)
+                    : `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`}
               </span>
             ))}
           </div>
@@ -177,7 +218,10 @@ const ColumnaDia = memo(function ColumnaDia({
   alCrear,
 }: PropsColumna) {
   const clave = claveDia(dia);
-  const { setNodeRef, isOver } = useDroppable({ id: `dia-${clave}`, data: { tipo: 'dia', fecha: clave, conHoras: true } });
+  const { setNodeRef, isOver } = useDroppable({
+    id: `dia-${clave}`,
+    data: { tipo: 'dia', fecha: clave, conHoras: true },
+  });
   const pxPorMinuto = altoHora / 60;
   const inicioDia = startOfDay(dia).getTime();
   const colocados = useMemo(() => colocarBloques(ocurrencias, inicioDia), [ocurrencias, inicioDia]);
@@ -251,7 +295,10 @@ const ColumnaDia = memo(function ColumnaDia({
         <div
           key={a}
           className="pointer-events-none absolute inset-x-0 bg-superficie-3/40"
-          style={{ top: ((a - inicioDia) / 60_000) * pxPorMinuto, height: ((b - a) / 60_000) * pxPorMinuto }}
+          style={{
+            top: ((a - inicioDia) / 60_000) * pxPorMinuto,
+            height: ((b - a) / 60_000) * pxPorMinuto,
+          }}
           aria-hidden
         />
       ))}
@@ -261,7 +308,9 @@ const ColumnaDia = memo(function ColumnaDia({
           key={c.ocurrencia.clave}
           idDrag={`bloque-${c.ocurrencia.clave}-${clave}`}
           colocado={c}
-          etiqueta={c.ocurrencia.etiquetaId ? (etiquetas.get(c.ocurrencia.etiquetaId) ?? null) : null}
+          etiqueta={
+            c.ocurrencia.etiquetaId ? (etiquetas.get(c.ocurrencia.etiquetaId) ?? null) : null
+          }
           avisos={avisos.get(c.ocurrencia.clave)}
           pxPorMinuto={pxPorMinuto}
           formato24h={formato24h}
@@ -271,7 +320,10 @@ const ColumnaDia = memo(function ColumnaDia({
       {seleccion && (
         <div
           className="pointer-events-none absolute inset-x-1 z-20 rounded-sm border-2 border-dashed border-acento bg-acento/15"
-          style={{ top: seleccion.desde * pxPorMinuto, height: (seleccion.hasta - seleccion.desde) * pxPorMinuto }}
+          style={{
+            top: seleccion.desde * pxPorMinuto,
+            height: (seleccion.hasta - seleccion.desde) * pxPorMinuto,
+          }}
         >
           <span className="numeros px-1.5 text-[11px] font-bold text-acento">
             {minutosAHora(seleccion.desde)} – {minutosAHora(seleccion.hasta)}
@@ -290,7 +342,10 @@ const ColumnaDia = memo(function ColumnaDia({
             background: `color-mix(in oklab, ${previsualizacion.color} 14%, transparent)`,
           }}
         >
-          <span className="numeros px-1.5 text-[11px] font-bold" style={{ color: previsualizacion.color }}>
+          <span
+            className="numeros px-1.5 text-[11px] font-bold"
+            style={{ color: previsualizacion.color }}
+          >
             {minutosAHora(previsualizacion.inicioMin)}
           </span>
         </div>
