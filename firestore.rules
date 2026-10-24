@@ -1,0 +1,337 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para MyOrganizationSchedule.
+//
+// Principios:
+//  1. Todo cuelga de users/{uid}/... y SOLO el propietario (request.auth.uid == uid) puede leer
+//     y escribir sus datos. Arquitectura multiusuario desde el principio.
+//  2. Cada colección valida los campos permitidos (hasOnly), sus tipos y sus tamaños, para que
+//     nadie pueda guardar datos con forma incorrecta o enormes.
+//  3. Lo que no está permitido explícitamente está prohibido.
+//
+// La Cloud Function usa el SDK de administración, que no pasa por estas reglas.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------- utilidades
+    function esPropietario(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function datos() {
+      return request.resource.data;
+    }
+    function texto(v, max) {
+      return v is string && v.size() <= max;
+    }
+    function textoONulo(v, max) {
+      return v == null || texto(v, max);
+    }
+    function numeroONulo(v) {
+      return v == null || v is number;
+    }
+    function mapaONulo(v) {
+      return v == null || v is map;
+    }
+    function listaHasta(v, max) {
+      return v is list && v.size() <= max;
+    }
+    function hora(v) {
+      return v is string && v.matches('^[0-2][0-9]:[0-5][0-9]$');
+    }
+    function dia(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    function marcasDeTiempo(d) {
+      return d.creadoEnMs is number && d.actualizadoEnMs is number;
+    }
+
+    // ---------------------------------------------------------------- validaciones por tipo
+    function ajustesValidos(d) {
+      return d.keys().hasOnly(['tema', 'colorAcento', 'densidad', 'pantallaInicio', 'inicioSemana', 'formato24h',
+          'zonaHoraria', 'duracionPorDefectoMin', 'sueno', 'umbrales', 'temporizador', 'notificaciones',
+          'onboardingCompletado', 'actualizadoEnMs'])
+        && d.tema in ['claro', 'oscuro', 'sistema']
+        && texto(d.colorAcento, 20)
+        && d.densidad in ['compacta', 'normal', 'comoda']
+        && d.pantallaInicio in ['hoy', 'semana', 'calendario', 'tareas', 'rutinas', 'estadisticas']
+        && d.inicioSemana in [0, 1]
+        && d.formato24h is bool
+        && texto(d.zonaHoraria, 64)
+        && d.duracionPorDefectoMin is number && d.duracionPorDefectoMin > 0 && d.duracionPorDefectoMin <= 1440
+        && d.sueno is map && d.sueno.activo is bool && hora(d.sueno.inicio) && hora(d.sueno.fin)
+        && d.umbrales is map && d.umbrales.size() <= 10
+        && d.temporizador is map && d.temporizador.size() <= 10
+        && d.notificaciones is map && d.notificaciones.size() <= 10 && d.notificaciones.activas is bool
+        && d.onboardingCompletado is bool
+        && d.actualizadoEnMs is number;
+    }
+
+    function etiquetaValida(d) {
+      return d.keys().hasOnly(['nombre', 'color', 'icono', 'duracionMin', 'objetivoSemanalHoras', 'archivada', 'orden',
+          'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.nombre, 60) && d.nombre.size() > 0
+        && texto(d.color, 20)
+        && texto(d.icono, 30)
+        && d.duracionMin is number && d.duracionMin > 0 && d.duracionMin <= 720
+        && (d.objetivoSemanalHoras == null || (d.objetivoSemanalHoras is number && d.objetivoSemanalHoras >= 0 && d.objetivoSemanalHoras <= 168))
+        && d.archivada is bool
+        && d.orden is number
+        && marcasDeTiempo(d);
+    }
+
+    function eventoValido(d) {
+      return d.keys().hasOnly(['tipo', 'titulo', 'inicioMs', 'finMs', 'todoElDia', 'zonaHoraria', 'etiquetaId', 'color',
+          'notas', 'recurrencia', 'cicloId', 'tareaId', 'completarTareaAlCompletar', 'rutinaId', 'completado',
+          'plantillaId', 'origenGoogle', 'creadoEnMs', 'actualizadoEnMs'])
+        && d.tipo in ['evento', 'sesion', 'protegido', 'rutina']
+        && texto(d.titulo, 200)
+        && d.inicioMs is number && d.finMs is number && d.finMs >= d.inicioMs
+        && d.finMs - d.inicioMs <= 31 * 86400000
+        && d.todoElDia is bool
+        && texto(d.zonaHoraria, 64)
+        && textoONulo(d.etiquetaId, 128)
+        && textoONulo(d.color, 20)
+        && texto(d.notas, 5000)
+        && mapaONulo(d.recurrencia)
+        && (d.recurrencia == null || (d.recurrencia.frecuencia in ['diaria', 'semanal', 'mensual'] && d.recurrencia.intervalo is number))
+        && textoONulo(d.cicloId, 128)
+        && textoONulo(d.tareaId, 128)
+        && d.completarTareaAlCompletar is bool
+        && textoONulo(d.rutinaId, 128)
+        && d.completado is bool
+        && textoONulo(d.plantillaId, 128)
+        && mapaONulo(d.origenGoogle)
+        && marcasDeTiempo(d);
+    }
+
+    function excepcionValida(d) {
+      return d.keys().hasOnly(['eventoId', 'inicioOriginalMs', 'cancelada', 'completado', 'cambios', 'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.eventoId, 300)
+        && d.inicioOriginalMs is number
+        && d.cancelada is bool
+        && d.completado is bool
+        && d.cambios is map && d.cambios.keys().hasOnly(['inicioMs', 'finMs', 'titulo', 'notas', 'etiquetaId'])
+        && marcasDeTiempo(d);
+    }
+
+    function tareaValida(d) {
+      return d.keys().hasOnly(['titulo', 'etiquetaId', 'prioridad', 'fechaLimiteMs', 'planificacion', 'estimacionMin',
+          'subtareas', 'notas', 'repeticion', 'completada', 'completadaEnMs', 'orden', 'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.titulo, 300) && d.titulo.size() > 0
+        && textoONulo(d.etiquetaId, 128)
+        && d.prioridad in ['baja', 'media', 'alta', 'urgente']
+        && numeroONulo(d.fechaLimiteMs)
+        && d.planificacion is map && d.planificacion.tipo in ['dia', 'semana', 'sinFecha']
+        && numeroONulo(d.estimacionMin)
+        && listaHasta(d.subtareas, 100)
+        && texto(d.notas, 10000)
+        && mapaONulo(d.repeticion)
+        && d.completada is bool
+        && numeroONulo(d.completadaEnMs)
+        && d.orden is number
+        && marcasDeTiempo(d);
+    }
+
+    function cicloValido(d) {
+      return d.keys().hasOnly(['nombre', 'fases', 'repeticiones', 'descansoLargoCada', 'descansoLargoMin', 'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.nombre, 60)
+        && listaHasta(d.fases, 30) && d.fases.size() > 0
+        && d.repeticiones is number && d.repeticiones >= 1 && d.repeticiones <= 20
+        && numeroONulo(d.descansoLargoCada)
+        && d.descansoLargoMin is number
+        && marcasDeTiempo(d);
+    }
+
+    function registroValido(d) {
+      return d.keys().hasOnly(['etiquetaId', 'tareaId', 'eventoId', 'inicioMs', 'finMs', 'focoRealMs', 'descansosMs',
+          'interrupciones', 'fasesCompletadas', 'nota', 'valoracion', 'modo', 'creadoEnMs', 'actualizadoEnMs'])
+        && textoONulo(d.etiquetaId, 128)
+        && textoONulo(d.tareaId, 128)
+        && textoONulo(d.eventoId, 300)
+        && d.inicioMs is number && d.finMs is number && d.finMs >= d.inicioMs
+        && d.focoRealMs is number && d.focoRealMs >= 0
+        && d.descansosMs is number && d.descansosMs >= 0
+        && d.interrupciones is number
+        && d.fasesCompletadas is number
+        && texto(d.nota, 2000)
+        && (d.valoracion == null || (d.valoracion is int && d.valoracion >= 1 && d.valoracion <= 5))
+        && d.modo in ['ciclo', 'cronometro']
+        && marcasDeTiempo(d);
+    }
+
+    function contadorValido(d) {
+      return d.keys().hasOnly(['estado', 'modo', 'fases', 'indiceFase', 'inicioFase', 'duracionFaseMs', 'pausaAcumuladaMs',
+          'pausadoEn', 'etiquetaId', 'tareaId', 'eventoId', 'cicloId', 'rutinaId', 'sesionInicioMs', 'interrupciones',
+          'tramos', 'actualizadoPor', 'version'])
+        && d.estado in ['inactivo', 'enCurso', 'pausado', 'esperando']
+        && d.modo in ['ciclo', 'cronometro']
+        && listaHasta(d.fases, 200)
+        && d.indiceFase is number
+        && (d.inicioFase == null || d.inicioFase is timestamp)
+        && d.duracionFaseMs is number
+        && d.pausaAcumuladaMs is number
+        && (d.pausadoEn == null || d.pausadoEn is timestamp)
+        && textoONulo(d.etiquetaId, 128)
+        && textoONulo(d.tareaId, 128)
+        && textoONulo(d.eventoId, 300)
+        && textoONulo(d.cicloId, 128)
+        && (!('rutinaId' in d) || textoONulo(d.rutinaId, 128))
+        && numeroONulo(d.sesionInicioMs)
+        && d.interrupciones is number
+        && listaHasta(d.tramos, 500)
+        && texto(d.actualizadoPor, 64)
+        && d.version is number;
+    }
+
+    function rutinaValida(d) {
+      return d.keys().hasOnly(['nombre', 'ambito', 'clase', 'color', 'etiquetaId', 'pasos', 'cicloId', 'programacion',
+          'avisos', 'mostrarEnCalendario', 'eventoCalendarioId', 'archivada', 'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.nombre, 80) && d.nombre.size() > 0
+        && d.ambito in ['dia', 'semana', 'mes']
+        && d.clase in ['pasos', 'estudio']
+        && texto(d.color, 20)
+        && textoONulo(d.etiquetaId, 128)
+        && listaHasta(d.pasos, 100)
+        && textoONulo(d.cicloId, 128)
+        && d.programacion is map
+        && d.avisos is map
+        && d.mostrarEnCalendario is bool
+        && textoONulo(d.eventoCalendarioId, 128)
+        && d.archivada is bool
+        && marcasDeTiempo(d);
+    }
+
+    function ejecucionValida(d) {
+      return d.keys().hasOnly(['rutinaId', 'fecha', 'inicioMs', 'finMs', 'pasosHechos', 'pasosTotales', 'completada',
+          'indicePaso', 'inicioPasoMs', 'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.rutinaId, 128)
+        && dia(d.fecha)
+        && d.inicioMs is number
+        && numeroONulo(d.finMs)
+        && listaHasta(d.pasosHechos, 100)
+        && d.pasosTotales is number
+        && d.completada is bool
+        && d.indicePaso is number
+        && numeroONulo(d.inicioPasoMs)
+        && marcasDeTiempo(d);
+    }
+
+    function recordatorioValido(d, uid) {
+      return d.keys().hasOnly(['uid', 'tipo', 'refId', 'fireAt', 'titulo', 'cuerpo', 'url', 'enviado', 'creadoEnMs'])
+        && d.uid == uid
+        && d.tipo in ['inicioBloque', 'faseTemporizador', 'pasoRutina', 'fechaLimite', 'resumenDiario', 'sobrecarga']
+        && texto(d.refId, 300)
+        && d.fireAt is number
+        && texto(d.titulo, 300)
+        && texto(d.cuerpo, 1000)
+        && texto(d.url, 300)
+        && d.enviado is bool
+        && d.creadoEnMs is number;
+    }
+
+    function dispositivoValido(d) {
+      return d.keys().hasOnly(['token', 'nombre', 'plataforma', 'tiposDesactivados', 'creadoEnMs', 'ultimoUsoMs', 'ping'])
+        && (!('token' in d) || textoONulo(d.token, 4096))
+        && (!('nombre' in d) || texto(d.nombre, 100))
+        && (!('plataforma' in d) || texto(d.plataforma, 100))
+        && (!('tiposDesactivados' in d) || listaHasta(d.tiposDesactivados, 10))
+        && (!('creadoEnMs' in d) || d.creadoEnMs is number)
+        && (!('ultimoUsoMs' in d) || d.ultimoUsoMs is number)
+        && (!('ping' in d) || d.ping is timestamp);
+    }
+
+    function integracionValida(d) {
+      return d.keys().hasOnly(['conectado', 'email', 'calendarioImportarId', 'calendarioExportarId', 'ultimaSincronizacionMs', 'actualizadoEnMs'])
+        && d.conectado is bool
+        && textoONulo(d.email, 320)
+        && textoONulo(d.calendarioImportarId, 500)
+        && textoONulo(d.calendarioExportarId, 500)
+        && numeroONulo(d.ultimaSincronizacionMs)
+        && d.actualizadoEnMs is number;
+    }
+
+    function plantillaValida(d) {
+      return d.keys().hasOnly(['nombre', 'bloques', 'creadoEnMs', 'actualizadoEnMs'])
+        && texto(d.nombre, 60)
+        && listaHasta(d.bloques, 200)
+        && marcasDeTiempo(d);
+    }
+
+    function perfilValido(d) {
+      return d.keys().hasOnly(['email', 'nombre', 'creadoEnMs', 'ultimoAccesoMs'])
+        && texto(d.email, 320)
+        && texto(d.nombre, 200)
+        && (!('creadoEnMs' in d) || d.creadoEnMs is number)
+        && d.ultimoAccesoMs is number;
+    }
+
+    // ---------------------------------------------------------------- rutas
+    match /users/{uid} {
+      allow read, delete: if esPropietario(uid);
+      allow create, update: if esPropietario(uid) && perfilValido(datos());
+
+      match /settings/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && id == 'general' && ajustesValidos(datos());
+      }
+      match /tags/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && etiquetaValida(datos());
+      }
+      match /events/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && eventoValido(datos());
+      }
+      match /eventExceptions/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && excepcionValida(datos());
+      }
+      match /tasks/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && tareaValida(datos());
+      }
+      match /cycleTemplates/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && cicloValido(datos());
+      }
+      match /sessionLogs/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && registroValido(datos());
+      }
+      match /timerState/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && id == 'actual' && contadorValido(datos());
+      }
+      match /routines/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && rutinaValida(datos());
+      }
+      match /routineRuns/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && ejecucionValida(datos());
+      }
+      match /reminders/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && recordatorioValido(datos(), uid);
+      }
+      match /devices/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && dispositivoValido(datos());
+      }
+      match /integrations/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && id == 'googleCalendar' && integracionValida(datos());
+      }
+      match /weekTemplates/{id} {
+        allow read, delete: if esPropietario(uid);
+        allow create, update: if esPropietario(uid) && plantillaValida(datos());
+      }
+    }
+
+    // Todo lo demás, prohibido
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
