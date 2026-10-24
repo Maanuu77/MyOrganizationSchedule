@@ -100,6 +100,9 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
   const [activo, setActivo] = useState<DatosArrastre | null>(null);
   const [previa, setPrevia] = useState<Previsualizacion | null>(null);
   const desplazamientoMin = useRef(0);
+  // Posición vertical real del puntero durante el arrastre (más fiable que el "delta" de dnd-kit,
+  // que no tiene en cuenta el desplazamiento interno de la rejilla)
+  const punteroY = useRef(0);
 
   // Vista inicial (pantalla "Semana") y fecha que llega por la URL (desde una notificación)
   useEffect(() => {
@@ -181,18 +184,34 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
         : (etiquetas.get(d.tarea.etiquetaId ?? '')?.color ?? '#6D5CF0');
 
   /** Minuto del día en que caería el elemento, según la posición del puntero en la columna. */
-  const minutoDestino = (fechaColumna: string, punteroY: number): number | null => {
+  const minutoDestino = (fechaColumna: string, y: number): number | null => {
     const columna = document.querySelector<HTMLElement>(`[data-columna="${fechaColumna}"]`);
     if (!columna) return null;
     const top = columna.getBoundingClientRect().top;
-    const min = (punteroY - top) / pxPorMinuto - desplazamientoMin.current;
+    const min = (y - top) / pxPorMinuto - desplazamientoMin.current;
     return Math.min(1440 - PASO_MIN, Math.max(0, Math.round(min / PASO_MIN) * PASO_MIN));
   };
+
+  // Seguimos el puntero con ratón o dedo (solo guarda un número: es muy barato)
+  useEffect(() => {
+    const conRaton = (e: MouseEvent) => (punteroY.current = e.clientY);
+    const conDedo = (e: TouchEvent) => {
+      if (e.touches[0]) punteroY.current = e.touches[0].clientY;
+    };
+    // En fase de captura, para tener la posición antes de que dnd-kit procese el movimiento
+    window.addEventListener('mousemove', conRaton, { passive: true, capture: true });
+    window.addEventListener('touchmove', conDedo, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener('mousemove', conRaton, { capture: true });
+      window.removeEventListener('touchmove', conDedo, { capture: true });
+    };
+  }, []);
 
   const alEmpezar = (e: DragStartEvent) => {
     const datos = e.active.data.current as DatosArrastre;
     setActivo(datos);
     document.body.classList.add('arrastrando');
+    punteroY.current = yDelEvento(e.activatorEvent);
     desplazamientoMin.current = 0;
     if (datos.tipo === 'bloque') {
       // Guardamos a qué altura del bloque se ha agarrado para que no "salte"
@@ -208,8 +227,7 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
       setPrevia(null);
       return;
     }
-    const y = yDelEvento(e.activatorEvent) + e.delta.y;
-    const minuto = minutoDestino(destino.fecha, y);
+    const minuto = minutoDestino(destino.fecha, punteroY.current);
     if (minuto === null) return;
     setPrevia((p) =>
       p && p.fecha === destino.fecha && p.inicioMin === minuto
@@ -234,7 +252,7 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     const dia = desdeClaveDia(destino.fecha).getTime();
     let inicio: number;
     if (destino.conHoras) {
-      const minuto = minutoPrevio ?? minutoDestino(destino.fecha, yDelEvento(e.activatorEvent) + e.delta.y) ?? 540;
+      const minuto = minutoDestino(destino.fecha, punteroY.current) ?? minutoPrevio ?? 540;
       inicio = dia + minuto * 60_000;
     } else {
       // En la vista mes se conserva la hora del bloque; lo nuevo va a las 9:00

@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 import { claveVapid, obtenerApp } from './firebase';
-import { COLECCIONES, guardarAjustes, refDoc } from './datos';
+import { COLECCIONES, actualizarAjustes, refDoc } from './datos';
 import { setDoc } from 'firebase/firestore';
 import { idDispositivo, nombreDispositivo } from './relojServidor';
 import { obtenerRegistroSW, mostrarNotificacionLocal } from './serviceWorker';
@@ -26,7 +26,7 @@ export async function activarNotificaciones(): Promise<ResultadoActivacion> {
   if (permiso !== 'granted') return 'denegadas';
 
   const { ajustes } = useDatos.getState();
-  await guardarAjustes({ ...ajustes, notificaciones: { ...ajustes.notificaciones, activas: true } });
+  await actualizarAjustes({ notificaciones: { ...ajustes.notificaciones, activas: true } });
 
   if (!claveVapid || !(await isSupported())) {
     await registrarDispositivo(null);

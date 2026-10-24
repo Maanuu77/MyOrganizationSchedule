@@ -78,16 +78,24 @@ export function VistaTiempo({ dias, ocurrencias, etiquetas, avisos, previsualiza
   return (
     <div className="tarjeta-plana flex h-[calc(100dvh-210px)] min-h-[420px] flex-col overflow-hidden md:h-[calc(100dvh-160px)]">
       {/* Cabecera con los días */}
-      <div className="flex border-b border-borde bg-superficie">
-        <div className="w-14 shrink-0" />
+      {/* scrollbar-gutter reserva el hueco de la barra de desplazamiento para que la cabecera
+          quede alineada con las columnas de abajo */}
+      <div className="flex overflow-hidden border-b border-borde bg-superficie [scrollbar-gutter:stable]">
+        <div className="w-10 shrink-0 sm:w-14" />
         {dias.map((d) => {
           const hoy = isToday(d);
           const delDia = todoElDia.filter((o) => claveDia(o.inicioMs) === claveDia(d));
           return (
-            <div key={claveDia(d)} className="min-w-0 flex-1 border-l border-borde px-1 py-1.5 text-center">
-              <button type="button" onClick={() => alElegirDia(d)} className="mx-auto flex flex-col items-center rounded-md px-2 hover:bg-superficie-2">
-                <span className={`text-[11px] font-bold uppercase ${hoy ? 'text-acento' : 'text-texto-tenue'}`}>{formatear(d, 'EEE')}</span>
-                <span className={`grid h-8 w-8 place-items-center rounded-full text-base font-extrabold ${hoy ? 'degradado-marca text-white shadow-media' : ''}`}>
+            <div key={claveDia(d)} className="min-w-0 flex-1 border-l border-borde px-0.5 py-1.5 text-center sm:px-1">
+              <button
+                type="button"
+                onClick={() => alElegirDia(d)}
+                aria-label={capitalizar(formatear(d, "EEEE d 'de' MMMM"))}
+                aria-current={hoy ? 'date' : undefined}
+                className="mx-auto flex flex-col items-center rounded-md px-0.5 hover:bg-superficie-2 sm:px-2"
+              >
+                <span className={`text-[10px] font-bold uppercase sm:text-[11px] ${hoy ? 'text-acento' : 'text-texto-tenue'}`}>{formatear(d, 'EEE')}</span>
+                <span className={`grid h-7 w-7 place-items-center rounded-full text-sm font-extrabold sm:h-8 sm:w-8 sm:text-base ${hoy ? 'degradado-marca text-white shadow-media' : ''}`}>
                   {formatear(d, 'd')}
                 </span>
               </button>
@@ -103,11 +111,11 @@ export function VistaTiempo({ dias, ocurrencias, etiquetas, avisos, previsualiza
       </div>
 
       {/* Rejilla desplazable */}
-      <div ref={contenedor} className="desplazable relative flex-1 overflow-y-auto">
+      <div ref={contenedor} className="desplazable relative flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         <div className="flex" style={{ height: 24 * altoHora }}>
-          <div className="relative w-14 shrink-0" aria-hidden>
+          <div className="relative w-10 shrink-0 sm:w-14" aria-hidden>
             {horas.map((h) => (
-              <span key={h} className="numeros absolute right-2 -translate-y-1/2 text-[11px] font-medium text-texto-tenue" style={{ top: h * altoHora }}>
+              <span key={h} className="numeros absolute right-1 -translate-y-1/2 text-[10px] font-medium text-texto-tenue sm:right-2 sm:text-[11px]" style={{ top: h * altoHora }}>
                 {h === 0 ? '' : formato24h ? minutosAHora(h * 60) : `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`}
               </span>
             ))}
@@ -225,6 +233,11 @@ const ColumnaDia = memo(function ColumnaDia({
       onPointerDown={alPulsar}
       onPointerMove={alMover}
       onPointerUp={alSoltar}
+      onPointerCancel={() => {
+        origen.current = null;
+        setSeleccion(null);
+      }}
+      onLostPointerCapture={alSoltar}
       onClick={(e) => {
         // Toque en pantallas táctiles: crea un bloque en ese hueco
         if (tipoPuntero.current === 'mouse') return;

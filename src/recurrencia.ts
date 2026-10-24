@@ -257,6 +257,10 @@ export function describirRegla(regla: ReglaRecurrencia, inicio: Date): string {
   let texto: string;
   if (regla.frecuencia === 'diaria') {
     texto = n === 1 ? 'Cada día' : `Cada ${n} días`;
+  } else if (regla.frecuencia === 'semanal' && n === 1 && new Set(regla.diasSemana).size === 7) {
+    texto = 'Cada día';
+  } else if (regla.frecuencia === 'semanal' && n === 1 && [...new Set(regla.diasSemana)].sort().join() === '1,2,3,4,5') {
+    texto = 'De lunes a viernes';
   } else if (regla.frecuencia === 'semanal') {
     const dias = (regla.diasSemana?.length ? regla.diasSemana : [inicio.getDay()])
       .slice()

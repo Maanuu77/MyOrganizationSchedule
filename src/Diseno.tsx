@@ -245,7 +245,8 @@ export function Diseno() {
           type="button"
           onClick={() => poner({ hojaHoy: true })}
           className={`fixed right-4 z-30 grid h-12 w-12 place-items-center rounded-full degradado-marca text-white shadow-elevada ${
-            esMovil ? 'bottom-24' : 'bottom-6'
+            // En el calendario móvil hay una hoja de etiquetas abajo: subimos el botón por encima
+            esMovil ? (ubicacion.pathname.startsWith('/calendario') || ubicacion.pathname.startsWith('/semana') ? 'bottom-36' : 'bottom-24') : 'bottom-6'
           }`}
           aria-label={t.nav.abrirHoy}
         >

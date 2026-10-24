@@ -67,7 +67,7 @@ export function PantallaRutinas() {
           }
         />
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {lista.map((r, i) => {
             const seg = seguimientoRutina(r, ejecuciones, addDays(hoy, -29), addDays(hoy, 1));
             const toca = rutinaTocaEnDia(r, hoy);
@@ -87,8 +87,11 @@ export function PantallaRutinas() {
                     <span className="text-xs font-extrabold">{Math.round(seg.cumplimiento * 100)}%</span>
                   </AnilloProgreso>
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-bold">{r.nombre}</h2>
-                    <p className="text-xs text-texto-suave">{describirRegla(reglaDeRutina(r), new Date(r.creadoEnMs))}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="min-w-0 truncate font-bold">{r.nombre}</h2>
+                      {toca && <span className="chip shrink-0 border-acento/30 bg-acento/10 py-0 text-[11px] text-acento">{t.rutinas.tocaHoy}</span>}
+                    </div>
+                    <p className="line-clamp-2 text-xs text-texto-suave">{describirRegla(reglaDeRutina(r), new Date(r.creadoEnMs))}</p>
                     <p className="mt-0.5 flex items-center gap-2 text-xs text-texto-suave">
                       {r.programacion.hora && (
                         <span className="flex items-center gap-1">
@@ -98,7 +101,6 @@ export function PantallaRutinas() {
                       <span>{r.clase === 'estudio' ? (ciclo?.nombre ?? t.foco.ciclo) : `${r.pasos.length} ${t.rutinas.pasos.toLowerCase()}${duracion ? ` · ${duracion} min` : ''}`}</span>
                     </p>
                   </div>
-                  {toca && <span className="chip shrink-0 border-acento/30 bg-acento/10 text-acento">{t.rutinas.tocaHoy}</span>}
                 </div>
                 <dl className="grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-md bg-superficie-2/70 py-1.5">

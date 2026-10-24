@@ -7,7 +7,7 @@ import { deleteDoc, setDoc } from 'firebase/firestore';
 import { GoogleAuthProvider, deleteUser, reauthenticateWithPopup } from 'firebase/auth';
 import { useDatos } from './almacenDatos';
 import { avisar, confirmar } from './almacenUI';
-import { COLECCIONES, borrarTodosLosDatos, esCopiaValida, exportarTodo, guardarAjustes, importarTodo, refDoc } from './datos';
+import { COLECCIONES, actualizarAjustes, borrarTodosLosDatos, esCopiaValida, exportarTodo, importarTodo, refDoc } from './datos';
 import { obtenerAuth } from './firebase';
 import { cerrarSesion } from './useSincronizacion';
 import { activarNotificaciones, notificacionDePrueba } from './useNotificaciones';
@@ -70,7 +70,7 @@ export function PantallaAjustes() {
   const permiso = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
   const zonaDispositivo = zonaDelDispositivo();
 
-  const cambiar = (parcial: Partial<Ajustes>) => guardarAjustes({ ...useDatos.getState().ajustes, ...parcial }).catch(() => avisar(t.comun.error, 'error'));
+  const cambiar = (parcial: Partial<Ajustes>) => actualizarAjustes(parcial).catch(() => avisar(t.comun.error, 'error'));
   const cambiarNotif = (parcial: Partial<Ajustes['notificaciones']>) => cambiar({ notificaciones: { ...ajustes.notificaciones, ...parcial } });
   const cambiarContador = (parcial: Partial<Ajustes['temporizador']>) => cambiar({ temporizador: { ...ajustes.temporizador, ...parcial } });
   const cambiarUmbrales = (parcial: Partial<Ajustes['umbrales']>) => cambiar({ umbrales: { ...ajustes.umbrales, ...parcial } });

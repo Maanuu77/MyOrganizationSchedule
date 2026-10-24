@@ -4,7 +4,7 @@
 // en otro dispositivo llega aquí en tiempo real y actualiza el almacén.
 
 import { useEffect } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
 import { firebaseConfigurado, obtenerAuth, obtenerDb, proveedorGoogle } from './firebase';
 import { useDatos } from './almacenDatos';
@@ -19,6 +19,8 @@ export function useSesion(): void {
       useDatos.getState().poner({ cargandoSesion: false });
       return;
     }
+    // Si venimos de un inicio de sesión por redirección, recogemos el resultado (o el error)
+    getRedirectResult(obtenerAuth()).catch((e) => console.warn('Inicio de sesión por redirección fallido', e));
     return onAuthStateChanged(obtenerAuth(), (u) => {
       const { poner, reiniciar } = useDatos.getState();
       if (!u) {
@@ -35,12 +37,41 @@ export function useSesion(): void {
   }, []);
 }
 
+/** ¿La app está instalada como PWA? Ahí las ventanas emergentes funcionan peor. */
+function enModoApp(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches;
+}
+
+/**
+ * Inicia sesión con Google. Normalmente con ventana emergente; si la app está instalada
+ * o el navegador bloquea la ventana, usamos redirección (se vuelve a la app al terminar).
+ */
 export async function entrarConGoogle(): Promise<void> {
-  await signInWithPopup(obtenerAuth(), proveedorGoogle());
+  const auth = obtenerAuth();
+  if (enModoApp()) {
+    await signInWithRedirect(auth, proveedorGoogle());
+    return;
+  }
+  try {
+    await signInWithPopup(auth, proveedorGoogle());
+  } catch (e) {
+    const codigo = (e as { code?: string }).code;
+    if (codigo === 'auth/popup-blocked' || codigo === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(auth, proveedorGoogle());
+      return;
+    }
+    throw e;
+  }
 }
 
 export async function cerrarSesion(): Promise<void> {
   await signOut(obtenerAuth());
+}
+
+/** Ordena por fecha de creación (las listas de Firestore llegan ordenadas por id). */
+function ordenarPorCreacion<T extends { id: string }>(lista: T[]): T[] {
+  const fecha = (x: T) => (x as { creadoEnMs?: number }).creadoEnMs ?? 0;
+  return [...lista].sort((a, b) => fecha(a) - fecha(b));
 }
 
 /** Registros de sesión que se cargan: los de los dos últimos años (para comparar año con año). */
@@ -69,6 +100,7 @@ export function useSincronizacion(): void {
           poner({
             ajustes: completarAjustes(snap.data() as Partial<Ajustes> | undefined, zonaDelDispositivo()),
             ajustesCargados: true,
+            ajustesExisten: snap.exists(),
           });
           marcarListo('ajustes');
         },
@@ -87,10 +119,10 @@ export function useSincronizacion(): void {
         marcarListo('tareas');
       }, alFallar),
       escuchar(uid, COLECCIONES.excepciones, (excepciones) => poner({ excepciones: excepciones as never }), alFallar),
-      escuchar(uid, COLECCIONES.ciclos, (ciclos) => poner({ ciclos: ciclos as never }), alFallar),
-      escuchar(uid, COLECCIONES.rutinas, (rutinas) => poner({ rutinas: rutinas as never }), alFallar),
+      escuchar(uid, COLECCIONES.ciclos, (ciclos) => poner({ ciclos: ordenarPorCreacion(ciclos) as never }), alFallar),
+      escuchar(uid, COLECCIONES.rutinas, (rutinas) => poner({ rutinas: ordenarPorCreacion(rutinas) as never }), alFallar),
       escuchar(uid, COLECCIONES.ejecuciones, (ejecuciones) => poner({ ejecuciones: ejecuciones as never }), alFallar),
-      escuchar(uid, COLECCIONES.plantillas, (plantillas) => poner({ plantillas: plantillas as never }), alFallar),
+      escuchar(uid, COLECCIONES.plantillas, (plantillas) => poner({ plantillas: ordenarPorCreacion(plantillas) as never }), alFallar),
       escuchar(uid, COLECCIONES.dispositivos, (dispositivos) => poner({ dispositivos: dispositivos as never }), alFallar),
       escuchar(
         uid,

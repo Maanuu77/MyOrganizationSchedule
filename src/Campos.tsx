@@ -67,6 +67,7 @@ export function Segmentado<T extends string>({ opciones, valor, alCambiar, etiqu
             type="button"
             role="radio"
             aria-checked={activo}
+            aria-label={o.texto}
             onClick={() => alCambiar(o.valor)}
             className={`relative flex shrink-0 items-center gap-1.5 rounded-sm font-semibold transition-colors ${
               tamano === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm'

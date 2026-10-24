@@ -238,7 +238,7 @@ export function PantallaEstadisticas() {
                     <Tooltip {...estiloTooltip} formatter={(v) => `${v} h`} />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Bar dataKey="planificado" name={t.estadisticas.planificado} fill="var(--mos-superficie-3)" radius={[0, 6, 6, 0]} animationDuration={900} />
-                    <Bar dataKey="real" name={t.estadisticas.real} radius={[0, 6, 6, 0]} animationDuration={1100}>
+                    <Bar dataKey="real" name={t.estadisticas.real} fill="var(--mos-acento)" radius={[0, 6, 6, 0]} animationDuration={1100}>
                       {datos.porEtiqueta.map((f) => (
                         <Cell key={f.nombre} fill={f.color} />
                       ))}

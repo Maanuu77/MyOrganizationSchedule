@@ -33,6 +33,8 @@ export interface EstadoDatos {
   /** true cuando han llegado los ajustes y las colecciones principales. */
   datosListos: boolean;
   ajustesCargados: boolean;
+  /** Si el documento de ajustes ya existe en Firestore. */
+  ajustesExisten: boolean;
   ajustes: Ajustes;
   etiquetas: Etiqueta[];
   eventos: Evento[];
@@ -64,6 +66,7 @@ function temaLocal(): Partial<Ajustes> {
 const vacio = () => ({
   datosListos: false,
   ajustesCargados: false,
+  ajustesExisten: false,
   ajustes: { ...ajustesPorDefecto(zonaDelDispositivo()), ...temaLocal() },
   etiquetas: [],
   eventos: [],

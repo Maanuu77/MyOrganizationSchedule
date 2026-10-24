@@ -19,6 +19,7 @@ import {
   type WriteBatch,
 } from 'firebase/firestore';
 import { obtenerAuth, obtenerDb } from './firebase';
+import { useDatos } from './almacenDatos';
 import type {
   Ajustes,
   DocumentoBase,
@@ -138,7 +139,8 @@ export async function enLotes<T>(elementos: T[], operacion: (lote: WriteBatch, e
 /** Crea muchos documentos a la vez. */
 export async function crearVarios<T extends DocumentoBase>(coleccion: NombreColeccion, lista: DatosNuevos<T>[]): Promise<T[]> {
   const ahora = Date.now();
-  const completos = lista.map((d) => ({ ...d, id: d.id ?? nuevoId(), creadoEnMs: ahora, actualizadoEnMs: ahora }) as T);
+  // Sumamos el índice para conservar el orden de creación al ordenar por creadoEnMs
+  const completos = lista.map((d, i) => ({ ...d, id: d.id ?? nuevoId(), creadoEnMs: ahora + i, actualizadoEnMs: ahora + i }) as T);
   await enLotes(completos, (lote, d) => lote.set(refDoc(coleccion, d.id), limpiar(sinId(d)) as DocumentData));
   return completos;
 }
@@ -187,6 +189,19 @@ export function refAjustes(uid = uidActual()) {
 
 export async function guardarAjustes(ajustes: Ajustes): Promise<void> {
   await setDoc(refAjustes(), limpiar({ ...ajustes, actualizadoEnMs: Date.now() }));
+}
+
+/**
+ * Cambia solo algunos ajustes (fusiona con lo guardado). Así dos cambios seguidos no se
+ * pisan entre sí. Si el documento aún no existe, se guarda completo.
+ */
+export async function actualizarAjustes(parcial: Partial<Ajustes>): Promise<void> {
+  const { ajustes, ajustesExisten } = useDatos.getState();
+  if (!ajustesExisten) {
+    await guardarAjustes({ ...ajustes, ...parcial });
+    return;
+  }
+  await setDoc(refAjustes(), limpiar({ ...parcial, actualizadoEnMs: Date.now() }), { merge: true });
 }
 
 // ---------------------------------------------------------------------------

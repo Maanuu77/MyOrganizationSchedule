@@ -202,6 +202,12 @@ describe('describirRegla y caeEnDia', () => {
     ).toBe('Cada mes el primer lunes');
   });
 
+  it('abrevia semanas completas y días laborables', () => {
+    const semanal = (dias: number[]): ReglaRecurrencia => ({ frecuencia: 'semanal', intervalo: 1, diasSemana: dias, fin: { tipo: 'nunca' } });
+    expect(describirRegla(semanal([0, 1, 2, 3, 4, 5, 6]), lunes)).toBe('Cada día');
+    expect(describirRegla(semanal([5, 4, 3, 2, 1]), lunes)).toBe('De lunes a viernes');
+  });
+
   it('caeEnDia', () => {
     const r: ReglaRecurrencia = { frecuencia: 'semanal', intervalo: 1, diasSemana: [1, 3], fin: { tipo: 'nunca' } };
     expect(caeEnDia(r, lunes, new Date(2026, 4, 6))).toBe(true); // miércoles

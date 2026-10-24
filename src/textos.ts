@@ -115,6 +115,7 @@ export const t = {
     notifActivadas: 'Notificaciones activadas',
     notifNoSoportadas: 'Este navegador no admite notificaciones push.',
     empezar: 'Empezar a planificar',
+    saltarTodo: 'Saltar todo',
   },
 
   hoy: {

@@ -14,6 +14,7 @@ import { AgendaDelDia, AhoraYDespues, RutinasDelDia, TareasDelDia, useHoy } from
 import { rachas, registrosEn } from './estadisticas';
 import { claveDia, capitalizar, duracionTexto, formatear, MS_HORA } from './fechas';
 import { useEstadoContador } from './useTemporizador';
+import { useEsMovil } from './useMedia';
 import { t } from './textos';
 
 function saludo(hora: number): string {
@@ -30,6 +31,7 @@ export function PantallaHoy() {
   const { hoy, desde, hasta, ocurrencias } = useHoy();
   const avisos = useAvisosCarga();
   const { activo } = useEstadoContador();
+  const esMovil = useEsMovil();
   const avisosHoy = avisos.filter((a) => a.fecha === claveDia(hoy));
 
   const resumen = useMemo(() => {
@@ -86,20 +88,20 @@ export function PantallaHoy() {
         )}
       </header>
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
         {tarjetas.map((c, i) => (
           <motion.div
             key={c.texto}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
-            className="tarjeta flex items-center gap-4"
+            className="tarjeta flex flex-col items-center gap-2 p-3 text-center sm:flex-row sm:gap-4 sm:p-[var(--mos-relleno-tarjeta)] sm:text-left"
           >
-            <AnilloProgreso progreso={c.progreso} tamano={68} grosor={8} color={c.color} etiqueta={c.texto} />
+            <AnilloProgreso progreso={c.progreso} tamano={esMovil ? 48 : 68} grosor={esMovil ? 6 : 8} color={c.color} etiqueta={c.texto} />
             <div className="min-w-0">
-              <p className="text-xs font-bold tracking-wide text-texto-tenue uppercase">{c.texto}</p>
-              <p className="text-2xl font-extrabold">{c.valor}</p>
-              <p className="truncate text-xs text-texto-suave">{c.detalle}</p>
+              <p className="text-[10px] leading-tight font-bold tracking-wide text-texto-tenue uppercase sm:text-xs">{c.texto}</p>
+              <p className="text-lg font-extrabold sm:text-2xl">{c.valor}</p>
+              <p className="hidden truncate text-xs text-texto-suave sm:block">{c.detalle}</p>
             </div>
           </motion.div>
         ))}

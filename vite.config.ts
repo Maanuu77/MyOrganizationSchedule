@@ -23,7 +23,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,mp3}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Solo precargamos las fuentes latinas (el resto se descargan si hicieran falta)
+        globIgnores: ['**/*-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       devOptions: { enabled: true, type: 'module' },

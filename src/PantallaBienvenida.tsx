@@ -71,8 +71,8 @@ export function PantallaBienvenida() {
             {Array.from({ length: TOTAL }, (_, i) => (
               <motion.span
                 key={i}
-                className="h-2 rounded-full"
-                animate={{ width: i + 1 === paso ? 28 : 8, background: i + 1 <= paso ? 'var(--mos-acento)' : 'var(--mos-superficie-3)' }}
+                className={`h-2 rounded-full ${i + 1 <= paso ? 'bg-acento' : 'bg-superficie-3'}`}
+                animate={{ width: i + 1 === paso ? 28 : 8 }}
               />
             ))}
           </div>
@@ -201,7 +201,7 @@ export function PantallaBienvenida() {
 
         <div className="mt-6 flex items-center justify-between">
           <Boton variante="fantasma" onClick={paso === 1 ? terminar : () => setPaso(paso - 1)}>
-            {paso === 1 ? t.comun.saltar : t.comun.volver}
+            {paso === 1 ? t.bienvenida.saltarTodo : t.comun.volver}
           </Boton>
           <div className="flex gap-2">
             {paso < TOTAL && (
