@@ -16,7 +16,11 @@ let entorno: RulesTestEnvironment;
 beforeAll(async () => {
   entorno = await initializeTestEnvironment({
     projectId: 'demo-mos',
-    firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 },
+    firestore: {
+      rules: readFileSync('firestore.rules', 'utf8'),
+      host: '127.0.0.1',
+      port: Number(process.env.PUERTO_FIRESTORE ?? 8080),
+    },
   });
 });
 
@@ -175,6 +179,49 @@ describe('validación de campos', () => {
     await assertFails(setDoc(doc(ana, 'users/ana/timerState/otro'), contador));
     await assertFails(
       setDoc(doc(ana, 'users/ana/timerState/actual'), { ...contador, estado: 'volando' }),
+    );
+  });
+
+  it('las rutinas son pasos con descansos y no admiten el formato antiguo', async () => {
+    const ana = db('ana');
+    const rutina = {
+      nombre: 'Tarde de estudio',
+      color: '#5b4bdb',
+      pasos: [
+        {
+          id: 'p1',
+          nombre: 'Teoría',
+          duracionMin: 50,
+          etiquetaId: null,
+          tareaId: null,
+          descansoMin: 10,
+        },
+        {
+          id: 'p2',
+          nombre: 'Psicotécnicos',
+          duracionMin: 20,
+          etiquetaId: null,
+          tareaId: null,
+          descansoMin: 0,
+        },
+      ],
+      descansoPorDefectoMin: 10,
+      programacion: { diasSemana: [1, 3], hora: '16:00' },
+      avisos: { activo: true, minutosAntes: 5 },
+      mostrarEnCalendario: false,
+      eventoCalendarioId: null,
+      archivada: false,
+      ...marcas,
+    };
+    await assertSucceeds(setDoc(doc(ana, 'users/ana/routines/r1'), rutina));
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/routines/r2'), { ...rutina, ambito: 'dia', clase: 'pasos' }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/routines/r3'), {
+        ...rutina,
+        programacion: { diasSemana: [1], hora: '25:99' },
+      }),
     );
   });
 

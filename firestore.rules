@@ -184,17 +184,17 @@ service cloud.firestore {
         && d.version is number;
     }
 
+    // Rutina = sucesión de pasos (nombre, minutos, etiqueta, tarea y descanso posterior)
     function rutinaValida(d) {
-      return d.keys().hasOnly(['nombre', 'ambito', 'clase', 'color', 'etiquetaId', 'pasos', 'cicloId', 'programacion',
+      return d.keys().hasOnly(['nombre', 'color', 'pasos', 'descansoPorDefectoMin', 'programacion',
           'avisos', 'mostrarEnCalendario', 'eventoCalendarioId', 'archivada', 'creadoEnMs', 'actualizadoEnMs'])
         && texto(d.nombre, 80) && d.nombre.size() > 0
-        && d.ambito in ['dia', 'semana', 'mes']
-        && d.clase in ['pasos', 'estudio']
         && texto(d.color, 20)
-        && textoONulo(d.etiquetaId, 128)
-        && listaHasta(d.pasos, 100)
-        && textoONulo(d.cicloId, 128)
-        && d.programacion is map
+        && listaHasta(d.pasos, 50)
+        && d.descansoPorDefectoMin is number && d.descansoPorDefectoMin >= 0 && d.descansoPorDefectoMin <= 240
+        && d.programacion is map && d.programacion.keys().hasOnly(['diasSemana', 'hora'])
+        && listaHasta(d.programacion.diasSemana, 7)
+        && (d.programacion.hora == null || hora(d.programacion.hora))
         && d.avisos is map
         && d.mostrarEnCalendario is bool
         && textoONulo(d.eventoCalendarioId, 128)
