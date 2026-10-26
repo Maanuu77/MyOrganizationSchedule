@@ -47,8 +47,11 @@ if (firebaseConfigurado) {
   // ignoreUndefinedProperties: evita errores si algún campo opcional llega como undefined
   db = initializeFirestore(app, { ignoreUndefinedProperties: true });
   if (env.VITE_USAR_EMULADORES === 'true') {
-    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    // Puertos por defecto de los emuladores; se pueden cambiar si ya están ocupados
+    const puertoAuth = env.VITE_EMULADOR_PUERTO_AUTH || '9099';
+    const puertoFirestore = Number(env.VITE_EMULADOR_PUERTO_FIRESTORE || 8080);
+    connectAuthEmulator(auth, `http://127.0.0.1:${puertoAuth}`, { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', puertoFirestore);
   }
 }
 
