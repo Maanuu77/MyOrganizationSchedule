@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { readFileSync } from 'node:fs';
 
+/** Navegadores mínimos para los que se compila la app. */
+const NAVEGADORES = ['es2020', 'safari15', 'ios15', 'chrome100', 'edge100', 'firefox100'];
+
 const version = (
   JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as {
     version: string;
@@ -61,6 +64,10 @@ export default defineConfig({
     }),
   ],
   build: {
+    // Por defecto Vite compila solo para navegadores muy recientes (Safari 16.4+).
+    // Bajamos el objetivo para que funcione también en Safari 15 (Mac sin actualizar).
+    target: NAVEGADORES,
+    cssTarget: NAVEGADORES,
     rollupOptions: {
       output: {
         // Separamos librerías grandes para que la primera carga sea más rápida.

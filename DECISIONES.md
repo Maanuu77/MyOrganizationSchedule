@@ -103,3 +103,10 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - `localStorage` solo guarda preferencias de interfaz: vista del calendario, panel de Hoy abierto, copia del tema para evitar el parpadeo y el id aleatorio del dispositivo.
 - **Borrar cuenta** pide volver a iniciar sesión (Firebase lo exige), borra todas las colecciones del usuario y después la cuenta.
 - **Importar** una copia JSON añade/sobrescribe documentos por id y pasa por las mismas reglas de validación.
+
+## Compatibilidad con navegadores
+
+- **Objetivo de compilación**: Safari 15, iOS 15, Chrome/Edge/Firefox 100 (`NAVEGADORES` en `vite.config.ts`). Vite compila por defecto solo para Safari 16.4+, y en un Mac sin actualizar la página se quedaba en blanco.
+- **Mínimo real: Safari 15.4**, porque la app usa `Array.prototype.at`, `structuredClone` y `:focus-visible`. En navegadores más antiguos, `index.html` muestra un aviso explicando cómo actualizar en lugar de una página en blanco.
+- En Safari 15.x algunos colores semitransparentes (que usan `color-mix`) se ven planos; la app funciona igual.
+- Probado con el motor WebKit (el de Safari) gracias a Playwright en Windows.

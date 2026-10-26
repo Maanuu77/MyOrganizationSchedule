@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Planifica tu día, tu semana y tu mes con calendario, rutinas, tareas y sesiones de foco." />
+    <meta
+      name="description"
+      content="Planifica tu día, tu semana y tu mes con calendario, rutinas, tareas y sesiones de foco."
+    />
     <meta name="theme-color" content="#f5f4fb" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/iconos/apple-touch-icon.png" />
@@ -16,10 +19,12 @@
           var guardado = JSON.parse(localStorage.getItem('mos-tema') || '{}');
           var oscuro =
             guardado.tema === 'oscuro' ||
-            ((!guardado.tema || guardado.tema === 'sistema') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            ((!guardado.tema || guardado.tema === 'sistema') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
           document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
           if (guardado.densidad) document.documentElement.dataset.densidad = guardado.densidad;
-          if (guardado.colorAcento) document.documentElement.style.setProperty('--mos-acento', guardado.colorAcento);
+          if (guardado.colorAcento)
+            document.documentElement.style.setProperty('--mos-acento', guardado.colorAcento);
         } catch (e) {}
       })();
     </script>
@@ -27,6 +32,49 @@
   <body>
     <noscript>MyOrganizationSchedule necesita JavaScript para funcionar.</noscript>
     <div id="root"></div>
+    <!-- Aviso para navegadores demasiado antiguos (por ejemplo Safari 15.3 o anterior):
+         en lugar de una página en blanco, explicamos qué hacer. -->
+    <div
+      id="navegador-antiguo"
+      hidden
+      style="
+        font-family: system-ui, sans-serif;
+        max-width: 30rem;
+        margin: 15vh auto;
+        padding: 1.5rem;
+        text-align: center;
+        color: #1a1830;
+        background: #ffffff;
+        border: 1px solid #e1ddef;
+        border-radius: 16px;
+      "
+    >
+      <h1 style="font-size: 1.3rem; margin: 0 0 0.75rem">Tu navegador es demasiado antiguo</h1>
+      <p style="margin: 0; line-height: 1.5; color: #59557a">
+        MyOrganizationSchedule necesita Safari 15.4 o posterior, o una versión reciente de Chrome,
+        Edge o Firefox. Actualiza tu sistema (Ajustes del sistema → Actualización de software) o
+        abre la app en otro navegador.
+      </p>
+    </div>
+    <script nomodule>
+      document.getElementById('navegador-antiguo').hidden = false;
+    </script>
+    <script>
+      // Comprobamos funciones que la app necesita y que los Safari antiguos no tienen
+      (function () {
+        var ok =
+          'noModule' in HTMLScriptElement.prototype &&
+          typeof Array.prototype.at === 'function' &&
+          typeof structuredClone === 'function' &&
+          window.CSS &&
+          CSS.supports &&
+          CSS.supports('selector(:focus-visible)');
+        if (!ok) {
+          document.getElementById('navegador-antiguo').hidden = false;
+          document.getElementById('root').hidden = true;
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
