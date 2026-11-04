@@ -1,5 +1,7 @@
 # MyOrganizationSchedule
 
+Link de la aplicación web: https://myorganizationschedule.web.app
+
 Aplicación web (PWA instalable) para organizar el tiempo: **calendario visual**, **sesiones de estudio con contador**, **rutinas**, **tareas** y **estadísticas**, sincronizada en tiempo real entre dispositivos.
 
 La idea central: arrastras una **etiqueta** (una asignatura, un proyecto…) al calendario, se crea una **sesión de estudio**, y al empezarla el **contador** te dice cuándo parar y cuándo seguir. Todo lo que haces se convierte en estadísticas de lo planificado frente a lo real.
