@@ -2,10 +2,10 @@
 // los avisos cuando la app está abierta (en primer plano el navegador no los muestra solo).
 
 import { useEffect } from 'react';
-import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
+import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 import { claveVapid, obtenerApp } from './firebase';
 import { COLECCIONES, actualizarAjustes, refDoc } from './datos';
-import { setDoc } from 'firebase/firestore';
+import { setDoc, updateDoc } from 'firebase/firestore';
 import { idDispositivo, nombreDispositivo } from './relojServidor';
 import { obtenerRegistroSW, mostrarNotificacionLocal } from './serviceWorker';
 import { useDatos } from './almacenDatos';
@@ -28,22 +28,45 @@ export async function activarNotificaciones(): Promise<ResultadoActivacion> {
   const { ajustes } = useDatos.getState();
   await actualizarAjustes({ notificaciones: { ...ajustes.notificaciones, activas: true } });
 
-  if (!claveVapid || !(await isSupported())) {
-    await registrarDispositivo(null);
-    return 'soloLocales';
-  }
   try {
-    const registro = await obtenerRegistroSW();
-    const token = await getToken(getMessaging(obtenerApp()), {
-      vapidKey: claveVapid,
-      serviceWorkerRegistration: registro,
-    });
+    const token = await obtenerToken();
     await registrarDispositivo(token);
-    return 'activadas';
+    return token ? 'activadas' : 'soloLocales';
   } catch (e) {
     console.warn('No se pudo obtener el token de notificaciones', e);
     await registrarDispositivo(null);
     return 'soloLocales';
+  }
+}
+
+/** Token de push (FCM) de este navegador, o null si no hay clave VAPID o no se admite push. */
+async function obtenerToken(): Promise<string | null> {
+  if (!claveVapid || !(await isSupported())) return null;
+  const registro = await obtenerRegistroSW();
+  return getToken(getMessaging(obtenerApp()), {
+    vapidKey: claveVapid,
+    serviceWorkerRegistration: registro,
+  });
+}
+
+/**
+ * Al cerrar sesión: este navegador deja de recibir los avisos de la cuenta. Importante en un
+ * ordenador compartido, donde si no seguirían llegando avisos con los títulos de tus tareas.
+ */
+export async function darDeBajaEsteDispositivo(): Promise<void> {
+  try {
+    if (await isSupported()) await deleteToken(getMessaging(obtenerApp()));
+  } catch (e) {
+    // Sin token o sin permiso: no hay nada que borrar en FCM
+    console.warn('No se pudo borrar el token de notificaciones', e);
+  }
+  try {
+    await updateDoc(refDoc(COLECCIONES.dispositivos, idDispositivo()), {
+      token: null,
+      ultimoUsoMs: Date.now(),
+    });
+  } catch {
+    // Este dispositivo nunca activó los avisos: no tiene documento
   }
 }
 
@@ -82,6 +105,21 @@ function mostrar(id: string, titulo: string, cuerpo: string, url: string, tipo?:
 export function useAvisosEnPrimerPlano(): void {
   const uid = useDatos((s) => s.usuario?.uid);
   const activas = useDatos((s) => s.ajustes.notificaciones.activas);
+
+  // El token de push puede cambiar (FCM lo rota, se borran los datos del sitio, la Cloud
+  // Function lo anula por inválido…). Lo renovamos al abrir la app para que los avisos no
+  // dejen de llegar sin que nadie se entere.
+  useEffect(() => {
+    if (!uid || !activas || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    obtenerToken()
+      .then((token) => {
+        if (!token) return;
+        const guardado = useDatos.getState().dispositivos.find((d) => d.id === idDispositivo());
+        if (guardado?.token !== token) return registrarDispositivo(token);
+      })
+      .catch((e) => console.warn('No se pudo renovar el token de notificaciones', e));
+  }, [uid, activas]);
 
   // Mensajes push que llegan con la app abierta
   useEffect(() => {

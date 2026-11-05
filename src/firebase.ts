@@ -2,8 +2,15 @@
 // Si faltan, la app muestra una pantalla de configuración en lugar de fallar en blanco.
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { ReCaptchaEnterpriseProvider, initializeAppCheck } from 'firebase/app-check';
 import { GoogleAuthProvider, connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
-import { connectFirestoreEmulator, initializeFirestore, type Firestore } from 'firebase/firestore';
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from 'firebase/firestore';
 
 const env = import.meta.env;
 
@@ -44,8 +51,23 @@ let db: Firestore | null = null;
 if (firebaseConfigurado) {
   app = initializeApp(configuracion);
   auth = getAuth(app);
-  // ignoreUndefinedProperties: evita errores si algún campo opcional llega como undefined
-  db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  db = initializeFirestore(app, {
+    // Evita errores si algún campo opcional llega como undefined
+    ignoreUndefinedProperties: true,
+    // Copia de los datos en el dispositivo (IndexedDB), compartida entre pestañas: la app abre
+    // al instante, funciona sin conexión y lo guardado sin red se envía solo al volver.
+    // Si el navegador no tiene IndexedDB, Firebase sigue con la caché en memoria.
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
+  // App Check: Firestore solo acepta peticiones que vienen de esta web (no de un script con la
+  // API key, que es pública). Se activa al poner la clave de reCAPTCHA Enterprise en el .env;
+  // con los emuladores no hace falta.
+  if (env.VITE_APPCHECK_SITE_KEY && env.VITE_USAR_EMULADORES !== 'true') {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(env.VITE_APPCHECK_SITE_KEY),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
   if (env.VITE_USAR_EMULADORES === 'true') {
     // Puertos por defecto de los emuladores; se pueden cambiar si ya están ocupados
     const puertoAuth = env.VITE_EMULADOR_PUERTO_AUTH || '9099';

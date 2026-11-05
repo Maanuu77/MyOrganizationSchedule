@@ -31,6 +31,9 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - **Tareas repetidas**: al completar una, se crea la siguiente con la fecha que toque (como hacen la mayoría de gestores de tareas), en vez de mantener una serie infinita.
 - **Etiquetas borradas**: los bloques, tareas y registros que las usaban conservan el id, pero se muestran "sin etiqueta". Archivar es la opción recomendada.
 - **Los datos se cargan enteros en memoria** (eventos, tareas, rutinas…) para uso personal; los registros de sesión, solo de los últimos 800 días (suficiente para comparar un año con el anterior).
+- **Copia local de Firestore** (`persistentLocalCache`, IndexedDB, compartida entre pestañas): la app abre al instante y funciona sin conexión. Sin red, las escrituras no se esperan (su promesa no se resuelve hasta que vuelve la conexión y los botones se quedaban girando): se aplican en local, se envían solas al volver y, si fallan, se avisa. Se muestra «Sin conexión» mientras dura. Al cerrar sesión se borra la copia local y se recarga la app.
+- **Tareas repetidas**: la siguiente tiene id fijo (`<id de la primera>_<fecha>`), así que completar dos veces no crea dos copias. «Deshacer» la borra si aún no se ha tocado.
+- **Si no cargan los datos principales**, se enseña una pantalla de error con «Reintentar» en lugar de la bienvenida (que con los ajustes por defecto podía sobrescribir los reales).
 
 ## Calendario
 
@@ -76,6 +79,10 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
   - Los días son opcionales: sin días, la rutina es una plantilla que se empieza a mano o se arrastra al calendario (panel «Etiquetas y tareas» o botón de calendario de la tarjeta). Con días y hora puede mostrarse como evento recurrente y avisar antes de empezar.
   - Los ciclos siguen aparte (Pomodoro y similares).
   - **Rutinas antiguas**: se convierten al leerlas (`normalizarRutina`): una lista de pasos conserva sus pasos (sin descansos) y sus días; una de estudio pasa a un paso por fase de foco con los descansos de su ciclo; las mensuales quedan sin días. Al guardarlas se reemplaza el documento entero, porque las reglas solo admiten el formato nuevo. Importar una copia antigua también las convierte.
+- **Una sola sesión a la vez**: `iniciarSesion` comprueba en una transacción que no haya otra en marcha (puede haberla empezado otro dispositivo hace un instante) y si la hay avisa con un botón «Ir al contador». Antes la nueva sustituía a la anterior y se perdía su tiempo.
+- **«Saltar» indica qué fase se veía**: si al llegar la orden ya es otra (doble clic, otro dispositivo, avance automático), no se salta nada. En espera, el tiempo no cuenta: la fase siguiente aún no ha empezado.
+- **Guardar la sesión es atómico e idempotente**: registros, seguimiento de la rutina y borrado del contador van en un solo lote, con ids que salen del inicio de la sesión (`sesion_<inicio>` y `sesion_<inicio>_<paso>`). Guardar dos veces sobrescribe en vez de duplicar. El seguimiento de la rutina se apunta al día en que se empezó.
+- **Descartar pide confirmación**, porque el botón está al lado de «Guardar».
 
 ## Notificaciones y recordatorios
 
@@ -85,7 +92,12 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - **Ajuste por dispositivo**: cada dispositivo puede desactivar tipos concretos; la Cloud Function lo respeta al enviar.
 - **Mensajes "solo datos"**: la función envía datos y es el service worker quien muestra la notificación, para controlar icono, vibración y agrupación. En Android las notificaciones llegan al reloj por el espejo de notificaciones.
 - **Sin Blaze**: con la app abierta (incluida una pestaña en segundo plano) los avisos los muestra la propia app; sin pestaña abierta no hay forma de avisar sin servidor.
-- **Avisos con retraso**: si la función no pudo enviar un aviso en 15 minutos, se descarta (no tiene sentido avisar de algo que ya pasó).
+- **Avisos con retraso**: si la función no pudo enviar un aviso en 15 minutos, se descarta (no tiene sentido avisar de algo que ya pasó). La consulta ya no lee los caducados, para que no ocupen la cola.
+- **Zona congelada**: la app no crea, cambia ni borra recordatorios que vencen en menos de 2 minutos (con la hora del servidor). La función los envía una vez por minuto; si la app los borraba al recalcular (por ejemplo, al avanzar de fase), el push no llegaba a los demás dispositivos, y si los reescribía, podía llegar dos veces. El contador solo deja intactos los ya vencidos, porque una pausa sí debe quitar el aviso del final de fase.
+- **Límites en las reglas**: un recordatorio solo puede vencer entre 5 minutos antes y 16 días después de ahora, se crea sin enviar y, una vez enviado, ya no se puede cambiar. Títulos y cuerpos se recortan a lo que admiten las reglas: un título de tarea largo hacía fallar el lote entero.
+- **Como mucho 20 avisos por usuario en cada pasada** de la función; los que sobran se marcan como enviados en bloque. Una persona real no tiene más a la vez, y así una cuenta con miles de avisos no retrasa los de los demás.
+- **Si falla el envío**, el aviso vuelve a la cola para la siguiente pasada. `messaging/invalid-argument` ya no anula el token (lo provoca también un mensaje mal formado) y el mensaje no lleva `fcmOptions.link`, que exige una URL absoluta: el service worker usa la `url` de los datos.
+- **Token de push**: se renueva al abrir la app si ha cambiado. Al cerrar sesión se borra y el dispositivo deja de recibir avisos de la cuenta.
 - **Región de las funciones**: `europe-west1`. Se puede cambiar en `functions/src/index.ts`.
 
 ## Avisos de sobrecarga
@@ -124,6 +136,9 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 ## Seguridad y privacidad
 
 - Reglas estrictas por colección con `hasOnly`, tipos y tamaños máximos; todo lo no listado está prohibido. Probadas con el emulador.
+- **También los mapas internos** (recurrencia y su fin, cambios de una ocurrencia, planificación, repetición, origen de Google, ajustes, avisos de rutina) admiten solo sus campos y tipos. Las reglas no pueden recorrer los elementos de una lista, así que las listas solo tienen tamaño máximo; la importación descarta además los eventos con una recurrencia inutilizable y el calendario se salta un evento con datos rotos en vez de fallar entero.
+- **App Check** (opcional, recomendado al publicar): con `VITE_APPCHECK_SITE_KEY` en el `.env`, Firestore solo acepta peticiones de la web y no de un script con la API key, que es pública. Pasos en SETUP.md.
+- **Confirmaciones peligrosas** (borrar, descartar): el foco empieza en «Cancelar». Los editores avisan antes de cerrarse con cambios sin guardar y no envían dos veces con dos Intro seguidos.
 - `localStorage` solo guarda preferencias de interfaz: vista del calendario, panel de Hoy abierto, copia del tema para evitar el parpadeo y el id aleatorio del dispositivo.
 - **Borrar cuenta** pide volver a iniciar sesión (Firebase lo exige), borra todas las colecciones del usuario y después la cuenta.
 - **Importar** una copia JSON añade/sobrescribe documentos por id y pasa por las mismas reglas de validación.

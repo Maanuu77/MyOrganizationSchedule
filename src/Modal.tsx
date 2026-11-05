@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useDragControls, type PanInfo } from 'motion/r
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { confirmar } from './almacenUI';
 import { t } from './textos';
 import { useEsMovil } from './useMedia';
 
@@ -15,6 +16,11 @@ interface Props {
   children: ReactNode;
   pie?: ReactNode;
   ancho?: 'sm' | 'md' | 'lg' | 'xl';
+  /**
+   * Si hay cambios sin guardar, cerrar con Escape, el fondo, la X o deslizando pide
+   * confirmación antes de descartarlos. Los botones propios del editor no preguntan.
+   */
+  cambiosSinGuardar?: boolean;
 }
 
 const ANCHOS = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
@@ -25,13 +31,39 @@ const pila: string[] = [];
 const SELECTOR_ENFOCABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }: Props) {
+export function Modal({
+  abierto,
+  alCerrar,
+  titulo,
+  children,
+  pie,
+  ancho = 'md',
+  cambiosSinGuardar = false,
+}: Props) {
   const esMovil = useEsMovil();
   const idTitulo = useId();
   const caja = useRef<HTMLDivElement>(null);
   const controlesArrastre = useDragControls();
   const alCerrarRef = useRef(alCerrar);
   alCerrarRef.current = alCerrar;
+  const sinGuardarRef = useRef(cambiosSinGuardar);
+  sinGuardarRef.current = cambiosSinGuardar;
+
+  /** Cierre que no viene de un botón del editor: si hay cambios, primero se pregunta. */
+  const intentarCerrar = async () => {
+    if (sinGuardarRef.current) {
+      const ok = await confirmar({
+        titulo: t.comun.descartarCambiosTitulo,
+        mensaje: t.comun.descartarCambiosTexto,
+        textoConfirmar: t.comun.descartarCambios,
+        peligro: true,
+      });
+      if (!ok) return;
+    }
+    alCerrarRef.current();
+  };
+  const intentarCerrarRef = useRef(intentarCerrar);
+  intentarCerrarRef.current = intentarCerrar;
 
   // Gestión del foco: lo movemos dentro al abrir y lo devolvemos al cerrar
   useEffect(() => {
@@ -48,7 +80,7 @@ export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }
       if (pila[pila.length - 1] !== idTitulo) return;
       if (e.key === 'Escape') {
         e.stopPropagation();
-        alCerrarRef.current();
+        void intentarCerrarRef.current();
       }
       if (e.key === 'Tab' && caja.current) {
         const enfocables = [...caja.current.querySelectorAll<HTMLElement>(SELECTOR_ENFOCABLE)];
@@ -77,7 +109,7 @@ export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }
   }, [abierto, idTitulo]);
 
   const alSoltar = (_: unknown, info: PanInfo) => {
-    if (info.offset.y > 120 || info.velocity.y > 600) alCerrar();
+    if (info.offset.y > 120 || info.velocity.y > 600) void intentarCerrar();
   };
 
   return createPortal(
@@ -89,7 +121,7 @@ export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={alCerrar}
+            onClick={() => void intentarCerrar()}
             aria-hidden
           />
           <motion.div
@@ -127,7 +159,7 @@ export function Modal({ abierto, alCerrar, titulo, children, pie, ancho = 'md' }
               </h2>
               <button
                 type="button"
-                onClick={alCerrar}
+                onClick={() => void intentarCerrar()}
                 className="grid h-9 w-9 place-items-center rounded-full text-texto-suave hover:bg-superficie-2"
                 aria-label={t.comun.cerrar}
               >

@@ -379,35 +379,59 @@ export async function completarTarea(tarea: Tarea, hecha: boolean): Promise<void
       completada: hecha,
       completadaEnMs: hecha ? Date.now() : null,
     });
+    const idSiguiente = hecha && tarea.repeticion ? await crearSiguienteRepeticion(tarea) : null;
     if (hecha) {
       const frases = t.logros.tareaHecha;
       avisar(frases[Math.floor(Math.random() * frases.length)], 'logro', {
         texto: t.comun.deshacer,
         ejecutar: () =>
-          void dbTareas.actualizar(tarea.id, { completada: false, completadaEnMs: null }),
-      });
-    }
-    if (hecha && tarea.repeticion) {
-      const base =
-        tarea.planificacion.tipo === 'dia'
-          ? desdeClaveDia(tarea.planificacion.fecha)
-          : startOfDay(new Date());
-      const fecha = siguienteFecha(tarea, base);
-      const { id: _id, creadoEnMs: _c, actualizadoEnMs: _a, ...resto } = tarea;
-      const desplazamiento = desdeClaveDia(fecha).getTime() - base.getTime();
-      await dbTareas.crear({
-        ...resto,
-        completada: false,
-        completadaEnMs: null,
-        planificacion: { tipo: 'dia', fecha },
-        fechaLimiteMs: tarea.fechaLimiteMs !== null ? tarea.fechaLimiteMs + desplazamiento : null,
-        subtareas: tarea.subtareas.map((s) => ({ ...s, hecha: false })),
+          void deshacerCompletar(tarea.id, idSiguiente).catch((e) => {
+            console.error(e);
+            avisar(t.comun.error, 'error');
+          }),
       });
     }
   } catch (e) {
     console.error(e);
     avisar(t.comun.error, 'error');
   }
+}
+
+/**
+ * Crea la siguiente tarea de una que se repite. Su id es fijo (tarea original + fecha), así
+ * que completarla dos veces —doble toque, dos dispositivos, deshacer y volver a completar—
+ * no crea dos copias. Devuelve el id creado, o null si ya existía.
+ */
+async function crearSiguienteRepeticion(tarea: Tarea): Promise<string | null> {
+  const base =
+    tarea.planificacion.tipo === 'dia'
+      ? desdeClaveDia(tarea.planificacion.fecha)
+      : startOfDay(new Date());
+  const fecha = siguienteFecha(tarea, base);
+  // Todas las repeticiones comparten la raíz del id de la primera tarea
+  const id = `${tarea.id.split('_')[0]}_${fecha}`;
+  if (useDatos.getState().tareas.some((x) => x.id === id)) return null;
+  const { id: _id, creadoEnMs: _c, actualizadoEnMs: _a, ...resto } = tarea;
+  const desplazamiento = desdeClaveDia(fecha).getTime() - base.getTime();
+  await dbTareas.crear({
+    ...resto,
+    id,
+    completada: false,
+    completadaEnMs: null,
+    planificacion: { tipo: 'dia', fecha },
+    fechaLimiteMs: tarea.fechaLimiteMs !== null ? tarea.fechaLimiteMs + desplazamiento : null,
+    subtareas: tarea.subtareas.map((s) => ({ ...s, hecha: false })),
+  });
+  return id;
+}
+
+/** «Deshacer» al completar: reabre la tarea y quita la siguiente repetición si no se ha tocado. */
+async function deshacerCompletar(id: string, idSiguiente: string | null): Promise<void> {
+  await dbTareas.actualizar(id, { completada: false, completadaEnMs: null });
+  const siguiente = idSiguiente
+    ? useDatos.getState().tareas.find((x) => x.id === idSiguiente)
+    : undefined;
+  if (siguiente && !siguiente.completada) await dbTareas.borrar(siguiente.id);
 }
 
 /** Planificación "hoy", "esta semana" o "sin fecha" a partir de un texto corto. */

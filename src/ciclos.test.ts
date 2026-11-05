@@ -108,6 +108,13 @@ describe('cálculos del contador', () => {
     expect(r.fasesTerminadas).toBe(1);
   });
 
+  it('mientras espera no cuenta tiempo: la fase siguiente aún no ha empezado', () => {
+    // El descanso acabó en el minuto 25 y el usuario no pulsa «Seguir» hasta el 40
+    const e = estado({ estado: 'esperando', indiceFase: 1, duracionFaseMs: 5 * MIN });
+    expect(restanteMs(e, 40 * MIN)).toBe(5 * MIN);
+    expect(progresoFase(e, 40 * MIN)).toBe(0);
+  });
+
   it('detecta el final del ciclo', () => {
     const e = estado({});
     const total = e.fases.reduce((s, f) => s + f.duracionMs, 0);

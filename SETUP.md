@@ -133,9 +133,23 @@ Alternativa manual: Google Cloud → **IAM → Cuentas de servicio → Crear**, 
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | igual que en `.env`           |
 | `VITE_FIREBASE_APP_ID`              | igual que en `.env`           |
 | `VITE_FIREBASE_VAPID_KEY`           | igual que en `.env`           |
+| `VITE_APPCHECK_SITE_KEY`            | opcional, ver apartado 11     |
 | `FIREBASE_SERVICE_ACCOUNT`          | JSON de la cuenta de servicio |
 
 3. Opcional: para que el flujo despliegue también reglas, índices y Cloud Functions, crea en **Variables** la variable `DESPLEGAR_BACKEND` con valor `true` (requiere Blaze).
+
+## 11. Proteger la base de datos con App Check (recomendado antes de publicar)
+
+La API key de Firebase es pública: cualquiera puede leerla en la web y usarla desde un script. Las reglas impiden tocar datos de otros usuarios, pero no que alguien llene **su** cuenta de documentos y te suba la factura. App Check hace que Firestore solo acepte peticiones que vienen de tu web.
+
+1. Google Cloud → **Seguridad → reCAPTCHA** → **Crear clave** de tipo _Sitio web_, con el dominio de la app (por ejemplo `tu-proyecto.web.app` y tu dominio propio si lo tienes).
+2. Consola de Firebase → **App Check → Apps** → tu app web → **reCAPTCHA Enterprise** → pega la **clave de sitio** y guarda.
+3. Pon esa misma clave de sitio en `.env` como `VITE_APPCHECK_SITE_KEY` y como secreto de GitHub con el mismo nombre. Despliega.
+4. Deja pasar unos días y mira en **App Check → APIs → Cloud Firestore** que casi todas las peticiones salen como _verificadas_. Entonces pulsa **Aplicar** (_Enforce_). Hasta ese paso no se rechaza nada.
+5. Google Cloud → **APIs y servicios → Credenciales** → la API key de la app web → **Restricciones de aplicaciones: sitios web** con tus dominios.
+6. Google Cloud → **Facturación → Presupuestos y alertas**: crea un presupuesto mensual pequeño con avisos al 50, 90 y 100 %.
+
+Con los emuladores App Check no se activa, aunque la clave esté en el `.env`.
 
 ## Probar en local con emuladores
 

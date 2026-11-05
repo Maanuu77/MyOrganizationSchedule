@@ -130,7 +130,8 @@ export interface EstadoPlano {
 
 /** Tiempo transcurrido de la fase actual, descontando pausas. */
 export function transcurridoMs(e: EstadoPlano, ahoraMs: number): number {
-  if (e.inicioFaseMs === null) return 0;
+  // Esperando a que el usuario pulse «Seguir»: la fase siguiente aún no ha empezado
+  if (e.inicioFaseMs === null || e.estado === 'esperando') return 0;
   const referencia = e.estado === 'pausado' && e.pausadoEnMs !== null ? e.pausadoEnMs : ahoraMs;
   return Math.max(0, referencia - e.inicioFaseMs - e.pausaAcumuladaMs);
 }

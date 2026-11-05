@@ -20,6 +20,8 @@ import {
 } from 'firebase/firestore';
 import { obtenerAuth, obtenerDb } from './firebase';
 import { useDatos } from './almacenDatos';
+import { avisar } from './almacenUI';
+import { t } from './textos';
 import { normalizarRutina } from './rutinas';
 import type {
   Ajustes,
@@ -31,6 +33,7 @@ import type {
   IntegracionGoogle,
   PlantillaCiclo,
   PlantillaSemanal,
+  ReglaRecurrencia,
   RegistroSesion,
   Rutina,
   Tarea,
@@ -104,6 +107,21 @@ export type DatosNuevos<T extends DocumentoBase> = Omit<
   'id' | 'creadoEnMs' | 'actualizadoEnMs'
 > & { id?: string };
 
+/**
+ * Sin conexión, Firestore guarda la escritura en el dispositivo y la envía sola al volver la
+ * red, pero su promesa no se resuelve hasta entonces: si la esperáramos, los botones de
+ * «Guardar» se quedarían girando. Así que sin red no esperamos (y si luego falla, se avisa);
+ * con red sí, para enseñar los errores en el momento.
+ */
+function esperarSiHayRed(escritura: Promise<void>): Promise<void> {
+  if (navigator.onLine) return escritura;
+  escritura.catch((e) => {
+    console.error(e);
+    avisar(t.comun.error, 'error');
+  });
+  return Promise.resolve();
+}
+
 /** Crea un documento con id, creadoEnMs y actualizadoEnMs. Devuelve el documento completo. */
 export async function crear<T extends DocumentoBase>(
   coleccion: NombreColeccion,
@@ -116,7 +134,9 @@ export async function crear<T extends DocumentoBase>(
     creadoEnMs: ahora,
     actualizadoEnMs: ahora,
   } as T;
-  await setDoc(refDoc(coleccion, completo.id), limpiar(sinId(completo)) as DocumentData);
+  await esperarSiHayRed(
+    setDoc(refDoc(coleccion, completo.id), limpiar(sinId(completo)) as DocumentData),
+  );
   return completo;
 }
 
@@ -126,9 +146,11 @@ export async function actualizar<T extends DocumentoBase>(
   id: string,
   cambios: Partial<Omit<T, 'id' | 'creadoEnMs'>>,
 ): Promise<void> {
-  await updateDoc(
-    refDoc(coleccion, id),
-    limpiar({ ...cambios, actualizadoEnMs: Date.now() }) as DocumentData,
+  await esperarSiHayRed(
+    updateDoc(
+      refDoc(coleccion, id),
+      limpiar({ ...cambios, actualizadoEnMs: Date.now() }) as DocumentData,
+    ),
   );
 }
 
@@ -137,14 +159,16 @@ export async function reemplazar<T extends DocumentoBase>(
   coleccion: NombreColeccion,
   datos: T,
 ): Promise<void> {
-  await setDoc(
-    refDoc(coleccion, datos.id),
-    limpiar({ ...sinId(datos), actualizadoEnMs: Date.now() }) as DocumentData,
+  await esperarSiHayRed(
+    setDoc(
+      refDoc(coleccion, datos.id),
+      limpiar({ ...sinId(datos), actualizadoEnMs: Date.now() }) as DocumentData,
+    ),
   );
 }
 
 export async function borrar(coleccion: NombreColeccion, id: string): Promise<void> {
-  await deleteDoc(refDoc(coleccion, id));
+  await esperarSiHayRed(deleteDoc(refDoc(coleccion, id)));
 }
 
 /** Ejecuta muchas escrituras en lotes de 450 (Firestore admite 500 por lote). */
@@ -375,6 +399,21 @@ export function esCopiaValida(datos: unknown): datos is CopiaSeguridad {
   );
 }
 
+/**
+ * Una recurrencia sin `fin` o con una frecuencia desconocida (copia editada a mano o de otra
+ * versión) colgaría el calendario y la rechazarían las reglas: ese evento no se importa.
+ */
+function recurrenciaImportable(valor: unknown): boolean {
+  if (valor == null) return true;
+  const r = valor as Partial<ReglaRecurrencia>;
+  return (
+    ['diaria', 'semanal', 'mensual'].includes(r.frecuencia as string) &&
+    typeof r.intervalo === 'number' &&
+    !!r.fin &&
+    ['nunca', 'fecha', 'veces'].includes(r.fin.tipo)
+  );
+}
+
 export async function importarTodo(copia: CopiaSeguridad): Promise<number> {
   let total = 0;
   for (const nombre of COLECCIONES_USUARIO) {
@@ -382,7 +421,11 @@ export async function importarTodo(copia: CopiaSeguridad): Promise<number> {
     const lista = copia.colecciones[nombre];
     if (!Array.isArray(lista)) continue;
     let validos = lista.filter(
-      (d) => typeof d.id === 'string' && d.id.length > 0 && d.id.length < 200,
+      (d) =>
+        typeof d.id === 'string' &&
+        d.id.length > 0 &&
+        d.id.length < 200 &&
+        (nombre !== COLECCIONES.eventos || recurrenciaImportable(d.recurrencia)),
     );
     // Una copia de antes del cambio de rutinas trae el formato antiguo, que ya no se admite
     if (nombre === COLECCIONES.rutinas) {

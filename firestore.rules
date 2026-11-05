@@ -30,9 +30,6 @@ service cloud.firestore {
     function numeroONulo(v) {
       return v == null || v is number;
     }
-    function mapaONulo(v) {
-      return v == null || v is map;
-    }
     function listaHasta(v, max) {
       return v is list && v.size() <= max;
     }
@@ -44,6 +41,75 @@ service cloud.firestore {
     }
     function marcasDeTiempo(d) {
       return d.creadoEnMs is number && d.actualizadoEnMs is number;
+    }
+    function numeroEntre(v, min, max) {
+      return v is number && v >= min && v <= max;
+    }
+    function franjaHoraria(f) {
+      return f is map && f.keys().hasOnly(['activo', 'inicio', 'fin'])
+        && f.activo is bool && hora(f.inicio) && hora(f.fin);
+    }
+
+    // ---------------------------------------------------------------- mapas compartidos
+    // Las reglas no pueden recorrer los elementos de una lista, pero sí comprobar cada mapa:
+    // así nadie guarda datos con forma rota (que colgarían la app) o con textos enormes.
+    function finRecurrenciaValido(f) {
+      return f is map && (
+        (f.keys().hasOnly(['tipo']) && f.tipo == 'nunca')
+        || (f.keys().hasOnly(['tipo', 'hasta']) && f.tipo == 'fecha' && dia(f.hasta))
+        || (f.keys().hasOnly(['tipo', 'veces']) && f.tipo == 'veces' && numeroEntre(f.veces, 1, 1000)));
+    }
+    function reglaMensualValida(m) {
+      return m is map && (
+        (m.keys().hasOnly(['modo', 'dias']) && m.modo == 'diasMes' && listaHasta(m.dias, 31))
+        || (m.keys().hasOnly(['modo', 'ordinal', 'diaSemana']) && m.modo == 'ordinal'
+            && m.ordinal in [1, 2, 3, 4, -1] && numeroEntre(m.diaSemana, 0, 6)));
+    }
+    function recurrenciaValida(r) {
+      return r is map && r.keys().hasOnly(['frecuencia', 'intervalo', 'diasSemana', 'mensual', 'fin'])
+        && r.frecuencia in ['diaria', 'semanal', 'mensual']
+        && numeroEntre(r.intervalo, 1, 99)
+        && (!('diasSemana' in r) || listaHasta(r.diasSemana, 7))
+        && (!('mensual' in r) || reglaMensualValida(r.mensual))
+        && finRecurrenciaValido(r.fin);
+    }
+    function origenGoogleValido(o) {
+      return o is map && o.keys().hasOnly(['calendarioId', 'eventoId', 'actualizadoMs'])
+        && texto(o.calendarioId, 500) && texto(o.eventoId, 1024) && o.actualizadoMs is number;
+    }
+    function cambiosOcurrenciaValidos(c) {
+      return c is map && c.keys().hasOnly(['inicioMs', 'finMs', 'titulo', 'notas', 'etiquetaId'])
+        && c.get('inicioMs', 0) is number
+        && c.get('finMs', 0) is number
+        && texto(c.get('titulo', ''), 200)
+        && texto(c.get('notas', ''), 5000)
+        && textoONulo(c.get('etiquetaId', null), 128);
+    }
+    function planificacionValida(p) {
+      return p is map && (
+        (p.keys().hasOnly(['tipo']) && p.tipo == 'sinFecha')
+        || (p.keys().hasOnly(['tipo', 'fecha']) && p.tipo == 'dia' && dia(p.fecha))
+        || (p.keys().hasOnly(['tipo', 'semana']) && p.tipo == 'semana' && dia(p.semana)));
+    }
+    function repeticionValida(r) {
+      return r is map && r.keys().hasOnly(['frecuencia', 'intervalo', 'diasSemana'])
+        && r.frecuencia in ['diaria', 'semanal', 'mensual']
+        && numeroEntre(r.intervalo, 1, 99)
+        && (!('diasSemana' in r) || listaHasta(r.diasSemana, 7));
+    }
+    function tiposNotificacionValidos(t) {
+      return t is map
+        && t.keys().hasOnly(['inicioBloque', 'faseTemporizador', 'pasoRutina', 'fechaLimite', 'resumenDiario', 'sobrecarga'])
+        && t.get('inicioBloque', true) is bool && t.get('faseTemporizador', true) is bool
+        && t.get('pasoRutina', true) is bool && t.get('fechaLimite', true) is bool
+        && t.get('resumenDiario', true) is bool && t.get('sobrecarga', true) is bool;
+    }
+    // Hora de un aviso: entre 5 min antes de ahora (desfase de reloj) y 16 días después (se
+    // preparan para los próximos 14). Así nadie llena la cola de envío con avisos atrasados.
+    function horaDeAvisoValida(fireAt) {
+      return fireAt is number
+        && fireAt >= request.time.toMillis() - 5 * 60 * 1000
+        && fireAt <= request.time.toMillis() + 16 * 24 * 60 * 60 * 1000;
     }
 
     // ---------------------------------------------------------------- validaciones por tipo
@@ -59,10 +125,23 @@ service cloud.firestore {
         && d.formato24h is bool
         && texto(d.zonaHoraria, 64)
         && d.duracionPorDefectoMin is number && d.duracionPorDefectoMin > 0 && d.duracionPorDefectoMin <= 1440
-        && d.sueno is map && d.sueno.activo is bool && hora(d.sueno.inicio) && hora(d.sueno.fin)
-        && d.umbrales is map && d.umbrales.size() <= 10
-        && d.temporizador is map && d.temporizador.size() <= 10
-        && d.notificaciones is map && d.notificaciones.size() <= 10 && d.notificaciones.activas is bool
+        && franjaHoraria(d.sueno)
+        && d.umbrales is map
+        && d.umbrales.keys().hasOnly(['focoDiarioMaxHoras', 'sesionesSeguidasMax', 'descansoMinimoMin', 'diasAvisoFechaLimite'])
+        && d.umbrales.get('focoDiarioMaxHoras', 0) is number && d.umbrales.get('sesionesSeguidasMax', 0) is number
+        && d.umbrales.get('descansoMinimoMin', 0) is number && d.umbrales.get('diasAvisoFechaLimite', 0) is number
+        && d.temporizador is map
+        && d.temporizador.keys().hasOnly(['sonido', 'vibracion', 'volumen', 'focoContinuoMaxMin', 'autoAvanzar'])
+        && d.temporizador.get('sonido', true) is bool && d.temporizador.get('vibracion', true) is bool
+        && d.temporizador.get('volumen', 0) is number && d.temporizador.get('focoContinuoMaxMin', 0) is number
+        && d.temporizador.get('autoAvanzar', true) is bool
+        && d.notificaciones is map
+        && d.notificaciones.keys().hasOnly(['activas', 'antelacionMin', 'tipos', 'silencio', 'resumenDiarioHora'])
+        && d.notificaciones.activas is bool
+        && d.notificaciones.get('antelacionMin', 0) is number
+        && tiposNotificacionValidos(d.notificaciones.get('tipos', {}))
+        && (!('silencio' in d.notificaciones) || franjaHoraria(d.notificaciones.silencio))
+        && (!('resumenDiarioHora' in d.notificaciones) || hora(d.notificaciones.resumenDiarioHora))
         && d.onboardingCompletado is bool
         && d.actualizadoEnMs is number;
     }
@@ -93,15 +172,14 @@ service cloud.firestore {
         && textoONulo(d.etiquetaId, 128)
         && textoONulo(d.color, 20)
         && texto(d.notas, 5000)
-        && mapaONulo(d.recurrencia)
-        && (d.recurrencia == null || (d.recurrencia.frecuencia in ['diaria', 'semanal', 'mensual'] && d.recurrencia.intervalo is number))
+        && (d.recurrencia == null || recurrenciaValida(d.recurrencia))
         && textoONulo(d.cicloId, 128)
         && textoONulo(d.tareaId, 128)
         && d.completarTareaAlCompletar is bool
         && textoONulo(d.rutinaId, 128)
         && d.completado is bool
         && textoONulo(d.plantillaId, 128)
-        && mapaONulo(d.origenGoogle)
+        && (d.origenGoogle == null || origenGoogleValido(d.origenGoogle))
         && marcasDeTiempo(d);
     }
 
@@ -111,7 +189,7 @@ service cloud.firestore {
         && d.inicioOriginalMs is number
         && d.cancelada is bool
         && d.completado is bool
-        && d.cambios is map && d.cambios.keys().hasOnly(['inicioMs', 'finMs', 'titulo', 'notas', 'etiquetaId'])
+        && cambiosOcurrenciaValidos(d.cambios)
         && marcasDeTiempo(d);
     }
 
@@ -122,11 +200,11 @@ service cloud.firestore {
         && textoONulo(d.etiquetaId, 128)
         && d.prioridad in ['baja', 'media', 'alta', 'urgente']
         && numeroONulo(d.fechaLimiteMs)
-        && d.planificacion is map && d.planificacion.tipo in ['dia', 'semana', 'sinFecha']
+        && planificacionValida(d.planificacion)
         && numeroONulo(d.estimacionMin)
         && listaHasta(d.subtareas, 100)
         && texto(d.notas, 10000)
-        && mapaONulo(d.repeticion)
+        && (d.repeticion == null || repeticionValida(d.repeticion))
         && d.completada is bool
         && numeroONulo(d.completadaEnMs)
         && d.orden is number
@@ -195,7 +273,8 @@ service cloud.firestore {
         && d.programacion is map && d.programacion.keys().hasOnly(['diasSemana', 'hora'])
         && listaHasta(d.programacion.diasSemana, 7)
         && (d.programacion.hora == null || hora(d.programacion.hora))
-        && d.avisos is map
+        && d.avisos is map && d.avisos.keys().hasOnly(['activo', 'minutosAntes'])
+        && d.avisos.activo is bool && numeroEntre(d.avisos.minutosAntes, 0, 1440)
         && d.mostrarEnCalendario is bool
         && textoONulo(d.eventoCalendarioId, 128)
         && d.archivada is bool
@@ -313,7 +392,13 @@ service cloud.firestore {
       }
       match /reminders/{id} {
         allow read, delete: if esPropietario(uid);
-        allow create, update: if esPropietario(uid) && recordatorioValido(datos(), uid);
+        // Se crean sin enviar y solo se pueden cambiar mientras no se hayan enviado: si un
+        // aviso enviado volviera a «no enviado», llegaría dos veces
+        allow create: if esPropietario(uid) && recordatorioValido(datos(), uid)
+          && datos().enviado == false && horaDeAvisoValida(datos().fireAt);
+        allow update: if esPropietario(uid) && recordatorioValido(datos(), uid)
+          && resource.data.enviado == false && datos().enviado == false
+          && horaDeAvisoValida(datos().fireAt);
       }
       match /devices/{id} {
         allow read, delete: if esPropietario(uid);

@@ -19,6 +19,22 @@ import { rutinaTocaEnDia } from './rutinas';
 export const DIAS_VENTANA = 14;
 const MAXIMO = 400;
 
+/**
+ * Los recordatorios que vencen antes de esto (o ya vencieron) no se crean, cambian ni borran:
+ * la Cloud Function los envía una vez por minuto y podría estar enviándolos. Si los borráramos,
+ * el aviso no llegaría; si los reescribiéramos, podría llegar dos veces.
+ */
+export const MARGEN_CONGELADO_MS = 2 * MS_MINUTO;
+
+/** Longitudes máximas que admiten las reglas de Firestore para un recordatorio. */
+const MAX_TITULO = 300;
+const MAX_CUERPO = 1000;
+
+/** Recorta un texto para que quepa en el límite (con «…» si se corta). */
+export function recortar(texto: string, max: number): string {
+  return texto.length <= max ? texto : `${texto.slice(0, max - 1)}…`;
+}
+
 export type RecordatorioNuevo = Omit<Recordatorio, 'creadoEnMs'>;
 
 interface Entrada {
@@ -64,8 +80,10 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
       tipo,
       refId,
       fireAt,
-      titulo,
-      cuerpo,
+      // Un título de tarea largo más «Mañana vence: » pasaría del límite de las reglas y
+      // haría fallar el lote entero de recordatorios
+      titulo: recortar(titulo, MAX_TITULO),
+      cuerpo: recortar(cuerpo, MAX_CUERPO),
       url,
       enviado: false,
     });
@@ -161,19 +179,26 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
   return lista.sort((a, b) => a.fireAt - b.fireAt).slice(0, MAXIMO);
 }
 
-/** Diferencia entre lo que hay y lo que debería haber. */
+/**
+ * Diferencia entre lo que hay (pendiente de enviar) y lo que debería haber.
+ * `ahoraMs` es la hora del servidor: lo que vence antes de `ahoraMs + MARGEN_CONGELADO_MS`
+ * se deja como está.
+ */
 export function diferenciaRecordatorios(
   existentes: Array<Pick<Recordatorio, 'id' | 'fireAt' | 'titulo' | 'cuerpo' | 'tipo'>>,
   deseados: RecordatorioNuevo[],
+  ahoraMs: number,
 ): { crear: RecordatorioNuevo[]; borrar: string[] } {
+  const congeladoHasta = ahoraMs + MARGEN_CONGELADO_MS;
   const actuales = new Map(existentes.map((r) => [r.id, r]));
   const nuevos = new Map(deseados.map((r) => [r.id, r]));
   const crear = deseados.filter((d) => {
+    if (d.fireAt <= congeladoHasta) return false;
     const a = actuales.get(d.id);
     return !a || a.titulo !== d.titulo || a.cuerpo !== d.cuerpo;
   });
   const borrar = existentes
-    .filter((r) => r.tipo !== 'faseTemporizador' && !nuevos.has(r.id))
+    .filter((r) => r.tipo !== 'faseTemporizador' && !nuevos.has(r.id) && r.fireAt > congeladoHasta)
     .map((r) => r.id);
   return { crear, borrar };
 }

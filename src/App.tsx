@@ -9,6 +9,7 @@ import { useSesion, useSincronizacion } from './useSincronizacion';
 import { useTema } from './useTema';
 import { Diseno } from './Diseno';
 import { PantallaCarga } from './PantallaCarga';
+import { PantallaErrorCarga } from './PantallaErrorCarga';
 import { PantallaConfiguracionPendiente } from './PantallaConfiguracionPendiente';
 import { CapaGlobal } from './CapaGlobal';
 import { LimiteErrores } from './LimiteErrores';
@@ -58,13 +59,15 @@ function AppConFirebase() {
   const cargandoSesion = useDatos((s) => s.cargandoSesion);
   const usuario = useDatos((s) => s.usuario);
   const datosListos = useDatos((s) => s.datosListos);
+  const errorSincronizacion = useDatos((s) => s.errorSincronizacion);
   const onboarding = useDatos((s) => s.ajustes.onboardingCompletado);
   const inicio = useDatos((s) => s.ajustes.pantallaInicio);
 
   let contenido;
   if (cargandoSesion) contenido = <PantallaCarga />;
   else if (!usuario) contenido = <PantallaAcceso />;
-  else if (!datosListos) contenido = <PantallaCarga />;
+  else if (!datosListos)
+    contenido = errorSincronizacion ? <PantallaErrorCarga /> : <PantallaCarga />;
   else if (!onboarding) contenido = <PantallaBienvenida />;
   else {
     contenido = (

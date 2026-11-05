@@ -11,13 +11,16 @@ import {
   signInWithRedirect,
   signOut,
 } from 'firebase/auth';
-import { doc, onSnapshot, where } from 'firebase/firestore';
+import { clearIndexedDbPersistence, doc, onSnapshot, terminate, where } from 'firebase/firestore';
 import { firebaseConfigurado, obtenerAuth, obtenerDb, proveedorGoogle } from './firebase';
 import { useDatos } from './almacenDatos';
 import { COLECCIONES, escuchar, refAjustes, refDoc, registrarPerfil } from './datos';
 import { completarAjustes } from './ajustesPorDefecto';
 import { zonaDelDispositivo } from './fechas';
 import { normalizarRutina } from './rutinas';
+import { darDeBajaEsteDispositivo } from './useNotificaciones';
+import { avisar } from './almacenUI';
+import { t } from './textos';
 import type { Ajustes, EstadoContador, IntegracionGoogle, PlantillaCiclo } from './tipos';
 
 export function useSesion(): void {
@@ -79,7 +82,18 @@ export async function entrarConGoogle(): Promise<void> {
 }
 
 export async function cerrarSesion(): Promise<void> {
+  // Primero, que este navegador deje de recibir los avisos de la cuenta
+  await darDeBajaEsteDispositivo();
   await signOut(obtenerAuth());
+  // Y que no quede la copia local de los datos (importante en un ordenador compartido).
+  // Para borrarla hay que cerrar Firestore, así que después se recarga la app.
+  try {
+    await terminate(obtenerDb());
+    await clearIndexedDbPersistence(obtenerDb());
+  } catch (e) {
+    console.warn('No se pudo borrar la copia local de los datos', e);
+  }
+  window.location.reload();
 }
 
 /** Ordena por fecha de creación (las listas de Firestore llegan ordenadas por id). */
@@ -104,7 +118,11 @@ export function useSincronizacion(): void {
     };
     const alFallar = (error: Error) => {
       console.error('Error de sincronización', error);
-      poner({ errorSincronizacion: error.message, datosListos: true });
+      // No marcamos los datos como listos: con los ajustes por defecto se vería la bienvenida
+      // y se podrían sobrescribir los ajustes reales. Mientras faltan los datos principales,
+      // App enseña una pantalla de error con «Reintentar»; si ya estaban, basta con avisar.
+      poner({ errorSincronizacion: error.message });
+      if (pendientes.size === 0) avisar(t.app.errorSincronizacion, 'error');
     };
     // Las rutinas antiguas de estudio se convierten con su ciclo: por eso se recalculan
     // cuando llegan las rutinas y también cuando llegan los ciclos.
@@ -222,6 +240,7 @@ export function useSincronizacion(): void {
           poner({
             contador:
               (snap.data({ serverTimestamps: 'estimate' }) as EstadoContador | undefined) ?? null,
+            contadorCargado: true,
           }),
         alFallar,
       ),

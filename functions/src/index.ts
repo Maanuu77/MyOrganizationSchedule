@@ -36,12 +36,21 @@ interface Dispositivo {
   tiposDesactivados?: string[];
 }
 
-/** Errores de FCM que indican que el token ya no sirve (app desinstalada, permiso retirado…). */
+/**
+ * Errores de FCM que indican que el token ya no sirve (app desinstalada, permiso retirado…).
+ * `messaging/invalid-argument` NO está: lo provoca también un mensaje mal formado, y
+ * borraríamos tokens que funcionan.
+ */
 const ERRORES_TOKEN = new Set([
   'messaging/registration-token-not-registered',
   'messaging/invalid-registration-token',
-  'messaging/invalid-argument',
 ]);
+
+/**
+ * Avisos de un mismo usuario que se envían como mucho en cada pasada. Una persona real no
+ * tiene más a la vez; si alguien crea miles, el resto se descarta y no retrasa a los demás.
+ */
+const MAX_POR_USUARIO = 20;
 
 export const enviarRecordatorios = onSchedule(
   {
@@ -53,9 +62,12 @@ export const enviarRecordatorios = onSchedule(
   },
   async () => {
     const ahora = Date.now();
+    // Solo los que vencen ahora y no llevan más de 15 min de retraso: los más viejos ya no se
+    // enviarían y no deben ocupar la cola (los borra limpiarRecordatorios)
     const pendientes = await db
       .collectionGroup('reminders')
       .where('enviado', '==', false)
+      .where('fireAt', '>=', ahora - RETRASO_MAXIMO_MS)
       .where('fireAt', '<=', ahora)
       .orderBy('fireAt')
       .limit(500)
@@ -72,7 +84,21 @@ export const enviarRecordatorios = onSchedule(
     }
 
     let enviados = 0;
-    for (const [uid, docs] of porUsuario) {
+    let descartados = 0;
+    let fallidos = 0;
+    for (const [uid, todos] of porUsuario) {
+      const docs = todos.slice(0, MAX_POR_USUARIO);
+      const sobrantes = todos.slice(MAX_POR_USUARIO);
+      if (sobrantes.length) {
+        // Más avisos a la vez de los que tiene una persona: los marcamos como enviados sin
+        // mandarlos para que dejen sitio en la cola a los demás usuarios
+        const lote = db.batch();
+        sobrantes.forEach((d) => lote.update(d.ref, { enviado: true }));
+        await lote.commit();
+        descartados += sobrantes.length;
+        logger.warn(`Usuario ${uid}: ${sobrantes.length} avisos descartados por exceso`);
+      }
+
       const dispositivos = await db.collection(`users/${uid}/devices`).get();
       const conToken = dispositivos.docs
         .map((d) => ({ ref: d.ref, ...(d.data() as Dispositivo) }))
@@ -81,43 +107,54 @@ export const enviarRecordatorios = onSchedule(
       for (const doc of docs) {
         const r = doc.data() as Recordatorio;
         // "Reservamos" el recordatorio: si otra ejecución ya lo cambió, esta actualización falla
+        let reserva;
         try {
-          await doc.ref.update({ enviado: true }, { lastUpdateTime: doc.updateTime });
+          reserva = await doc.ref.update({ enviado: true }, { lastUpdateTime: doc.updateTime });
         } catch {
           continue;
         }
-        if (ahora - r.fireAt > RETRASO_MAXIMO_MS) continue;
         const destinos = conToken.filter((d) => !(d.tiposDesactivados ?? []).includes(r.tipo));
         if (!destinos.length) continue;
 
-        const respuesta = await getMessaging().sendEachForMulticast({
-          tokens: destinos.map((d) => d.token as string),
-          // Mensaje "solo datos": el service worker de la app decide cómo mostrarlo
-          data: {
-            id: doc.id,
-            tipo: r.tipo,
-            titulo: r.titulo,
-            cuerpo: r.cuerpo,
-            url: r.url || '/',
-            // Los avisos del contador comparten etiqueta para que el nuevo sustituya al anterior
-            etiqueta: r.tipo === 'faseTemporizador' ? 'mos-contador' : doc.id,
-          },
-          webpush: { headers: { Urgency: 'high', TTL: '900' }, fcmOptions: { link: r.url || '/' } },
-        });
-        enviados += respuesta.successCount;
+        try {
+          const respuesta = await getMessaging().sendEachForMulticast({
+            tokens: destinos.map((d) => d.token as string),
+            // Mensaje "solo datos": el service worker de la app decide cómo mostrarlo y adónde
+            // lleva al tocarlo (con `url`). Sin fcmOptions.link: FCM exige ahí una URL absoluta.
+            data: {
+              id: doc.id,
+              tipo: r.tipo,
+              titulo: r.titulo,
+              cuerpo: r.cuerpo,
+              url: r.url || '/',
+              // Los avisos del contador comparten etiqueta para que el nuevo sustituya al anterior
+              etiqueta: r.tipo === 'faseTemporizador' ? 'mos-contador' : doc.id,
+            },
+            webpush: { headers: { Urgency: 'high', TTL: '900' } },
+          });
+          enviados += respuesta.successCount;
 
-        // Limpiamos los tokens que ya no son válidos
-        await Promise.all(
-          respuesta.responses.map((res, i) =>
-            !res.success && res.error && ERRORES_TOKEN.has(res.error.code)
-              ? destinos[i].ref.update({ token: null })
-              : null,
-          ),
-        );
+          // Limpiamos los tokens que ya no son válidos
+          await Promise.all(
+            respuesta.responses.map((res, i) =>
+              !res.success && res.error && ERRORES_TOKEN.has(res.error.code)
+                ? destinos[i].ref.update({ token: null })
+                : null,
+            ),
+          );
+        } catch (e) {
+          // No se pudo enviar (FCM caído, sin red…): lo devolvemos a la cola para la siguiente
+          // pasada, salvo que alguien lo haya cambiado mientras tanto
+          fallidos++;
+          logger.error(`No se pudo enviar el aviso ${doc.ref.path}`, e);
+          await doc.ref
+            .update({ enviado: false }, { lastUpdateTime: reserva.writeTime })
+            .catch(() => undefined);
+        }
       }
     }
     logger.info(
-      `Recordatorios procesados: ${pendientes.size}, notificaciones enviadas: ${enviados}`,
+      `Recordatorios procesados: ${pendientes.size}, notificaciones enviadas: ${enviados}, descartados: ${descartados}, fallidos: ${fallidos}`,
     );
   },
 );
