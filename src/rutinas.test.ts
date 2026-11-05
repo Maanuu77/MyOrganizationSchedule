@@ -11,7 +11,7 @@ import {
 } from './rutinas';
 import { colocarBloques } from './distribucion';
 import { ocurrenciaPrueba as oc } from './ayudaPruebas';
-import { diferenciaRecordatorios, generarRecordatorios } from './recordatorios';
+import { diferenciaRecordatorios, generarRecordatorios, retrasoDe } from './recordatorios';
 import { ajustesPrueba } from './ayudaPruebas';
 
 /** Rutina de ejemplo: Teoría 50 min, descanso 10, Psicotécnicos 20 min. */
@@ -332,6 +332,24 @@ describe('recordatorios', () => {
     );
     expect(borrar).toEqual([]);
     expect(crear).toEqual([]);
+  });
+
+  it('reparte el resumen diario unos minutos según el usuario', () => {
+    for (const uid of ['ana', 'beto', 'carla', 'dani']) {
+      expect(retrasoDe(uid)).toBe(retrasoDe(uid));
+      expect(retrasoDe(uid)).toBeGreaterThanOrEqual(0);
+      expect(retrasoDe(uid)).toBeLessThanOrEqual(4 * 60_000);
+    }
+    const resumen = generarRecordatorios({
+      uid: 'ana',
+      ajustes,
+      ocurrencias: [oc('clase', new Date(2026, 2, 11, 10), 60)],
+      tareas: [],
+      rutinas: [],
+      avisos: [],
+      ahoraMs: ahora,
+    }).find((r) => r.tipo === 'resumenDiario');
+    expect(resumen?.fireAt).toBe(new Date(2026, 2, 11, 8).getTime() + retrasoDe('ana'));
   });
 
   it('recorta los títulos largos para que las reglas no rechacen el lote', () => {

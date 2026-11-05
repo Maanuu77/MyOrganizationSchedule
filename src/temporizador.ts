@@ -428,8 +428,13 @@ export async function sincronizarRecordatoriosContador(
 ): Promise<void> {
   if (!forzar && e && e.actualizadoPor !== idDispositivo()) return;
   const uid = uidActual();
+  // Solo los pendientes: los ya enviados no se tocan y se acumularían hasta la limpieza diaria
   const existentes = await getDocs(
-    query(refColeccion(COLECCIONES.recordatorios), where('tipo', '==', 'faseTemporizador')),
+    query(
+      refColeccion(COLECCIONES.recordatorios),
+      where('tipo', '==', 'faseTemporizador'),
+      where('enviado', '==', false),
+    ),
   );
   const nuevos: Recordatorio[] = [];
   const plano = aPlano(e);
@@ -466,13 +471,20 @@ export async function sincronizarRecordatoriosContador(
   const ahora = ahoraServidor();
   const futuros = nuevos.filter((n) => n.fireAt > ahora);
   const idsNuevos = new Set(futuros.map((n) => n.id));
+  // Solo se escribe lo que cambia: el id lleva la hora de aviso, así que si ya existe con el
+  // mismo texto no hay nada que hacer. Antes se reescribían todas las fases que quedaban en
+  // cada pausa o salto (unas 800 escrituras en una rutina de 20 pasos).
+  const actuales = new Map(existentes.docs.map((d) => [d.id, d.data() as Recordatorio]));
+  const cambiados = futuros.filter((n) => {
+    const a = actuales.get(n.id);
+    return !a || a.titulo !== n.titulo || a.cuerpo !== n.cuerpo;
+  });
+  const sobran = existentes.docs.filter(
+    (d) => !idsNuevos.has(d.id) && (d.data().fireAt as number) > ahora,
+  );
+  if (!cambiados.length && !sobran.length) return;
   await enLotes(
-    [
-      ...existentes.docs
-        .filter((d) => !idsNuevos.has(d.id) && (d.data().fireAt as number) > ahora)
-        .map((d) => ({ borrar: d.id })),
-      ...futuros.map((n) => ({ crear: n })),
-    ],
+    [...sobran.map((d) => ({ borrar: d.id })), ...cambiados.map((n) => ({ crear: n }))],
     (lote, op) => {
       if ('borrar' in op) lote.delete(refDoc(COLECCIONES.recordatorios, op.borrar));
       else {

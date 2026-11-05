@@ -16,12 +16,21 @@ import { firebaseConfigurado, obtenerAuth, obtenerDb, proveedorGoogle } from './
 import { useDatos } from './almacenDatos';
 import { COLECCIONES, escuchar, refAjustes, refDoc, registrarPerfil } from './datos';
 import { completarAjustes } from './ajustesPorDefecto';
-import { zonaDelDispositivo } from './fechas';
+import { claveDia, zonaDelDispositivo } from './fechas';
 import { normalizarRutina } from './rutinas';
+import { inicioVentana, ponerVentana, reiniciarHistorico } from './historico';
 import { darDeBajaEsteDispositivo } from './useNotificaciones';
 import { avisar } from './almacenUI';
 import { t } from './textos';
-import type { Ajustes, EstadoContador, IntegracionGoogle, PlantillaCiclo } from './tipos';
+import type {
+  Ajustes,
+  EjecucionRutina,
+  EstadoContador,
+  IntegracionGoogle,
+  PlantillaCiclo,
+  RegistroSesion,
+  Tarea,
+} from './tipos';
 
 export function useSesion(): void {
   useEffect(() => {
@@ -102,16 +111,22 @@ function ordenarPorCreacion<T extends { id: string }>(lista: T[]): T[] {
   return [...lista].sort((a, b) => fecha(a) - fecha(b));
 }
 
-/** Registros de sesión que se cargan: los de los dos últimos años (para comparar año con año). */
-const DIAS_REGISTROS = 800;
-
 export function useSincronizacion(): void {
   const uid = useDatos((s) => s.usuario?.uid);
 
   useEffect(() => {
     if (!uid) return;
     const { poner } = useDatos.getState();
-    const pendientes = new Set<string>(['ajustes', 'etiquetas', 'eventos', 'tareas']);
+    // Registros, tareas completadas y ejecuciones: solo los últimos 90 días (historico.ts)
+    reiniciarHistorico();
+    const ventana = inicioVentana();
+    const pendientes = new Set<string>([
+      'ajustes',
+      'etiquetas',
+      'eventos',
+      'tareasPendientes',
+      'tareasHechas',
+    ]);
     const marcarListo = (nombre: string) => {
       if (!pendientes.delete(nombre)) return;
       if (pendientes.size === 0) poner({ datosListos: true });
@@ -126,6 +141,16 @@ export function useSincronizacion(): void {
     };
     // Las rutinas antiguas de estudio se convierten con su ciclo: por eso se recalculan
     // cuando llegan las rutinas y también cuando llegan los ciclos.
+    // Las tareas llegan por dos oyentes: las pendientes (todas) y las completadas en la ventana
+    let tareasPendientes: Tarea[] = [];
+    let tareasHechas: Tarea[] = [];
+    const ponerTareas = () => {
+      const pendientesIds = new Set(tareasPendientes.map((x) => x.id));
+      ponerVentana('tareas', [
+        ...tareasPendientes,
+        ...tareasHechas.filter((x) => !pendientesIds.has(x.id)),
+      ]);
+    };
     let ciclosLeidos: PlantillaCiclo[] = [];
     let rutinasLeidas: { id: string }[] = [];
     const ponerRutinas = () =>
@@ -167,14 +192,27 @@ export function useSincronizacion(): void {
         },
         alFallar,
       ),
-      escuchar(
+      escuchar<Tarea>(
         uid,
         COLECCIONES.tareas,
         (tareas) => {
-          poner({ tareas: tareas as never });
-          marcarListo('tareas');
+          tareasPendientes = tareas;
+          ponerTareas();
+          marcarListo('tareasPendientes');
         },
         alFallar,
+        where('completada', '==', false),
+      ),
+      escuchar<Tarea>(
+        uid,
+        COLECCIONES.tareas,
+        (tareas) => {
+          tareasHechas = tareas;
+          ponerTareas();
+          marcarListo('tareasHechas');
+        },
+        alFallar,
+        where('completadaEnMs', '>=', ventana),
       ),
       escuchar(
         uid,
@@ -201,11 +239,12 @@ export function useSincronizacion(): void {
         },
         alFallar,
       ),
-      escuchar(
+      escuchar<EjecucionRutina>(
         uid,
         COLECCIONES.ejecuciones,
-        (ejecuciones) => poner({ ejecuciones: ejecuciones as never }),
+        (ejecuciones) => ponerVentana('ejecuciones', ejecuciones),
         alFallar,
+        where('fecha', '>=', claveDia(ventana)),
       ),
       escuchar(
         uid,
@@ -219,12 +258,12 @@ export function useSincronizacion(): void {
         (dispositivos) => poner({ dispositivos: dispositivos as never }),
         alFallar,
       ),
-      escuchar(
+      escuchar<RegistroSesion>(
         uid,
         COLECCIONES.registros,
-        (registros) => poner({ registros: registros as never }),
+        (registros) => ponerVentana('registros', registros),
         alFallar,
-        where('inicioMs', '>=', Date.now() - DIAS_REGISTROS * 86_400_000),
+        where('inicioMs', '>=', ventana),
       ),
       onSnapshot(
         doc(obtenerDb(), 'users', uid, COLECCIONES.integraciones, 'googleCalendar'),

@@ -52,6 +52,30 @@ const ERRORES_TOKEN = new Set([
  */
 const MAX_POR_USUARIO = 20;
 
+/** Usuarios que se atienden a la vez en cada pasada. */
+const USUARIOS_A_LA_VEZ = 10;
+
+/** Ejecuta `fn` sobre cada elemento con como mucho `limite` en marcha a la vez. */
+async function enParalelo<T>(
+  elementos: T[],
+  limite: number,
+  fn: (elemento: T) => Promise<void>,
+): Promise<void> {
+  let siguiente = 0;
+  const trabajador = async () => {
+    while (siguiente < elementos.length) {
+      const elemento = elementos[siguiente++];
+      try {
+        await fn(elemento);
+      } catch (e) {
+        // Un usuario con un problema no debe dejar sin avisos a los demás
+        logger.error('Error al enviar los avisos de un usuario', e);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limite, elementos.length) }, trabajador));
+}
+
 export const enviarRecordatorios = onSchedule(
   {
     schedule: 'every 1 minutes',
@@ -86,7 +110,9 @@ export const enviarRecordatorios = onSchedule(
     let enviados = 0;
     let descartados = 0;
     let fallidos = 0;
-    for (const [uid, todos] of porUsuario) {
+    // Cada usuario es independiente: se atienden varios a la vez. En serie, con muchos usuarios
+    // a la misma hora (el resumen de las 8:00) la cola tardaba más de 15 min y se descartaban
+    await enParalelo([...porUsuario], USUARIOS_A_LA_VEZ, async ([uid, todos]) => {
       const docs = todos.slice(0, MAX_POR_USUARIO);
       const sobrantes = todos.slice(MAX_POR_USUARIO);
       if (sobrantes.length) {
@@ -152,7 +178,7 @@ export const enviarRecordatorios = onSchedule(
             .catch(() => undefined);
         }
       }
-    }
+    });
     logger.info(
       `Recordatorios procesados: ${pendientes.size}, notificaciones enviadas: ${enviados}, descartados: ${descartados}, fallidos: ${fallidos}`,
     );

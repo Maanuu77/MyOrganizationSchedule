@@ -90,6 +90,8 @@ npx firebase deploy --only functions
 
 La primera vez Firebase activa automáticamente las APIs necesarias (Cloud Functions, Cloud Build, Cloud Scheduler, Artifact Registry). Si pregunta por la política de limpieza de imágenes, acepta el valor por defecto.
 
+`firestore.indexes.json` también quita los índices de campos que nunca se consultan (notas, fases, pasos…): ocupan espacio y hacen más lentas las escrituras. Si al desplegar los índices pregunta si borrar índices que no están en el archivo, responde que sí.
+
 Para desplegar la web a mano:
 
 ```bash

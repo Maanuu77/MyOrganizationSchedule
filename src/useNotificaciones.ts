@@ -2,7 +2,6 @@
 // los avisos cuando la app está abierta (en primer plano el navegador no los muestra solo).
 
 import { useEffect } from 'react';
-import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 import { claveVapid, obtenerApp } from './firebase';
 import { COLECCIONES, actualizarAjustes, refDoc } from './datos';
 import { setDoc, updateDoc } from 'firebase/firestore';
@@ -39,9 +38,17 @@ export async function activarNotificaciones(): Promise<ResultadoActivacion> {
   }
 }
 
+/**
+ * La parte de Firebase que gestiona el push solo se descarga cuando hace falta (al activar
+ * los avisos o con ellos ya activos), no en la primera carga de la app.
+ */
+const mensajeria = () => import('firebase/messaging');
+
 /** Token de push (FCM) de este navegador, o null si no hay clave VAPID o no se admite push. */
 async function obtenerToken(): Promise<string | null> {
-  if (!claveVapid || !(await isSupported())) return null;
+  if (!claveVapid) return null;
+  const { getMessaging, getToken, isSupported } = await mensajeria();
+  if (!(await isSupported())) return null;
   const registro = await obtenerRegistroSW();
   return getToken(getMessaging(obtenerApp()), {
     vapidKey: claveVapid,
@@ -55,6 +62,7 @@ async function obtenerToken(): Promise<string | null> {
  */
 export async function darDeBajaEsteDispositivo(): Promise<void> {
   try {
+    const { deleteToken, getMessaging, isSupported } = await mensajeria();
     if (await isSupported()) await deleteToken(getMessaging(obtenerApp()));
   } catch (e) {
     // Sin token o sin permiso: no hay nada que borrar en FCM
@@ -125,16 +133,20 @@ export function useAvisosEnPrimerPlano(): void {
   useEffect(() => {
     if (!uid || !activas) return;
     let baja: (() => void) | undefined;
-    isSupported()
-      .then((ok) => {
-        if (!ok) return;
+    let cancelado = false;
+    mensajeria()
+      .then(async ({ getMessaging, isSupported, onMessage }) => {
+        if (!(await isSupported()) || cancelado) return;
         baja = onMessage(getMessaging(obtenerApp()), (mensaje) => {
           const d = mensaje.data ?? {};
           mostrar(d.id ?? String(Date.now()), d.titulo ?? '', d.cuerpo ?? '', d.url ?? '/', d.tipo);
         });
       })
       .catch(() => undefined);
-    return () => baja?.();
+    return () => {
+      cancelado = true;
+      baja?.();
+    };
   }, [uid, activas]);
 
   // Avisos locales: funcionan aunque no haya Cloud Functions (plan gratuito)

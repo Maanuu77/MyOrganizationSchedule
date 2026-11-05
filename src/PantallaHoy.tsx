@@ -11,7 +11,8 @@ import { useReloj } from './useReloj';
 import { AnilloProgreso } from './AnilloProgreso';
 import { NumeroAnimado } from './NumeroAnimado';
 import { AgendaDelDia, AhoraYDespues, RutinasDelDia, TareasDelDia, useHoy } from './SeccionesHoy';
-import { rachas, registrosEn } from './estadisticas';
+import { registrosEn } from './estadisticas';
+import { useRachaActual } from './historico';
 import { claveDia, capitalizar, duracionTexto, formatear, MS_HORA } from './fechas';
 import { useEstadoContador } from './useTemporizador';
 import { useEsMovil } from './useMedia';
@@ -32,6 +33,9 @@ export function PantallaHoy() {
   const avisos = useAvisosCarga();
   const { activo } = useEstadoContador();
   const esMovil = useEsMovil();
+  // La racha puede ser más larga que los 90 días que se cargan al abrir: si llega hasta ahí,
+  // se carga más historial
+  const racha = useRachaActual(hoy);
   const avisosHoy = avisos.filter((a) => a.fecha === claveDia(hoy));
 
   const resumen = useMemo(() => {
@@ -52,9 +56,9 @@ export function PantallaHoy() {
       totalTareas: deHoy.length,
       cumplidos,
       totalBloques: bloques.length,
-      racha: rachas(registros, hoy).actual,
+      racha,
     };
-  }, [ocurrencias, registros, tareas, desde, hasta, hoy]);
+  }, [ocurrencias, registros, tareas, desde, hasta, hoy, racha]);
 
   const nombre = usuario?.nombre?.split(' ')[0] ?? '';
   const tarjetas = [
