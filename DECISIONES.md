@@ -26,12 +26,15 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - **Colecciones añadidas** a las de la especificación: `weekTemplates` (plantillas semanales). El perfil va en el documento raíz `users/{uid}` y los ajustes en `users/{uid}/settings/general`. La integración de Google en `integrations/googleCalendar`.
 - **Excepciones de recurrencia** con id determinista `eventoId_inicioOriginal`, así cada ocurrencia tiene como mucho una excepción. Las excepciones guardan cancelación, cambios (hora, título, notas, etiqueta) y si se ha completado esa ocurrencia.
 - **Recurrencia propia** (`recurrencia.ts`) en lugar de RRULE: más fácil de entender y suficiente para lo pedido (diaria, semanal con días, mensual por días del mes o "primer/último lunes", intervalo y fin por fecha o número de veces).
-- **"Este y los siguientes"** corta la serie original el día anterior y crea una serie nueva desde esa ocurrencia (reparte el número de veces si la serie tenía límite).
+- **"Este y los siguientes"** corta la serie original el día anterior y crea una serie nueva desde esa ocurrencia (reparte el número de veces si la serie tenía límite). Todo va en un solo lote y las excepciones de las ocurrencias que pasan a la serie nueva se van con ella: lo quitado o hecho después del corte no reaparece.
+- **Mover una serie entera** («todos») mueve también sus excepciones a su nuevo inicio original, y si cambia de día, los días de la regla se mueven igual (una serie de los lunes arrastrada al martes pasa a ser de los martes). Se mueve «como el reloj»: mismos días de calendario y minutos, no milisegundos fijos, para que la hora no se descoloque en los días de cambio de hora. Lo mismo al cambiar la hora de una rutina que se muestra en el calendario.
+- **Una ocurrencia movida a más de un mes** de su fecha original se encuentra desde su excepción (la expansión normal solo mira un mes alrededor).
 - **Si un cambio no cabe en una excepción** (cambiar el tipo, la regla, el ciclo…), no se ofrece "solo este": solo "este y siguientes" o "todos".
 - **Tareas repetidas**: al completar una, se crea la siguiente con la fecha que toque (como hacen la mayoría de gestores de tareas), en vez de mantener una serie infinita.
 - **Etiquetas borradas**: los bloques, tareas y registros que las usaban conservan el id, pero se muestran "sin etiqueta". Archivar es la opción recomendada.
 - **Los datos se cargan enteros en memoria** (eventos, tareas, rutinas…) para uso personal; los registros de sesión, solo de los últimos 800 días (suficiente para comparar un año con el anterior).
 - **Copia local de Firestore** (`persistentLocalCache`, IndexedDB, compartida entre pestañas): la app abre al instante y funciona sin conexión. Sin red, las escrituras no se esperan (su promesa no se resuelve hasta que vuelve la conexión y los botones se quedaban girando): se aplican en local, se envían solas al volver y, si fallan, se avisa. Se muestra «Sin conexión» mientras dura. Al cerrar sesión se borra la copia local y se recarga la app.
+- **Tareas repetidas mensuales**: guardan el día ancla (`repeticion.diaMes`): la del día 31 pasa al 28 de febrero y vuelve al 31 en marzo. A diferencia de los eventos, que se saltan los meses que no tienen ese día, una tarea se pasa al último día del mes. Las semanales respetan si la semana empieza en lunes o en domingo.
 - **Tareas repetidas**: la siguiente tiene id fijo (`<id de la primera>_<fecha>`), así que completar dos veces no crea dos copias. «Deshacer» la borra si aún no se ha tocado.
 - **Si no cargan los datos principales**, se enseña una pantalla de error con «Reintentar» en lugar de la bienvenida (que con los ajustes por defecto podía sobrescribir los reales).
 
@@ -46,6 +49,9 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - **Plantilla semanal**: "aplicar a las próximas N semanas" empieza en la semana actual. Los bloques creados llevan `plantillaId`, lo que permite "Quitar bloques aplicados" (solo los futuros).
 - **Rutinas en el calendario**: si una rutina tiene hora y "Mostrar en el calendario", la app mantiene un evento recurrente de tipo "rutina" sincronizado con su programación.
 - **Pasos de arrastre**: 15 minutos.
+- **Días de cambio de hora** (último domingo de marzo, 23 h; de octubre, 25 h): las filas de la rejilla son la hora del reloj. Para pasar de una fila a un instante y al revés se usan `instanteEnDia` y `minutoEnDia`, y el fin del día es `finDeDia` (el día siguiente a las 00:00), nunca «+ 24 h». Así un bloque de las 23:30 del 25 de octubre sale en su día y tocar la fila de las 10:00 crea el bloque a las 10:00.
+- **Bloques de varios días**: salen en todos los días que ocupan (cabecera de la semana y vista Mes). El editor solo tiene una fecha: si no se tocan fecha ni horas, el bloque conserva su inicio y su fin; si es de todo el día, conserva cuántos días dura.
+- **Plantilla semanal**: cada bloque aplicado tiene id fijo (plantilla + bloque + día), así que aplicarla dos veces no duplica, y no se crean bloques en los días ya pasados de la semana. Los aplicados antes de este cambio tienen ids aleatorios y no se reconocen.
 
 ### Calendario en el móvil
 
@@ -118,9 +124,12 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 
 - **Alcance**: importación de un calendario elegido y exportación de los bloques a otro calendario elegido, en una ventana de 30 días atrás y 90 adelante, con el botón **Sincronizar ahora**.
 - **Permisos**: `calendar.events` (pedido) más `calendar.calendarlist.readonly` para poder listar los calendarios y elegirlos.
-- **Sin duplicados**: los importados tienen id de documento determinista (`gcal-…`) y guardan `origenGoogle`; los exportados llevan propiedades extendidas privadas `mosApp=1` y `mosId=<ocurrencia>`. Las ocurrencias de eventos recurrentes se exportan como eventos sueltos.
+- **Sin duplicados**: los importados tienen id de documento determinista (`gcal-…`) y guardan `origenGoogle`; los exportados llevan propiedades extendidas privadas `mosApp=1` y `mosId`. Las ocurrencias de eventos recurrentes se exportan como eventos sueltos con `mosId` = id de la ocurrencia; los eventos sueltos usan el id del evento, para que moverlos no los borre y recree en Google. Si en Google hay dos con el mismo `mosId` (dos pestañas sincronizando a la vez), se borra el sobrante.
+- **Límite de 800 ocurrencias** exportadas por sincronización: las que quedan fuera no se escriben, pero tampoco se borran de Google.
+- **Errores por evento**: un evento que falla (por ejemplo, un título de más de 200 caracteres, que ahora se recorta) no corta la sincronización de los demás; al final se avisa de cuántos fallaron.
+- **Notas**: también se sincronizan los cambios que solo tocan las notas.
 - **Conflictos**: gana el último cambio comparando la fecha de actualización de cada lado. Si cambias en Google un evento exportado, el cambio vuelve a la app (como excepción si es recurrente).
-- **Borrados**: lo borrado en un lado se borra en el otro dentro de la ventana sincronizada.
+- **Borrados**: lo borrado en un lado se borra en el otro dentro de la ventana sincronizada. Un evento importado que se borra en la app se apunta en `integrations/googleCalendar.borradosEnApp`: la siguiente sincronización lo borra en Google y, mientras siga allí (calendario de solo lectura), no lo vuelve a importar.
 - **Sin sincronización automática en segundo plano**: en el navegador Firebase solo entrega un token de acceso de 1 hora y no hay token de refresco. Hacerlo automático requeriría un flujo OAuth en servidor con token de refresco guardado de forma segura y una función programada; queda como mejora futura. Cuando el token caduca, la app pide volver a conectar.
 
 ## Diseño

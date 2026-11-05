@@ -2,18 +2,35 @@
 // Aquí viven las reglas de producto: pedir confirmación al pisar un bloque protegido,
 // preguntar "¿solo este / este y siguientes / todos?" en los eventos que se repiten, etc.
 
-import { addDays, addMonths, startOfDay } from 'date-fns';
+import {
+  addDays,
+  addMonths,
+  differenceInCalendarDays,
+  getDaysInMonth,
+  setDate,
+  startOfDay,
+  startOfMonth,
+} from 'date-fns';
 import { useDatos } from './almacenDatos';
 import { avisar, confirmar, useUI, type AlcanceCambio } from './almacenUI';
 import {
+  apuntarBorradoEnGoogle,
   eventos as dbEventos,
   excepciones as dbExcepciones,
+  nuevoId,
   tareas as dbTareas,
   type DatosNuevos,
 } from './datos';
-import { expandirOcurrencias, partirSerie } from './recurrencia';
+import { desplazarRegla, expandirOcurrencias, partirSerie } from './recurrencia';
 import { protegidosQueChocan } from './avisosCarga';
-import { claveDia, desdeClaveDia, inicioDeSemana, zonaDelDispositivo } from './fechas';
+import {
+  claveDia,
+  desdeClaveDia,
+  diferenciaDeReloj,
+  inicioDeSemana,
+  moverComoReloj,
+  zonaDelDispositivo,
+} from './fechas';
 import { t } from './textos';
 import type {
   Etiqueta,
@@ -21,6 +38,7 @@ import type {
   ExcepcionEvento,
   Ocurrencia,
   Planificacion,
+  ReglaRecurrencia,
   Tarea,
   TipoBloque,
 } from './tipos';
@@ -189,21 +207,37 @@ export async function cambiarOcurrencia(
       return true;
     }
 
-    // Para "todos" movemos el maestro lo mismo que se ha movido esta ocurrencia
-    const desplazamiento = nuevoInicio - oc.inicioMs;
+    // Movemos la serie lo mismo que se ha movido esta ocurrencia, «como el reloj» (mismos días
+    // y minutos), para que la hora no se descoloque en los días de cambio de hora
+    const reloj = diferenciaDeReloj(oc.inicioMs, nuevoInicio);
     const duracion = nuevoFin - nuevoInicio;
+    // Si se ha cambiado de día y no se ha tocado la regla, los días de la regla se mueven
+    // también: una serie de los lunes arrastrada al martes pasa a ser de los martes
+    const regla = (r: ReglaRecurrencia) =>
+      cambios.recurrencia !== undefined ? cambios.recurrencia : desplazarRegla(r, reloj.dias);
+    const delEvento = useDatos.getState().excepciones.filter((x) => x.eventoId === evento.id);
 
     if (alcance === 'todos') {
-      const inicioMaestro = evento.inicioMs + desplazamiento;
-      await dbEventos.actualizar(evento.id, {
-        ...cambios,
-        inicioMs: inicioMaestro,
-        finMs: inicioMaestro + duracion,
+      const inicioMaestro = moverComoReloj(evento.inicioMs, reloj.dias, reloj.minutos);
+      await dbEventos.cambiarSerie({
+        id: evento.id,
+        cambios: {
+          ...cambios,
+          inicioMs: inicioMaestro,
+          finMs: inicioMaestro + duracion,
+          recurrencia: regla(evento.recurrencia),
+        },
+        // Cada ocurrencia cambia de inicio original: sus excepciones van con ella
+        excepciones:
+          reloj.dias || reloj.minutos
+            ? delEvento.map((ex) => trasladarExcepcion(ex, evento.id, reloj, oc, cambios))
+            : [],
       });
       return true;
     }
 
-    // "Este y los siguientes": cortamos la serie y creamos una nueva desde aquí
+    // "Este y los siguientes": cortamos la serie y creamos una nueva desde aquí, en un solo
+    // lote y llevándose las excepciones de las ocurrencias que pasan a la serie nueva
     const { antigua, nueva } = partirSerie(
       evento.recurrencia,
       new Date(evento.inicioMs),
@@ -213,13 +247,22 @@ export async function cambiarOcurrencia(
       return cambiarOcurrencia(oc, cambios, 'todos');
     }
     const { id: _id, creadoEnMs: _c, actualizadoEnMs: _a, ...base } = evento;
-    await dbEventos.actualizar(evento.id, { recurrencia: antigua });
-    await dbEventos.crear({
-      ...base,
-      ...cambios,
-      inicioMs: oc.inicioOriginalMs + desplazamiento,
-      finMs: oc.inicioOriginalMs + desplazamiento + duracion,
-      recurrencia: cambios.recurrencia !== undefined ? cambios.recurrencia : nueva,
+    const idNueva = nuevoId();
+    const inicioNueva = moverComoReloj(oc.inicioOriginalMs, reloj.dias, reloj.minutos);
+    await dbEventos.cambiarSerie({
+      id: evento.id,
+      cambios: { recurrencia: antigua },
+      nueva: {
+        ...base,
+        ...cambios,
+        id: idNueva,
+        inicioMs: inicioNueva,
+        finMs: inicioNueva + duracion,
+        recurrencia: regla(nueva),
+      },
+      excepciones: delEvento
+        .filter((ex) => ex.inicioOriginalMs >= oc.inicioOriginalMs)
+        .map((ex) => trasladarExcepcion(ex, idNueva, reloj, oc, cambios)),
     });
     return true;
   } catch (e) {
@@ -227,6 +270,37 @@ export async function cambiarOcurrencia(
     avisar(t.comun.error, 'error');
     return false;
   }
+}
+
+/**
+ * Lleva una excepción a su nueva clave cuando su serie se mueve o se parte: otro evento y/o
+ * otro inicio original (movido igual que la serie). En la ocurrencia que se está editando,
+ * los cambios que ya pasan al evento se quitan de la excepción. Si no le queda nada, se borra.
+ */
+function trasladarExcepcion(
+  ex: ExcepcionEvento,
+  eventoId: string,
+  reloj: { dias: number; minutos: number },
+  oc: Ocurrencia,
+  cambios: Partial<DatosNuevos<Evento>>,
+): { borrarId: string; nueva: DatosNuevos<ExcepcionEvento> | null } {
+  const restantes = { ...ex.cambios };
+  if (ex.inicioOriginalMs === oc.inicioOriginalMs) {
+    for (const campo of CAMPOS_EXCEPCION) if (campo in cambios) delete restantes[campo];
+  }
+  const vacia = !ex.cancelada && !ex.completado && Object.keys(restantes).length === 0;
+  return {
+    borrarId: ex.id,
+    nueva: vacia
+      ? null
+      : {
+          eventoId,
+          inicioOriginalMs: moverComoReloj(ex.inicioOriginalMs, reloj.dias, reloj.minutos),
+          cancelada: ex.cancelada,
+          completado: ex.completado,
+          cambios: restantes,
+        },
+  };
 }
 
 /** Mueve o redimensiona una ocurrencia (arrastrar en el calendario). */
@@ -249,6 +323,11 @@ export async function borrarOcurrencia(oc: Ocurrencia): Promise<boolean> {
       });
       if (!ok) return false;
       await dbEventos.borrar(evento.id, excepciones);
+      // Si venía de Google, que la próxima sincronización no lo vuelva a traer
+      if (evento.origenGoogle)
+        await apuntarBorradoEnGoogle(evento.origenGoogle.eventoId).catch((e) =>
+          console.warn('No se pudo apuntar el borrado para Google Calendar', e),
+        );
       avisar(t.comun.borrado, 'info');
       return true;
     }
@@ -271,7 +350,15 @@ export async function borrarOcurrencia(oc: Ocurrencia): Promise<boolean> {
         new Date(evento.inicioMs),
         oc.inicioOriginalMs,
       );
-      if (antigua) await dbEventos.actualizar(evento.id, { recurrencia: antigua });
+      if (antigua)
+        // Las excepciones de las ocurrencias borradas ya no sirven: se van con ellas
+        await dbEventos.cambiarSerie({
+          id: evento.id,
+          cambios: { recurrencia: antigua },
+          excepciones: excepciones
+            .filter((x) => x.eventoId === evento.id && x.inicioOriginalMs >= oc.inicioOriginalMs)
+            .map((x) => ({ borrarId: x.id, nueva: null })),
+        });
       else await dbEventos.borrar(evento.id, excepciones);
     } else {
       await dbEventos.borrar(evento.id, excepciones);
@@ -354,19 +441,26 @@ export function tareaVacia(parcial: Partial<DatosNuevos<Tarea>> = {}): DatosNuev
 }
 
 /** Siguiente fecha de una tarea que se repite. */
-export function siguienteFecha(tarea: Tarea, desde: Date): string {
+export function siguienteFecha(tarea: Tarea, desde: Date, inicioSemana: 0 | 1 = 1): string {
   const r = tarea.repeticion!;
   const n = Math.max(1, r.intervalo);
   if (r.frecuencia === 'diaria') return claveDia(addDays(desde, n));
-  if (r.frecuencia === 'mensual') return claveDia(addMonths(desde, n));
+  if (r.frecuencia === 'mensual') {
+    // Se repite el día ancla (el de la primera tarea): una del día 31 va al 28 de febrero y
+    // vuelve al 31 en marzo. Encadenar addMonths la dejaría en el 28 para siempre.
+    const ancla = r.diaMes ?? desde.getDate();
+    const mes = addMonths(startOfMonth(desde), n);
+    return claveDia(setDate(mes, Math.min(ancla, getDaysInMonth(mes))));
+  }
   // Semanal: buscamos el siguiente día de la lista. Si para llegar a él hay que pasar
-  // a la semana siguiente y se repite cada n semanas, saltamos n-1 semanas más.
+  // a la semana siguiente y se repite cada n semanas, saltamos n-1 semanas más. La semana
+  // empieza en lunes o en domingo según los ajustes.
   const dias = r.diasSemana?.length ? r.diasSemana : [desde.getDay()];
-  const posicionLunes = (dia: number) => (dia + 6) % 7;
+  const posicion = (dia: number) => (dia - inicioSemana + 7) % 7;
   for (let i = 1; i <= 7; i++) {
     const d = addDays(desde, i);
     if (!dias.includes(d.getDay())) continue;
-    const cambiaDeSemana = posicionLunes(d.getDay()) <= posicionLunes(desde.getDay());
+    const cambiaDeSemana = posicion(d.getDay()) <= posicion(desde.getDay());
     return claveDia(cambiaDeSemana ? addDays(d, (n - 1) * 7) : d);
   }
   return claveDia(addDays(desde, 7 * n));
@@ -407,20 +501,26 @@ async function crearSiguienteRepeticion(tarea: Tarea): Promise<string | null> {
     tarea.planificacion.tipo === 'dia'
       ? desdeClaveDia(tarea.planificacion.fecha)
       : startOfDay(new Date());
-  const fecha = siguienteFecha(tarea, base);
+  const { tareas, ajustes } = useDatos.getState();
+  const fecha = siguienteFecha(tarea, base, ajustes.inicioSemana);
   // Todas las repeticiones comparten la raíz del id de la primera tarea
   const id = `${tarea.id.split('_')[0]}_${fecha}`;
-  if (useDatos.getState().tareas.some((x) => x.id === id)) return null;
+  if (tareas.some((x) => x.id === id)) return null;
   const { id: _id, creadoEnMs: _c, actualizadoEnMs: _a, ...resto } = tarea;
-  const desplazamiento = desdeClaveDia(fecha).getTime() - base.getTime();
+  const r = tarea.repeticion!;
+  // La fecha límite se mueve los mismos días de calendario (y conserva su hora)
+  const dias = differenceInCalendarDays(desdeClaveDia(fecha), base);
   await dbTareas.crear({
     ...resto,
     id,
     completada: false,
     completadaEnMs: null,
     planificacion: { tipo: 'dia', fecha },
-    fechaLimiteMs: tarea.fechaLimiteMs !== null ? tarea.fechaLimiteMs + desplazamiento : null,
+    fechaLimiteMs:
+      tarea.fechaLimiteMs !== null ? moverComoReloj(tarea.fechaLimiteMs, dias, 0) : null,
     subtareas: tarea.subtareas.map((s) => ({ ...s, hecha: false })),
+    // La mensual recuerda su día ancla para no quedarse en el 28 tras pasar por febrero
+    repeticion: r.frecuencia === 'mensual' ? { ...r, diaMes: r.diaMes ?? base.getDate() } : r,
   });
   return id;
 }

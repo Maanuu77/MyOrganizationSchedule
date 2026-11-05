@@ -97,26 +97,28 @@ export function EditorTarea() {
 
   const cambiosSinGuardar = JSON.stringify(f) !== inicial || nuevaSub.trim() !== '';
 
+  /** Los datos de la tarea tal y como están en el formulario. */
+  const datosDelFormulario = () => ({
+    titulo: f.titulo.trim(),
+    etiquetaId: f.etiquetaId,
+    prioridad: f.prioridad,
+    planificacion: planificacion(),
+    fechaLimiteMs: f.fechaLimite ? new Date(f.fechaLimite).getTime() : null,
+    estimacionMin: f.estimacionMin ? Math.max(1, Math.round(Number(f.estimacionMin))) : null,
+    subtareas: f.subtareas,
+    notas: f.notas,
+    repeticion: f.repeticion,
+  });
+
   const guardar = async () => {
     if (enviando.current) return;
-    const titulo = f.titulo.trim();
-    if (!titulo) {
+    if (!f.titulo.trim()) {
       avisar(t.tareas.tituloObligatorio, 'error');
       return;
     }
     enviando.current = true;
     setGuardando(true);
-    const datos = {
-      titulo,
-      etiquetaId: f.etiquetaId,
-      prioridad: f.prioridad,
-      planificacion: planificacion(),
-      fechaLimiteMs: f.fechaLimite ? new Date(f.fechaLimite).getTime() : null,
-      estimacionMin: f.estimacionMin ? Math.max(1, Math.round(Number(f.estimacionMin))) : null,
-      subtareas: f.subtareas,
-      notas: f.notas,
-      repeticion: f.repeticion,
-    };
+    const datos = datosDelFormulario();
     try {
       if (tarea) await dbTareas.actualizar(tarea.id, datos);
       else await dbTareas.crear(tareaVacia(datos));
@@ -494,7 +496,25 @@ export function EditorTarea() {
           inicialMs={addHours(startOfHour(new Date()), 1).getTime()}
           alCerrar={() => setPlanificar(false)}
           alAceptar={async (inicio) => {
-            const ok = await planificarTareaEnCalendario(tarea, inicio);
+            // Lo editado y aún sin guardar se guarda antes: el bloque se crea con el título y
+            // la estimación nuevos, y no se pierde nada al cerrar el editor
+            let actual = tarea;
+            if (cambiosSinGuardar) {
+              if (!f.titulo.trim()) {
+                avisar(t.tareas.tituloObligatorio, 'error');
+                return;
+              }
+              const datos = datosDelFormulario();
+              try {
+                await dbTareas.actualizar(tarea.id, datos);
+              } catch (e) {
+                console.error(e);
+                avisar(t.comun.error, 'error');
+                return;
+              }
+              actual = { ...tarea, ...datos };
+            }
+            const ok = await planificarTareaEnCalendario(actual, inicio);
             if (ok) {
               setPlanificar(false);
               cerrar();

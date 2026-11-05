@@ -321,6 +321,40 @@ describe('validación de campos', () => {
         repeticion: { frecuencia: 'semanal', intervalo: 1, diasSemana: [1, 3] },
       }),
     );
+    // Tarea mensual con día ancla (1..31)
+    await assertSucceeds(
+      setDoc(doc(ana, 'users/ana/tasks/t3'), {
+        ...tarea,
+        repeticion: { frecuencia: 'mensual', intervalo: 1, diaMes: 31 },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/tasks/t4'), {
+        ...tarea,
+        repeticion: { frecuencia: 'mensual', intervalo: 1, diaMes: 40 },
+      }),
+    );
+    // Lista de eventos de Google borrados en la app
+    const integracion = {
+      conectado: true,
+      email: 'ana@example.com',
+      calendarioImportarId: 'primary',
+      calendarioExportarId: null,
+      ultimaSincronizacionMs: null,
+      actualizadoEnMs: ahora,
+    };
+    await assertSucceeds(
+      setDoc(doc(ana, 'users/ana/integrations/googleCalendar'), {
+        ...integracion,
+        borradosEnApp: ['abc123'],
+      }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/integrations/googleCalendar'), {
+        ...integracion,
+        borradosEnApp: 'abc123',
+      }),
+    );
     await assertFails(
       setDoc(doc(ana, 'users/ana/eventExceptions/x1'), {
         eventoId: 'e1',

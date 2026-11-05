@@ -16,7 +16,7 @@ import {
 import { crearBloque, eventoVacio } from './operaciones';
 import { duracionRutinaMin, fasesDeRutina, reglaDeRutina } from './rutinas';
 import { empezarSesionConAviso } from './temporizador';
-import { conHora } from './fechas';
+import { conHora, diferenciaDeReloj, moverComoReloj } from './fechas';
 import { t } from './textos';
 import type { Evento, Rutina } from './tipos';
 
@@ -48,8 +48,36 @@ export async function guardarRutina(
         finMs: inicio + (duracionRutinaMin(datos) || 30) * 60_000,
         recurrencia: regla,
       };
-      if (eventoId && existe) await dbEventos.actualizar(eventoId, campos);
-      else eventoId = (await dbEventos.crear(eventoVacio(campos))).id;
+      if (eventoId && existe) {
+        // Si cambia la hora, cada ocurrencia cambia de inicio original: sus excepciones
+        // (días hechos o quitados) se mueven con ella para no quedarse huérfanas
+        const { eventos, excepciones } = useDatos.getState();
+        const actual = eventos.find((e) => e.id === eventoId)!;
+        const reloj = diferenciaDeReloj(actual.inicioMs, inicio);
+        await dbEventos.cambiarSerie({
+          id: eventoId,
+          cambios: campos,
+          excepciones:
+            reloj.dias || reloj.minutos
+              ? excepciones
+                  .filter((x) => x.eventoId === eventoId)
+                  .map((x) => ({
+                    borrarId: x.id,
+                    nueva: {
+                      eventoId: x.eventoId,
+                      inicioOriginalMs: moverComoReloj(
+                        x.inicioOriginalMs,
+                        reloj.dias,
+                        reloj.minutos,
+                      ),
+                      cancelada: x.cancelada,
+                      completado: x.completado,
+                      cambios: x.cambios,
+                    },
+                  }))
+              : [],
+        });
+      } else eventoId = (await dbEventos.crear(eventoVacio(campos))).id;
     } else if (eventoId && existe) {
       await dbEventos.borrar(eventoId, useDatos.getState().excepciones);
       eventoId = null;

@@ -5,7 +5,7 @@ import { Campo, SelectorDias } from './Campos';
 import { describirRegla } from './recurrencia';
 import { DIAS_LARGOS, claveDia } from './fechas';
 import { t } from './textos';
-import { addMonths } from 'date-fns';
+import { addMonths, getDaysInMonth } from 'date-fns';
 
 interface Props {
   valor: ReglaRecurrencia | null;
@@ -49,7 +49,11 @@ export function EditorRecurrencia({ valor, alCambiar, inicio, inicioSemana }: Pr
 
   const cambiar = (parcial: Partial<ReglaRecurrencia>) =>
     valor && alCambiar({ ...valor, ...parcial });
-  const ordinalDelInicio = Math.min(4, Math.ceil(inicio.getDate() / 7)) as 1 | 2 | 3 | 4;
+  // Si no hay otro igual en lo que queda de mes, es «el último» (el quinto lunes no existe
+  // todos los meses; con «cuarto» la serie se saltaría justo ese día)
+  const ordinalDelInicio = (
+    inicio.getDate() + 7 > getDaysInMonth(inicio) ? -1 : Math.ceil(inicio.getDate() / 7)
+  ) as 1 | 2 | 3 | 4 | -1;
 
   return (
     <div className="space-y-3">
@@ -202,7 +206,7 @@ function EditorMensual({
   valor: ReglaMensual | undefined;
   alCambiar: (m: ReglaMensual | undefined) => void;
   inicio: Date;
-  ordinal: 1 | 2 | 3 | 4;
+  ordinal: 1 | 2 | 3 | 4 | -1;
 }) {
   const modo = !valor ? 'mismo' : valor.modo === 'diasMes' ? 'varios' : 'ordinal';
   return (

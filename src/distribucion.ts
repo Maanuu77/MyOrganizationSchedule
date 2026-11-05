@@ -2,32 +2,35 @@
 // para que ninguno tape a otro. Función pura.
 
 import type { Ocurrencia } from './tipos';
+import { finDeDia, minutoEnDia } from './fechas';
 
 export interface BloqueColocado {
   ocurrencia: Ocurrencia;
-  /** Minuto de inicio dentro del día (0..1440). */
+  /** Minuto de inicio dentro del día (0..1440), según la hora del reloj. */
   inicioMin: number;
-  /** Minuto de fin dentro del día (0..1440). */
+  /** Minuto de fin dentro del día (0..1440), según la hora del reloj. */
   finMin: number;
   columna: number;
   totalColumnas: number;
 }
 
 export function colocarBloques(ocurrencias: Ocurrencia[], inicioDiaMs: number): BloqueColocado[] {
-  const finDiaMs = inicioDiaMs + 24 * 60 * 60 * 1000;
+  const finDiaMs = finDeDia(inicioDiaMs);
   const bloques = ocurrencias
     .filter((o) => !o.evento.todoElDia && o.inicioMs < finDiaMs && o.finMs > inicioDiaMs)
-    .map((o) => ({
-      ocurrencia: o,
-      inicioMin: Math.max(0, (o.inicioMs - inicioDiaMs) / 60000),
-      // Mínimo 15 minutos de alto para que siempre se pueda pulsar
-      finMin: Math.min(
-        1440,
-        Math.max((o.finMs - inicioDiaMs) / 60000, (o.inicioMs - inicioDiaMs) / 60000 + 15),
-      ),
-      columna: 0,
-      totalColumnas: 1,
-    }))
+    .map((o) => {
+      // Minutos de reloj, no tiempo transcurrido desde las 00:00: en un día de cambio de hora
+      // las filas de la rejilla siguen siendo las horas del reloj
+      const inicioMin = minutoEnDia(o.inicioMs, inicioDiaMs);
+      return {
+        ocurrencia: o,
+        inicioMin,
+        // Mínimo 15 minutos de alto para que siempre se pueda pulsar
+        finMin: Math.min(1440, Math.max(minutoEnDia(o.finMs, inicioDiaMs), inicioMin + 15)),
+        columna: 0,
+        totalColumnas: 1,
+      };
+    })
     .sort((a, b) => a.inicioMin - b.inicioMin || b.finMin - a.finMin);
 
   // Agrupamos en "racimos" de bloques que se solapan en cadena

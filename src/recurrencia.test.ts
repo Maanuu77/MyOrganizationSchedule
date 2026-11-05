@@ -4,6 +4,7 @@ import {
   caeEnDia,
   contarAntes,
   describirRegla,
+  desplazarRegla,
   diaOrdinal,
   expandirOcurrencias,
   generarInicios,
@@ -217,6 +218,77 @@ describe('expandirOcurrencias', () => {
     const suelto = evento({ id: 'e2', inicioMs: desde - 30 * 60000, finMs: desde + 30 * 60000 });
     expect(expandirOcurrencias([suelto], [], desde, hasta)).toHaveLength(1);
   });
+
+  it('encuentra una ocurrencia movida a más de un mes de su fecha original', () => {
+    // La del lunes 5 de enero, movida al 2 de marzo con «solo este»
+    const movida: ExcepcionEvento = {
+      id: 'x',
+      eventoId: 'e1',
+      inicioOriginalMs: new Date(2026, 0, 5, 9).getTime(),
+      cancelada: false,
+      completado: false,
+      cambios: {
+        inicioMs: new Date(2026, 2, 2, 18).getTime(),
+        finMs: new Date(2026, 2, 2, 19).getTime(),
+      },
+      creadoEnMs: 0,
+      actualizadoEnMs: 0,
+    };
+    const marzo = expandirOcurrencias(
+      [semanal],
+      [movida],
+      new Date(2026, 2, 2).getTime(),
+      new Date(2026, 2, 3).getTime(),
+    );
+    expect(marzo.map((o) => new Date(o.inicioMs).getHours())).toEqual([9, 18]);
+    // En enero ya no está en su sitio original
+    const enero = expandirOcurrencias([semanal], [movida], desde, hasta);
+    expect(enero.map((o) => claveDia(o.inicioMs))).not.toContain('2026-01-05');
+  });
+
+  it('la serie con fin por fecha incluye el último día entero aunque dure 25 horas', () => {
+    const diaria = evento({
+      inicioMs: new Date(2026, 9, 20, 23, 30).getTime(),
+      finMs: new Date(2026, 9, 20, 23, 45).getTime(),
+      recurrencia: {
+        frecuencia: 'diaria',
+        intervalo: 1,
+        fin: { tipo: 'fecha', hasta: '2026-10-25' },
+      },
+    });
+    const dias = expandirOcurrencias(
+      [diaria],
+      [],
+      new Date(2026, 9, 20).getTime(),
+      new Date(2026, 9, 30).getTime(),
+    ).map((o) => claveDia(o.inicioMs));
+    expect(dias.at(-1)).toBe('2026-10-25');
+  });
+});
+
+describe('desplazarRegla', () => {
+  it('mueve los días de la semana y del mes', () => {
+    const semanal: ReglaRecurrencia = {
+      frecuencia: 'semanal',
+      intervalo: 1,
+      diasSemana: [1, 6],
+      fin: { tipo: 'nunca' },
+    };
+    // Lunes y sábado movidos un día: martes y domingo
+    expect(desplazarRegla(semanal, 1).diasSemana).toEqual([2, 0]);
+    const mensual: ReglaRecurrencia = {
+      frecuencia: 'mensual',
+      intervalo: 1,
+      mensual: { modo: 'ordinal', ordinal: -1, diaSemana: 5 },
+      fin: { tipo: 'nunca' },
+    };
+    expect(desplazarRegla(mensual, -1).mensual).toEqual({
+      modo: 'ordinal',
+      ordinal: -1,
+      diaSemana: 4,
+    });
+    expect(desplazarRegla(semanal, 0)).toBe(semanal);
+  });
 });
 
 describe('partirSerie', () => {
@@ -242,6 +314,14 @@ describe('partirSerie', () => {
   it('si es la primera ocurrencia no queda serie antigua', () => {
     const r: ReglaRecurrencia = { frecuencia: 'diaria', intervalo: 1, fin: { tipo: 'nunca' } };
     expect(partirSerie(r, lunes, lunes.getTime()).antigua).toBeNull();
+  });
+
+  it('justo después del cambio de hora termina el día anterior del calendario', () => {
+    // Serie diaria a las 00:30; se parte el 30 de marzo (el 29 duró 23 horas)
+    const r: ReglaRecurrencia = { frecuencia: 'diaria', intervalo: 1, fin: { tipo: 'nunca' } };
+    const inicio = new Date(2026, 2, 20, 0, 30);
+    const { antigua } = partirSerie(r, inicio, new Date(2026, 2, 30, 0, 30).getTime());
+    expect(antigua?.fin).toEqual({ tipo: 'fecha', hasta: '2026-03-29' });
   });
 });
 

@@ -199,18 +199,24 @@ export function detectarSueno(ocurrencias: Ocurrencia[], ajustes: AjustesAvisos)
 }
 
 /** Ejecuta todas las comprobaciones y devuelve los avisos ordenados por fecha y gravedad. */
+/**
+ * Todos los avisos. `ocurrenciasLimites` son las que cuentan como tiempo reservado para las
+ * fechas límite: pueden llegar más lejos que las demás (el aviso se configura hasta 30 días
+ * antes y la carga se vigila solo 14). Si se omite, se usan las mismas.
+ */
 export function detectarAvisos(
   ocurrencias: Ocurrencia[],
   tareas: Tarea[],
   ajustes: AjustesAvisos,
   ahoraMs: number,
+  ocurrenciasLimites: Ocurrencia[] = ocurrencias,
 ): AvisoCarga[] {
   const peso = { grave: 0, aviso: 1, info: 2 } as const;
   return [
     ...detectarSolapes(ocurrencias),
     ...detectarFocoExcesivo(ocurrencias, ajustes),
     ...detectarSesionesSeguidas(ocurrencias, ajustes),
-    ...detectarFechasLimite(tareas, ocurrencias, ajustes, ahoraMs),
+    ...detectarFechasLimite(tareas, ocurrenciasLimites, ajustes, ahoraMs),
     ...detectarSueno(ocurrencias, ajustes),
   ].sort((a, b) => a.fecha.localeCompare(b.fecha) || peso[a.severidad] - peso[b.severidad]);
 }

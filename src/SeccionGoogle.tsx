@@ -54,6 +54,7 @@ export function SeccionGoogle() {
       const tk = tokenVigente() ?? (await conectarGoogle());
       const r = await sincronizarAhora(tk, integracion);
       avisar(t.google.resultado(r.importados, r.exportados), 'exito');
+      if (r.errores) avisar(t.google.conErrores(r.errores), 'error');
     } catch (e) {
       console.error(e);
       avisar(e instanceof TokenCaducado ? t.google.tokenCaducado : t.comun.error, 'error');

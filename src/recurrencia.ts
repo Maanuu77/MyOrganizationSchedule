@@ -5,9 +5,9 @@
 // Todo se calcula en hora local: un evento a las 09:00 sigue a las 09:00 aunque cambie
 // el horario de verano, porque construimos cada fecha con new Date(año, mes, día, hora, min).
 
-import { getDaysInMonth } from 'date-fns';
+import { getDaysInMonth, subDays } from 'date-fns';
 import type { Evento, ExcepcionEvento, Ocurrencia, ReglaMensual, ReglaRecurrencia } from './tipos';
-import { DIAS_LARGOS, MS_DIA, claveDia, desdeClaveDia, formatear } from './fechas';
+import { DIAS_LARGOS, MS_DIA, claveDia, desdeClaveDia, finDeDia, formatear } from './fechas';
 
 /** Límite de seguridad para no entrar nunca en un bucle infinito. */
 const MAX_ITERACIONES = 20_000;
@@ -70,7 +70,7 @@ export function* generarInicios(
   const limiteVeces = regla.fin.tipo === 'veces' ? regla.fin.veces : Infinity;
   const hasta =
     regla.fin.tipo === 'fecha'
-      ? desdeClaveDia(regla.fin.hasta).getTime() + MS_DIA // el día "hasta" está incluido
+      ? finDeDia(desdeClaveDia(regla.fin.hasta)) // el día "hasta" está incluido (dure 23, 24 o 25 h)
       : Infinity;
   const puedeSaltar =
     regla.fin.tipo !== 'veces' && desdeMs !== undefined && desdeMs > inicio.getTime();
@@ -232,7 +232,67 @@ export function expandirOcurrencias(
       });
     }
   }
+
+  // Ocurrencias movidas («solo este») a más de un mes de su fecha original: la expansión de
+  // arriba no llega a su inicio original, así que se buscan desde sus excepciones
+  const vistas = new Set(resultado.map((o) => o.clave));
+  const porId = new Map(eventos.map((e) => [e.id, e]));
+  for (const ex of excepciones) {
+    const inicioMs = ex.cambios?.inicioMs;
+    if (ex.cancelada || inicioMs === undefined) continue;
+    const clave = claveOcurrencia(ex.eventoId, ex.inicioOriginalMs);
+    const evento = porId.get(ex.eventoId);
+    if (vistas.has(clave) || !evento?.recurrencia) continue;
+    const finMs = ex.cambios.finMs ?? inicioMs + (evento.finMs - evento.inicioMs);
+    if (!(inicioMs < hastaMs && finMs > desdeMs)) continue;
+    // Solo si la ocurrencia original sigue existiendo en la serie (puede haberse acortado)
+    try {
+      const original = iniciosEnRango(evento, ex.inicioOriginalMs, ex.inicioOriginalMs + 1);
+      if (!original.includes(ex.inicioOriginalMs)) continue;
+    } catch {
+      continue;
+    }
+    resultado.push({
+      clave,
+      evento,
+      inicioMs,
+      finMs,
+      inicioOriginalMs: ex.inicioOriginalMs,
+      titulo: ex.cambios.titulo ?? evento.titulo,
+      etiquetaId: ex.cambios.etiquetaId !== undefined ? ex.cambios.etiquetaId : evento.etiquetaId,
+      notas: ex.cambios.notas ?? evento.notas,
+      esRecurrente: true,
+      completado: !!ex.completado,
+      excepcion: ex,
+    });
+  }
   return resultado.sort((a, b) => a.inicioMs - b.inicioMs || a.finMs - b.finMs);
+}
+
+/**
+ * Desplaza los días de una regla cuando la serie se mueve `dias` días: una serie de los lunes
+ * arrastrada al martes pasa a ser de los martes. Si no, la regla seguiría en lunes y la
+ * ocurrencia movida desaparecería.
+ */
+export function desplazarRegla(regla: ReglaRecurrencia, dias: number): ReglaRecurrencia {
+  if (!dias) return regla;
+  const enSemana = (d: number) => (((d + dias) % 7) + 7) % 7;
+  if (regla.frecuencia === 'semanal' && regla.diasSemana?.length) {
+    return { ...regla, diasSemana: regla.diasSemana.map(enSemana) };
+  }
+  if (regla.frecuencia === 'mensual' && regla.mensual) {
+    const m = regla.mensual;
+    return {
+      ...regla,
+      mensual:
+        m.modo === 'ordinal'
+          ? { ...m, diaSemana: enSemana(m.diaSemana) }
+          : // Días del mes 1..31, dando la vuelta: el 30 movido 3 días es el 2
+            { ...m, dias: m.dias.map((d) => ((((d - 1 + dias) % 31) + 31) % 31) + 1) },
+    };
+  }
+  // Diaria, o semanal/mensual sin días fijos: siguen solas el día del nuevo inicio
+  return regla;
 }
 
 /** Cuántas ocurrencias hay antes de un inicio dado (para cortar series con límite de veces). */
@@ -261,7 +321,9 @@ export function partirSerie(
 ): { antigua: ReglaRecurrencia | null; nueva: ReglaRecurrencia } {
   const antes = contarAntes(regla, inicioMaestro, inicioOcurrenciaMs);
   if (antes === 0) return { antigua: null, nueva: regla };
-  const diaAnterior = claveDia(inicioOcurrenciaMs - MS_DIA);
+  // El día anterior del calendario, no «24 h antes»: justo después del cambio de hora
+  // restar 24 h a las 00:30 da dos días antes y se perdería una ocurrencia
+  const diaAnterior = claveDia(subDays(new Date(inicioOcurrenciaMs), 1));
   if (regla.fin.tipo === 'veces') {
     return {
       antigua: { ...regla, fin: { tipo: 'veces', veces: antes } },
@@ -322,7 +384,7 @@ export function caeEnDia(regla: ReglaRecurrencia, inicio: Date, dia: Date): bool
   const desde = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate()).getTime();
   for (const f of generarInicios(regla, inicio, desde)) {
     const ms = f.getTime();
-    if (ms >= desde + MS_DIA) return false;
+    if (ms >= finDeDia(desde)) return false;
     if (ms >= desde) return true;
   }
   return false;

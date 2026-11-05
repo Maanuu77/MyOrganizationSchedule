@@ -12,7 +12,10 @@ import { BloqueCalendario } from './BloqueCalendario';
 import {
   capitalizar,
   claveDia,
+  finDeDia,
   formatear,
+  instanteEnDia,
+  minutoEnDia,
   minutosAHora,
   minutosDelDia,
   tramosSueno,
@@ -91,14 +94,18 @@ export function VistaTiempo({
     for (const o of ocurrencias) {
       for (const d of dias) {
         const inicio = startOfDay(d).getTime();
-        if (o.inicioMs < inicio + 86_400_000 && o.finMs > inicio) mapa.get(claveDia(d))!.push(o);
+        if (o.inicioMs < finDeDia(d) && o.finMs > inicio) mapa.get(claveDia(d))!.push(o);
       }
     }
     return mapa;
   }, [dias, ocurrencias]);
 
+  // Los eventos de todo el día salen en cada día que ocupan (unas vacaciones de lunes a
+  // viernes, en los cinco)
+  const ocupaDia = (o: Ocurrencia, d: Date) =>
+    o.inicioMs < finDeDia(d) && o.finMs > startOfDay(d).getTime();
   const todoElDia = ocurrencias.filter(
-    (o) => o.evento.todoElDia && dias.some((d) => claveDia(o.inicioMs) === claveDia(d)),
+    (o) => o.evento.todoElDia && dias.some((d) => ocupaDia(o, d)),
   );
   const horas = Array.from({ length: 24 }, (_, h) => h);
 
@@ -122,7 +129,7 @@ export function VistaTiempo({
           <div className="w-10 shrink-0 sm:w-14" />
           {dias.map((d) => {
             const hoy = isToday(d);
-            const delDia = todoElDia.filter((o) => claveDia(o.inicioMs) === claveDia(d));
+            const delDia = todoElDia.filter((o) => ocupaDia(o, d));
             return (
               <div
                 key={claveDia(d)}
@@ -283,9 +290,10 @@ const ColumnaDia = memo(function ColumnaDia({
     const arrastrado = seleccion.hasta - seleccion.desde > PASO_MIN;
     origen.current = null;
     setSeleccion(null);
-    const inicio = inicioDia + seleccion.desde * 60_000;
+    // Minutos de la rejilla → hora del reloj de ese día (vale también con cambio de hora)
+    const inicio = instanteEnDia(inicioDia, seleccion.desde);
     // Si solo ha hecho clic, usamos la duración por defecto (la pone el editor)
-    alCrear(inicio, arrastrado ? inicioDia + seleccion.hasta * 60_000 : 0);
+    alCrear(inicio, arrastrado ? instanteEnDia(inicioDia, seleccion.hasta) : 0);
   };
 
   const tramos = sueno ? tramosSueno(dia, sueno.inicio, sueno.fin) : [];
@@ -311,7 +319,7 @@ const ColumnaDia = memo(function ColumnaDia({
         if (tipoPuntero.current === 'mouse') return;
         const rect = e.currentTarget.getBoundingClientRect();
         const min = Math.floor((e.clientY - rect.top) / pxPorMinuto / 30) * 30;
-        alCrear(inicioDia + min * 60_000, 0);
+        alCrear(instanteEnDia(inicioDia, min), 0);
       }}
       aria-label={capitalizar(formatear(dia, "EEEE d 'de' MMMM"))}
     >
@@ -320,8 +328,8 @@ const ColumnaDia = memo(function ColumnaDia({
           key={a}
           className="pointer-events-none absolute inset-x-0 bg-superficie-3/40"
           style={{
-            top: ((a - inicioDia) / 60_000) * pxPorMinuto,
-            height: ((b - a) / 60_000) * pxPorMinuto,
+            top: minutoEnDia(a, inicioDia) * pxPorMinuto,
+            height: (minutoEnDia(b, inicioDia) - minutoEnDia(a, inicioDia)) * pxPorMinuto,
           }}
           aria-hidden
         />
@@ -338,6 +346,7 @@ const ColumnaDia = memo(function ColumnaDia({
           avisos={avisos.get(c.ocurrencia.clave)}
           pxPorMinuto={pxPorMinuto}
           formato24h={formato24h}
+          inicioDiaMs={inicioDia}
         />
       ))}
 
