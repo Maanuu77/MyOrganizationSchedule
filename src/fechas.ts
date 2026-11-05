@@ -33,6 +33,63 @@ export function conHora(dia: Date | string, hora: string): Date {
   return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m);
 }
 
+/**
+ * Inicio del día siguiente, en ms. No es «inicio + 24 h»: los días de cambio de hora duran
+ * 23 h (último domingo de marzo) o 25 h (último domingo de octubre).
+ */
+export function finDeDia(fecha: Date | number): number {
+  return addDays(startOfDay(fecha), 1).getTime();
+}
+
+/**
+ * Minuto de la rejilla de un día (0..1440) en que cae un instante, según la hora del reloj:
+ * así un bloque de las 10:00 sale en la fila de las 10:00 también en los días de cambio de
+ * hora. Antes de ese día da 0 y desde el día siguiente, 1440.
+ */
+export function minutoEnDia(ms: number, inicioDiaMs: number): number {
+  if (ms <= inicioDiaMs) return 0;
+  if (ms >= finDeDia(inicioDiaMs)) return 1440;
+  const d = new Date(ms);
+  return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+}
+
+/**
+ * Instante de un minuto de la rejilla de un día (hora del reloj). Es la operación inversa de
+ * `minutoEnDia`: 600 es las 10:00 de ese día aunque ese día dure 23 o 25 horas. Los minutos
+ * negativos o de 1440 en adelante caen en el día anterior o en el siguiente.
+ */
+export function instanteEnDia(dia: Date | number, minuto: number): number {
+  const base = startOfDay(dia);
+  if (minuto === 1440) return finDeDia(base);
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, minuto).getTime();
+}
+
+/** Diferencia «de reloj» entre dos instantes: días de calendario y minutos de la hora. */
+export function diferenciaDeReloj(desde: number, hasta: number): { dias: number; minutos: number } {
+  return {
+    dias: differenceInCalendarDays(hasta, desde),
+    minutos: minutosDelDia(hasta) - minutosDelDia(desde),
+  };
+}
+
+/**
+ * Mueve un instante «como el reloj»: tantos días de calendario y tantos minutos de la hora.
+ * Una serie de las 9:00 movida a las 9:30 queda a las 9:30 todos los días, también los de
+ * cambio de hora (sumar milisegundos fijos la dejaría a las 8:30 o a las 10:30 esos días).
+ */
+export function moverComoReloj(ms: number, dias: number, minutos: number): number {
+  const d = new Date(ms);
+  return new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate() + dias,
+    d.getHours(),
+    d.getMinutes() + minutos,
+    d.getSeconds(),
+    d.getMilliseconds(),
+  ).getTime();
+}
+
 /** Minutos desde medianoche de un instante. */
 export function minutosDelDia(fecha: Date | number): number {
   const d = typeof fecha === 'number' ? new Date(fecha) : fecha;

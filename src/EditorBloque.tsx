@@ -22,7 +22,8 @@ import {
 import { expandirCiclo } from './ciclos';
 import { empezarSesionConAviso } from './temporizador';
 import { empezarRutina } from './operacionesRutinas';
-import { claveDia, conHora, desdeClaveDia, formatear } from './fechas';
+import { addDays, differenceInCalendarDays } from 'date-fns';
+import { MS_DIA, claveDia, conHora, desdeClaveDia, formatear } from './fechas';
 import { t } from './textos';
 import type { Evento, ReglaRecurrencia, TipoBloque } from './tipos';
 import type { DatosNuevos } from './datos';
@@ -122,15 +123,46 @@ export function EditorBloque() {
 
   const actualizar = (parcial: Partial<Formulario>) => setF({ ...f, ...parcial });
 
-  /** Calcula inicio y fin en ms a partir de la fecha y las horas (si el fin es menor, es al día siguiente). */
+  /**
+   * Calcula inicio y fin en ms a partir de la fecha y las horas (si el fin es menor, es al día
+   * siguiente). El formulario solo tiene una fecha, así que un bloque de varios días (unas
+   * vacaciones importadas de Google) conserva lo que dura en vez de recortarse a un día.
+   */
   const calcularHoras = () => {
+    const formInicial = inicial ? (JSON.parse(inicial) as Formulario) : null;
+    const original = oc && formInicial ? { inicioMs: oc.inicioMs, finMs: oc.finMs } : null;
+    const mismasHoras =
+      formInicial &&
+      f.fecha === formInicial.fecha &&
+      f.horaInicio === formInicial.horaInicio &&
+      f.horaFin === formInicial.horaFin &&
+      f.todoElDia === formInicial.todoElDia;
+    // Sin tocar fecha, horas ni «todo el día», inicio y fin se quedan como estaban
+    if (original && mismasHoras) return original;
+
     if (f.todoElDia) {
       const dia = desdeClaveDia(f.fecha);
-      return { inicioMs: dia.getTime(), finMs: dia.getTime() + 86_400_000 };
+      const dias =
+        original && formInicial?.todoElDia
+          ? Math.max(1, differenceInCalendarDays(original.finMs - 1, original.inicioMs) + 1)
+          : 1;
+      // addDays y no «+ 24 h»: el día del cambio de hora dura 23 o 25 horas
+      return { inicioMs: dia.getTime(), finMs: addDays(dia, dias).getTime() };
     }
     const inicioMs = conHora(f.fecha, f.horaInicio).getTime();
+    const duracionOriginal = original ? original.finMs - original.inicioMs : 0;
+    if (
+      original &&
+      formInicial &&
+      !formInicial.todoElDia &&
+      f.horaFin === formInicial.horaFin &&
+      duracionOriginal > MS_DIA
+    ) {
+      // Bloque de más de un día al que se le ha cambiado la fecha o la hora de inicio
+      return { inicioMs, finMs: inicioMs + duracionOriginal };
+    }
     let finMs = conHora(f.fecha, f.horaFin).getTime();
-    if (finMs <= inicioMs) finMs += 86_400_000;
+    if (finMs <= inicioMs) finMs = conHora(addDays(desdeClaveDia(f.fecha), 1), f.horaFin).getTime();
     return { inicioMs, finMs };
   };
 

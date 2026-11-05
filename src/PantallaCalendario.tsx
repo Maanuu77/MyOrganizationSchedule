@@ -43,6 +43,7 @@ import {
   desdeClaveDia,
   diasDeSemana,
   formatear,
+  instanteEnDia,
   minutosDelDia,
 } from './fechas';
 import { t } from './textos';
@@ -288,7 +289,8 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     if (!columna) return null;
     const top = columna.getBoundingClientRect().top;
     const min = (y - top) / pxPorMinuto - desplazamientoMin.current;
-    return Math.min(1440 - PASO_MIN, Math.max(0, Math.round(min / PASO_MIN) * PASO_MIN));
+    // Puede ser negativo: un bloque que empezó el día anterior conserva su inicio de ese día
+    return Math.min(1440 - PASO_MIN, Math.max(-1440, Math.round(min / PASO_MIN) * PASO_MIN));
   };
 
   // Seguimos el puntero con ratón o dedo (solo guarda un número: es muy barato)
@@ -320,6 +322,12 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
           0,
           (yDelEvento(e.activatorEvent) - inicial.top) / pxPorMinuto,
         );
+      // Si se ha cogido el tramo del día siguiente de un bloque que cruza la medianoche, lo que
+      // se ve empieza a las 00:00 pero el bloque empezó antes: sumamos esa parte que no se ve
+      // (el id del arrastre acaba en el día de la columna, 'YYYY-MM-DD')
+      const diaColumna = desdeClaveDia(String(e.active.id).slice(-10)).getTime();
+      if (diaColumna > datos.ocurrencia.inicioMs)
+        desplazamientoMin.current += (diaColumna - datos.ocurrencia.inicioMs) / 60_000;
     }
   };
 
@@ -357,15 +365,16 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     const minutoPrevio = previa?.inicioMin;
     limpiar();
     if (!destino) return;
-    const dia = desdeClaveDia(destino.fecha).getTime();
+    const dia = desdeClaveDia(destino.fecha);
+    // Minutos de la rejilla → hora del reloj de ese día (vale también con cambio de hora)
     let inicio: number;
     if (destino.conHoras) {
       const minuto = minutoDestino(destino.fecha, punteroY.current) ?? minutoPrevio ?? 540;
-      inicio = dia + minuto * 60_000;
+      inicio = instanteEnDia(dia, minuto);
     } else {
       // En la vista mes se conserva la hora del bloque; lo nuevo va a las 9:00
       const minutos = datos.tipo === 'bloque' ? minutosDelDia(datos.ocurrencia.inicioMs) : 540;
-      inicio = dia + minutos * 60_000;
+      inicio = instanteEnDia(dia, minutos);
     }
     const duracion = duracionDe(datos) * 60_000;
 
@@ -396,7 +405,7 @@ export function PantallaCalendario({ vistaInicial }: { vistaInicial?: VistaCalen
     const base = vista === 'agenda' || vista === 'mes' ? startOfDay(Date.now()) : startOfDay(fecha);
     const ahora = new Date();
     const hora = claveDia(base) === claveDia(ahora) ? ahora.getHours() + 1 : 9;
-    abrirNuevo(base.getTime() + hora * 3_600_000, 0);
+    abrirNuevo(instanteEnDia(base, hora * 60), 0);
   };
 
   const selectorVista = (

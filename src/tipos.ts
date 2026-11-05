@@ -213,6 +213,8 @@ export interface RepeticionTarea {
   frecuencia: 'diaria' | 'semanal' | 'mensual';
   intervalo: number;
   diasSemana?: number[];
+  /** Mensual: día del mes que se repite (el de la primera tarea), aunque algún mes sea más corto. */
+  diaMes?: number;
 }
 
 export interface Tarea extends DocumentoBase {
@@ -420,6 +422,11 @@ export interface IntegracionGoogle {
   calendarioImportarId: string | null;
   calendarioExportarId: string | null;
   ultimaSincronizacionMs: number | null;
+  /**
+   * Ids de Google de eventos importados que se han borrado en la app. Al sincronizar se borran
+   * también en Google y, mientras sigan allí (calendario de solo lectura), no se reimportan.
+   */
+  borradosEnApp?: string[];
   actualizadoEnMs: number;
 }
 

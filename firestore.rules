@@ -92,10 +92,11 @@ service cloud.firestore {
         || (p.keys().hasOnly(['tipo', 'semana']) && p.tipo == 'semana' && dia(p.semana)));
     }
     function repeticionValida(r) {
-      return r is map && r.keys().hasOnly(['frecuencia', 'intervalo', 'diasSemana'])
+      return r is map && r.keys().hasOnly(['frecuencia', 'intervalo', 'diasSemana', 'diaMes'])
         && r.frecuencia in ['diaria', 'semanal', 'mensual']
         && numeroEntre(r.intervalo, 1, 99)
-        && (!('diasSemana' in r) || listaHasta(r.diasSemana, 7));
+        && (!('diasSemana' in r) || listaHasta(r.diasSemana, 7))
+        && (!('diaMes' in r) || numeroEntre(r.diaMes, 1, 31));
     }
     function tiposNotificacionValidos(t) {
       return t is map
@@ -321,12 +322,14 @@ service cloud.firestore {
     }
 
     function integracionValida(d) {
-      return d.keys().hasOnly(['conectado', 'email', 'calendarioImportarId', 'calendarioExportarId', 'ultimaSincronizacionMs', 'actualizadoEnMs'])
+      return d.keys().hasOnly(['conectado', 'email', 'calendarioImportarId', 'calendarioExportarId', 'ultimaSincronizacionMs',
+          'borradosEnApp', 'actualizadoEnMs'])
         && d.conectado is bool
         && textoONulo(d.email, 320)
         && textoONulo(d.calendarioImportarId, 500)
         && textoONulo(d.calendarioExportarId, 500)
         && numeroONulo(d.ultimaSincronizacionMs)
+        && (!('borradosEnApp' in d) || listaHasta(d.borradosEnApp, 500))
         && d.actualizadoEnMs is number;
     }
 

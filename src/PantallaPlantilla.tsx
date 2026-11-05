@@ -5,7 +5,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { CalendarRange, Copy, Plus, Trash2, Undo2 } from 'lucide-react';
-import { addDays } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 import { etiquetasActivas, useDatos } from './almacenDatos';
 import { avisar, confirmar } from './almacenUI';
 import { eventos as dbEventos, nuevoId, plantillas as dbPlantillas } from './datos';
@@ -19,6 +19,7 @@ import { EstadoVacio } from './EstadoVacio';
 import {
   DIAS_CORTOS,
   DIAS_LARGOS,
+  claveDia,
   conHora,
   horaAMinutos,
   inicioDeSemana,
@@ -122,14 +123,22 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
     if (!plantilla.bloques.length) return;
     setAplicando(true);
     const lunes = inicioDeSemana(new Date(), inicioSemana);
+    const hoy = startOfDay(new Date());
+    // Cada bloque aplicado tiene un id fijo (plantilla + bloque + día): aplicar dos veces las
+    // mismas semanas no duplica nada, solo añade lo que falte
+    const yaAplicados = new Set(eventos.map((e) => e.id));
     const nuevos = [];
     for (let s = 0; s < numero; s++) {
       for (const b of plantilla.bloques) {
         const desplazamiento = (b.diaSemana - lunes.getDay() + 7) % 7;
         const dia = addDays(lunes, s * 7 + desplazamiento);
+        // Los días ya pasados de esta semana no: ensuciarían las estadísticas
+        if (dia < hoy) continue;
+        const id = `${plantilla.id}_${b.id}_${claveDia(dia)}`;
+        if (yaAplicados.has(id)) continue;
         const inicio = conHora(dia, b.horaInicio).getTime();
-        nuevos.push(
-          eventoVacio({
+        nuevos.push({
+          ...eventoVacio({
             tipo: b.tipo,
             titulo: b.titulo,
             etiquetaId: b.etiquetaId,
@@ -138,8 +147,14 @@ function EditorPlantilla({ plantilla }: { plantilla: PlantillaSemanal }) {
             finMs: inicio + b.duracionMin * 60_000,
             plantillaId: plantilla.id,
           }),
-        );
+          id,
+        });
       }
+    }
+    if (!nuevos.length) {
+      avisar(t.plantilla.yaAplicada, 'info');
+      setAplicando(false);
+      return;
     }
     // Comprobamos los bloques protegidos una sola vez para todo el lote
     const desde = lunes.getTime();

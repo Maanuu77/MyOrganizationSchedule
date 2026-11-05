@@ -34,9 +34,16 @@ export function useAvisosCarga(): AvisoCarga[] {
   const tareas = useDatos((s) => s.tareas);
   const umbrales = useDatos((s) => s.ajustes.umbrales);
   const sueno = useDatos((s) => s.ajustes.sueno);
+  // Las fechas límite se pueden vigilar hasta 30 días antes: el tiempo reservado para ellas
+  // se busca hasta ahí, aunque la carga se vigile solo 14 días
+  const hastaLimites = Math.max(
+    hasta,
+    addDays(startOfDay(new Date()), umbrales.diasAvisoFechaLimite + 1).getTime(),
+  );
+  const ocurrenciasLimites = useOcurrencias(desde, hastaLimites);
   return useMemo(
-    () => detectarAvisos(ocurrencias, tareas, { umbrales, sueno }, Date.now()),
-    [ocurrencias, tareas, umbrales, sueno],
+    () => detectarAvisos(ocurrencias, tareas, { umbrales, sueno }, Date.now(), ocurrenciasLimites),
+    [ocurrencias, ocurrenciasLimites, tareas, umbrales, sueno],
   );
 }
 

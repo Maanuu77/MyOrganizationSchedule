@@ -7,7 +7,7 @@ import { Check, Repeat, ShieldCheck, TriangleAlert } from 'lucide-react';
 import type { AvisoCarga, Etiqueta, Ocurrencia } from './tipos';
 import type { BloqueColocado } from './distribucion';
 import { IconoEtiqueta } from './IconoEtiqueta';
-import { formatearHora } from './fechas';
+import { formatearHora, instanteEnDia } from './fechas';
 import { moverOcurrencia } from './operaciones';
 import { useUI } from './almacenUI';
 
@@ -18,6 +18,8 @@ interface Props {
   pxPorMinuto: number;
   formato24h: boolean;
   idDrag: string;
+  /** Inicio del día de la columna: los minutos de `colocado` son de ese día. */
+  inicioDiaMs: number;
 }
 
 /** Datos que viajan con el arrastre de un bloque. */
@@ -44,6 +46,7 @@ export const BloqueCalendario = memo(function BloqueCalendario({
   pxPorMinuto,
   formato24h,
   idDrag,
+  inicioDiaMs,
 }: Props) {
   const { ocurrencia: oc, inicioMin, finMin, columna, totalColumnas } = colocado;
   const poner = useUI((s) => s.poner);
@@ -62,8 +65,10 @@ export const BloqueCalendario = memo(function BloqueCalendario({
   const alto = Math.max(18, (finVisible - inicioMin) * pxPorMinuto - 2);
   const corto = alto < 40;
   const ancho = 100 / totalColumnas;
+  // El fin se calcula desde el día de la columna, no desde el inicio del bloque: en la columna
+  // del martes, un bloque que empezó el lunes a las 22:00 tiene inicioMin = 0
   const finMsVisible =
-    finProvisional !== null ? oc.inicioMs + (finProvisional - inicioMin) * 60_000 : oc.finMs;
+    finProvisional !== null ? instanteEnDia(inicioDiaMs, finProvisional) : oc.finMs;
 
   const alPulsarAsa = (e: React.PointerEvent) => {
     e.stopPropagation();
@@ -84,7 +89,7 @@ export const BloqueCalendario = memo(function BloqueCalendario({
       setFinProvisional(null);
       return;
     }
-    const nuevoFinMs = oc.inicioMs + (fin - inicioMin) * 60_000;
+    const nuevoFinMs = instanteEnDia(inicioDiaMs, fin);
     marcarFinArrastre();
     await moverOcurrencia(oc, oc.inicioMs, nuevoFinMs);
     setFinProvisional(null);

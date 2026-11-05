@@ -290,6 +290,42 @@ export const eventos = {
     await borrar(COLECCIONES.eventos, id);
   },
   borrarVarios: (ids: string[]) => borrarVarios(COLECCIONES.eventos, ids),
+  /**
+   * Cambia una serie en un solo lote (o todo o nada): actualiza el evento, crea si hace falta
+   * una serie nueva y lleva las excepciones a su nueva clave (o las borra). Así «este y los
+   * siguientes» nunca deja la serie cortada sin continuación, y mover una serie no deja
+   * excepciones huérfanas (ocurrencias canceladas que reaparecen, hechas que dejan de estarlo).
+   */
+  cambiarSerie: async (o: {
+    id: string;
+    cambios: Partial<Evento>;
+    nueva?: DatosNuevos<Evento> & { id: string };
+    excepciones?: Array<{ borrarId: string; nueva: DatosNuevos<ExcepcionEvento> | null }>;
+  }) => {
+    const ahora = Date.now();
+    const lote = writeBatch(obtenerDb());
+    lote.update(
+      refDoc(COLECCIONES.eventos, o.id),
+      limpiar({ ...o.cambios, actualizadoEnMs: ahora }) as DocumentData,
+    );
+    if (o.nueva) {
+      const { id, ...resto } = o.nueva;
+      lote.set(
+        refDoc(COLECCIONES.eventos, id),
+        limpiar({ ...resto, creadoEnMs: ahora, actualizadoEnMs: ahora }) as DocumentData,
+      );
+    }
+    for (const { borrarId, nueva } of o.excepciones ?? []) {
+      const idNueva = nueva ? excepciones.id(nueva.eventoId, nueva.inicioOriginalMs) : null;
+      if (idNueva !== borrarId) lote.delete(refDoc(COLECCIONES.excepciones, borrarId));
+      if (nueva && idNueva)
+        lote.set(
+          refDoc(COLECCIONES.excepciones, idNueva),
+          limpiar({ ...nueva, creadoEnMs: ahora, actualizadoEnMs: ahora }) as DocumentData,
+        );
+    }
+    await esperarSiHayRed(lote.commit());
+  },
 };
 
 export const excepciones = {
@@ -354,6 +390,18 @@ export async function guardarIntegracionGoogle(datos: IntegracionGoogle): Promis
     refDoc(COLECCIONES.integraciones, 'googleCalendar'),
     limpiar({ ...datos, actualizadoEnMs: Date.now() }),
   );
+}
+
+/**
+ * Apunta que se ha borrado en la app un evento importado de Google, para que la siguiente
+ * sincronización lo borre también en Google y no lo vuelva a importar.
+ */
+export async function apuntarBorradoEnGoogle(idGoogle: string): Promise<void> {
+  const actual = useDatos.getState().integracionGoogle;
+  if (!actual) return;
+  // Como mucho los 500 últimos (límite de las reglas)
+  const borrados = [...(actual.borradosEnApp ?? []).filter((x) => x !== idGoogle), idGoogle];
+  await guardarIntegracionGoogle({ ...actual, borradosEnApp: borrados.slice(-500) });
 }
 
 // ---------------------------------------------------------------------------

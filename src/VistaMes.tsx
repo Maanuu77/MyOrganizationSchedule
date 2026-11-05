@@ -9,6 +9,7 @@ import { TriangleAlert } from 'lucide-react';
 import type { AvisoCarga, Etiqueta, Ocurrencia } from './tipos';
 import {
   claveDia,
+  conHora,
   formatear,
   formatearHora,
   inicioDeSemana,
@@ -71,9 +72,14 @@ export function VistaMes({
   const porDia = useMemo(() => {
     const mapa = new Map<string, Ocurrencia[]>();
     for (const o of ocurrencias) {
-      const clave = claveDia(o.inicioMs);
-      if (!mapa.has(clave)) mapa.set(clave, []);
-      mapa.get(clave)!.push(o);
+      // Un evento de varios días (unas vacaciones de lunes a viernes) sale en cada uno, también
+      // si empezó antes de la cuadrícula. El fin no se incluye: si acaba a las 00:00, ese día no.
+      const ultimo = startOfDay(Math.max(o.inicioMs, o.finMs - 1));
+      for (let d = startOfDay(o.inicioMs); d <= ultimo; d = addDays(d, 1)) {
+        const clave = claveDia(d);
+        if (!mapa.has(clave)) mapa.set(clave, []);
+        mapa.get(clave)!.push(o);
+      }
     }
     return mapa;
   }, [ocurrencias]);
@@ -184,8 +190,7 @@ const CeldaDia = memo(function CeldaDia({
         isOver ? 'bg-acento/10' : ''
       }`}
       onDoubleClick={() => {
-        const inicio = startOfDay(dia).getTime() + 9 * 3_600_000;
-        alCrear(inicio, 0);
+        alCrear(conHora(dia, '09:00').getTime(), 0);
       }}
     >
       <div className="mb-1 flex items-center justify-between">

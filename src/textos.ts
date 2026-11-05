@@ -440,6 +440,7 @@ export const t = {
     aplicarProximas: 'Aplicar a las próximas semanas',
     numeroSemanas: 'Número de semanas',
     aplicada: (n: number) => (n === 1 ? 'Se ha creado 1 bloque' : `Se han creado ${n} bloques`),
+    yaAplicada: 'La plantilla ya estaba aplicada en esas semanas: no hay bloques nuevos que crear.',
     deshacer: 'Quitar bloques aplicados',
     seQuitaran: (n: number) => `Se quitarán ${n} bloques futuros creados con esta plantilla.`,
     vacioTitulo: 'Sin plantillas',
@@ -589,6 +590,8 @@ export const t = {
     ultima: (texto: string) => `Última sincronización: ${texto}`,
     resultado: (imp: number, exp: number) =>
       `Importados/actualizados ${imp} · Exportados/actualizados ${exp}`,
+    conErrores: (n: number) =>
+      `${n} ${n === 1 ? 'evento no se ha podido' : 'eventos no se han podido'} sincronizar; el resto sí.`,
     tokenCaducado: 'El permiso de Google caduca cada hora. Vuelve a conectar para sincronizar.',
     limitacion:
       'La sincronización es manual (botón «Sincronizar ahora»). La automática en segundo plano necesitaría un servidor con permiso permanente.',
