@@ -151,22 +151,27 @@ export function useMotorContador(): void {
     notificaciones.tipos.faseTemporizador,
   ]);
 
-  // Recordatorios en el servidor para recibir los cambios de fase con la app cerrada
+  // Recordatorios en el servidor para recibir los cambios de fase con la app cerrada.
+  // Hasta que llega el estado del contador no se hace nada: con `contador` aún a null se
+  // borrarían los avisos de una sesión que está en marcha en otro dispositivo.
   const version = contador?.version ?? null;
+  const contadorCargado = useDatos((s) => s.contadorCargado);
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !contadorCargado) return;
     const activas = notificaciones.activas && notificaciones.tipos.faseTemporizador;
     const temporizador = setTimeout(() => {
-      sincronizarRecordatoriosContador(
-        activas ? contador : null,
-        ajustesContador.autoAvanzar,
-      ).catch((e) => console.warn('No se pudieron preparar los avisos del contador', e));
+      // El estado más reciente (ya confirmado por el servidor si ha dado tiempo), no el
+      // del render en que se programó
+      const actual = useDatos.getState().contador;
+      sincronizarRecordatoriosContador(activas ? actual : null, ajustesContador.autoAvanzar).catch(
+        (e) => console.warn('No se pudieron preparar los avisos del contador', e),
+      );
     }, 800);
     return () => clearTimeout(temporizador);
     // Solo cuando cambia la versión del contador (no en cada render)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     uid,
+    contadorCargado,
     version,
     notificaciones.activas,
     notificaciones.tipos.faseTemporizador,

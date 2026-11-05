@@ -1,7 +1,7 @@
 // Editor de bloques del calendario (evento, sesión, protegido o rutina) en una hoja modal.
 // Sirve para crear y para editar. Si el bloque se repite, al guardar pregunta el alcance.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { CalendarClock, Check, Copy, Play, Trash2 } from 'lucide-react';
 import { useUI } from './almacenUI';
@@ -20,7 +20,7 @@ import {
   eventoVacio,
 } from './operaciones';
 import { expandirCiclo } from './ciclos';
-import { iniciarSesion } from './temporizador';
+import { empezarSesionConAviso } from './temporizador';
 import { empezarRutina } from './operacionesRutinas';
 import { claveDia, conHora, desdeClaveDia, formatear } from './fechas';
 import { t } from './textos';
@@ -62,6 +62,10 @@ export function EditorBloque() {
   const navegar = useNavigate();
   const [f, setF] = useState<Formulario | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Con un ref y no con el estado: dos Intro seguidos llegan antes de que se vuelva a pintar
+  const enviando = useRef(false);
+  // El formulario tal y como se abrió, para saber si hay cambios sin guardar
+  const [inicial, setInicial] = useState<string | null>(null);
 
   const oc = estado?.ocurrencia ?? null;
 
@@ -69,6 +73,7 @@ export function EditorBloque() {
   useEffect(() => {
     if (!estado) {
       setF(null);
+      setInicial(null);
       return;
     }
     const base = oc
@@ -81,7 +86,7 @@ export function EditorBloque() {
           finMs: oc.finMs,
         }
       : eventoVacio({ ...estado.borrador!, titulo: estado.borrador?.titulo });
-    setF({
+    const formulario: Formulario = {
       tipo: base.tipo,
       titulo: base.titulo,
       etiquetaId: base.etiquetaId ?? null,
@@ -96,7 +101,9 @@ export function EditorBloque() {
       rutinaId: base.rutinaId ?? null,
       notas: base.notas,
       color: base.color,
-    });
+    };
+    setF(formulario);
+    setInicial(JSON.stringify(formulario));
   }, [estado, oc]);
 
   const activas = useMemo(() => etiquetasActivas(etiquetas), [etiquetas]);
@@ -128,6 +135,16 @@ export function EditorBloque() {
   };
 
   const guardar = async () => {
+    if (enviando.current) return;
+    enviando.current = true;
+    try {
+      await guardarBloque();
+    } finally {
+      enviando.current = false;
+    }
+  };
+
+  const guardarBloque = async () => {
     setGuardando(true);
     const { inicioMs, finMs } = calcularHoras();
     const titulo = f.titulo.trim() || t.bloque.tituloPorDefecto[f.tipo];
@@ -175,16 +192,22 @@ export function EditorBloque() {
 
   const empezarSesion = async () => {
     const ciclo = ciclos.find((c) => c.id === f.cicloId);
-    await iniciarSesion({
-      modo: ciclo ? 'ciclo' : 'cronometro',
-      fases: ciclo ? expandirCiclo(ciclo) : [],
-      etiquetaId: f.etiquetaId,
-      tareaId: f.tareaId,
-      eventoId: oc?.evento.id ?? null,
-      cicloId: ciclo?.id ?? null,
-    });
-    cerrar();
-    navegar('/foco');
+    const irAlContador = () => {
+      cerrar();
+      navegar('/foco');
+    };
+    const empezada = await empezarSesionConAviso(
+      {
+        modo: ciclo ? 'ciclo' : 'cronometro',
+        fases: ciclo ? expandirCiclo(ciclo) : [],
+        etiquetaId: f.etiquetaId,
+        tareaId: f.tareaId,
+        eventoId: oc?.evento.id ?? null,
+        cicloId: ciclo?.id ?? null,
+      },
+      irAlContador,
+    );
+    if (empezada) irAlContador();
   };
 
   const etiqueta = buscarEtiqueta(etiquetas, f.etiquetaId);
@@ -195,6 +218,7 @@ export function EditorBloque() {
     <Modal
       abierto
       alCerrar={cerrar}
+      cambiosSinGuardar={JSON.stringify(f) !== inicial}
       titulo={oc ? t.bloque.editar : t.bloque.nuevo}
       ancho="lg"
       pie={

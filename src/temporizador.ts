@@ -12,21 +12,23 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  setDoc,
   where,
+  writeBatch,
+  type WriteBatch,
 } from 'firebase/firestore';
 import { obtenerDb } from './firebase';
 import {
   COLECCIONES,
-  ejecuciones,
   enLotes,
   limpiar,
   refColeccion,
   refDoc,
-  registros,
   uidActual,
+  type DatosNuevos,
 } from './datos';
 import { useDatos } from './almacenDatos';
+import { avisar } from './almacenUI';
+import { t } from './textos';
 import { claveDia } from './fechas';
 import { ahoraServidor, idDispositivo } from './relojServidor';
 import {
@@ -38,7 +40,13 @@ import {
 } from './ciclos';
 import { idRecordatorio } from './recordatorios';
 import { repartirPorPasos } from './rutinas';
-import type { EstadoContador, FaseExpandida, Recordatorio, TramoSesion } from './tipos';
+import type {
+  EstadoContador,
+  FaseExpandida,
+  Recordatorio,
+  RegistroSesion,
+  TramoSesion,
+} from './tipos';
 
 const ID = 'actual';
 const refContador = () => refDoc(COLECCIONES.contador, ID);
@@ -68,6 +76,19 @@ interface OpcionesInicio {
   rutinaId?: string | null;
 }
 
+/** Ya hay una sesión en marcha (en este o en otro dispositivo): no se empieza otra encima. */
+export class SesionEnCurso extends Error {
+  constructor() {
+    super('Ya hay una sesión de foco en marcha');
+    this.name = 'SesionEnCurso';
+  }
+}
+
+/**
+ * Empieza una sesión. Lanza `SesionEnCurso` si ya hay una: antes se sustituía sin avisar y
+ * se perdía el tiempo de la sesión anterior. Se comprueba en una transacción porque la otra
+ * sesión puede haberla empezado otro dispositivo hace un instante.
+ */
 export async function iniciarSesion(o: OpcionesInicio): Promise<void> {
   const estado = {
     estado: 'enCurso',
@@ -92,7 +113,39 @@ export async function iniciarSesion(o: OpcionesInicio): Promise<void> {
     actualizadoPor: idDispositivo(),
     version: Date.now(),
   };
-  await setDoc(refContador(), limpiar(estado));
+  await runTransaction(obtenerDb(), async (tx) => {
+    const actual = await tx.get(refContador());
+    if (actual.exists() && (actual.data() as EstadoContador).estado !== 'inactivo') {
+      throw new SesionEnCurso();
+    }
+    tx.set(refContador(), limpiar(estado));
+  });
+}
+
+/**
+ * Empieza una sesión y avisa si no se puede: ya hay otra en marcha (con un botón para ir
+ * al contador) o ha fallado la escritura. Devuelve true si ha empezado.
+ */
+export async function empezarSesionConAviso(
+  o: OpcionesInicio,
+  irAlContador?: () => void,
+): Promise<boolean> {
+  try {
+    await iniciarSesion(o);
+    return true;
+  } catch (e) {
+    if (e instanceof SesionEnCurso) {
+      avisar(
+        t.foco.sesionEnCurso,
+        'error',
+        irAlContador ? { texto: t.foco.irAlContador, ejecutar: irAlContador } : undefined,
+      );
+    } else {
+      console.error(e);
+      avisar(t.comun.error, 'error');
+    }
+    return false;
+  }
 }
 
 /** Ejecuta un cambio dentro de una transacción leyendo el estado más reciente. */
@@ -129,24 +182,33 @@ export function reanudar(): Promise<void> {
   });
 }
 
-/** Cierra la fase actual con lo que se haya hecho y pasa a la siguiente. */
-export function saltarFase(): Promise<void> {
+/**
+ * Cierra la fase actual con lo que se haya hecho y pasa a la siguiente.
+ * `indiceVisto` es la fase que veía el usuario al pulsar: si ya ha cambiado (doble clic,
+ * otro dispositivo o el avance automático se adelantaron), no se salta nada. Si no, se
+ * saltarían dos fases.
+ */
+export function saltarFase(indiceVisto: number): Promise<void> {
   return cambiar((e) => {
     const plano = aPlano(e)!;
     if (e.modo !== 'ciclo' || e.indiceFase >= e.fases.length) return null;
+    if (e.indiceFase !== indiceVisto) return null;
     const ahora = ahoraServidor();
-    const hecho = transcurridoMs(plano, ahora);
-    const tramo: TramoSesion = {
-      tipo: e.fases[e.indiceFase].tipo,
-      indiceFase: e.indiceFase,
-      inicioMs: plano.inicioFaseMs ?? ahora,
-      finMs: ahora,
-      duracionMs: hecho,
-    };
+    // En espera la fase aún no ha empezado: no hay tramo que apuntar
+    const tramo: TramoSesion | null =
+      e.estado === 'esperando'
+        ? null
+        : {
+            tipo: e.fases[e.indiceFase].tipo,
+            indiceFase: e.indiceFase,
+            inicioMs: plano.inicioFaseMs ?? ahora,
+            finMs: ahora,
+            duracionMs: transcurridoMs(plano, ahora),
+          };
     const siguiente = e.indiceFase + 1;
     const terminado = siguiente >= e.fases.length;
     return {
-      tramos: [...e.tramos, tramo],
+      tramos: tramo ? [...e.tramos, tramo] : e.tramos,
       indiceFase: siguiente,
       estado: terminado
         ? 'esperando'
@@ -262,7 +324,11 @@ export function resumenDe(e: EstadoContador): ResumenSesion {
 
 /**
  * Guarda la sesión y deja el contador libre. Si la lanzó una rutina, se guarda un registro
- * por cada paso (con su etiqueta y su tarea) y se apunta qué pasos se han hecho hoy.
+ * por cada paso (con su etiqueta y su tarea) y se apunta qué pasos se han hecho.
+ *
+ * Todo va en un solo lote: o se guarda todo o nada. Y los ids salen del inicio de la sesión,
+ * así que guardar dos veces (reintento tras un error, o desde dos dispositivos a la vez)
+ * sobrescribe los mismos registros en lugar de duplicarlos.
  */
 export async function terminarYGuardar(
   resumen: ResumenSesion,
@@ -270,13 +336,22 @@ export async function terminarYGuardar(
   valoracion: number | null,
   contador: EstadoContador | null = null,
 ): Promise<void> {
+  const ahora = Date.now();
+  const lote = writeBatch(obtenerDb());
+  const idSesion = `sesion_${Math.round(resumen.inicioMs)}`;
+  const guardarRegistro = (id: string, datos: DatosNuevos<RegistroSesion>) =>
+    lote.set(
+      refDoc(COLECCIONES.registros, id),
+      limpiar({ ...datos, creadoEnMs: ahora, actualizadoEnMs: ahora }),
+    );
+
   if (contador?.rutinaId) {
     const { pasos, hechos } = repartirPorPasos(
       contador.fases,
       tramosHastaAhora(contador, resumen.finMs),
     );
-    for (const [i, p] of pasos.entries()) {
-      await registros.crear({
+    pasos.forEach((p, i) =>
+      guardarRegistro(`${idSesion}_${i}`, {
         ...resumen,
         etiquetaId: p.etiquetaId,
         tareaId: p.tareaId,
@@ -289,44 +364,47 @@ export async function terminarYGuardar(
         fasesCompletadas: hechos.includes(p.pasoId) ? 1 : 0,
         nota,
         valoracion,
-      });
-    }
+      }),
+    );
     const totales = contador.fases.filter((f) => f.pasoId).length;
-    await apuntarEjecucionDeHoy(contador.rutinaId, hechos, totales, resumen.inicioMs);
+    apuntarEjecucion(lote, contador.rutinaId, hechos, totales, resumen.inicioMs, ahora);
   } else {
-    await registros.crear({ ...resumen, nota, valoracion });
+    guardarRegistro(idSesion, { ...resumen, nota, valoracion });
   }
-  await detener();
+  lote.delete(refContador());
+  await lote.commit();
+  await sincronizarRecordatoriosContador(null, true, true);
 }
 
-/** Marca en el seguimiento de hoy los pasos hechos de la rutina (sin perder los de antes). */
-async function apuntarEjecucionDeHoy(
+/** Marca en el seguimiento de la rutina los pasos hechos (sin perder los de antes). */
+function apuntarEjecucion(
+  lote: WriteBatch,
   rutinaId: string,
   hechos: string[],
   totales: number,
   inicioMs: number,
-): Promise<void> {
-  const hoy = claveDia(new Date());
+  ahora: number,
+): void {
+  // El día en que se empezó: una rutina de las 23:30 guardada a las 00:20 cuenta para ayer
+  const fecha = claveDia(inicioMs);
   const previa = useDatos
     .getState()
-    .ejecuciones.find((e) => e.rutinaId === rutinaId && e.fecha === hoy);
+    .ejecuciones.find((e) => e.rutinaId === rutinaId && e.fecha === fecha);
   const pasosHechos = [...new Set([...(previa?.pasosHechos ?? []), ...hechos])];
   const datos = {
-    finMs: Date.now(),
+    finMs: ahora,
     pasosHechos,
     pasosTotales: totales,
     completada: totales > 0 && pasosHechos.length >= totales,
     indicePaso: pasosHechos.length,
+    actualizadoEnMs: ahora,
   };
-  if (previa) await ejecuciones.actualizar(previa.id, datos);
+  if (previa) lote.update(refDoc(COLECCIONES.ejecuciones, previa.id), datos);
   else
-    await ejecuciones.crear({
-      ...datos,
-      rutinaId,
-      fecha: hoy,
-      inicioMs,
-      inicioPasoMs: null,
-    });
+    lote.set(
+      refDoc(COLECCIONES.ejecuciones, `${rutinaId}_${fecha}`),
+      limpiar({ ...datos, rutinaId, fecha, inicioMs, inicioPasoMs: null, creadoEnMs: ahora }),
+    );
 }
 
 /** Deja el contador libre sin guardar nada. */
@@ -382,11 +460,18 @@ export async function sincronizarRecordatoriosContador(
       fin += siguiente.duracionMs;
     }
   }
-  const idsNuevos = new Set(nuevos.map((n) => n.id));
+  // Lo que ya ha vencido no se toca: la Cloud Function lo envía en su siguiente pasada.
+  // Borrarlo dejaría sin push a los demás dispositivos justo en el cambio de fase, y
+  // reescribirlo lo volvería a marcar como no enviado.
+  const ahora = ahoraServidor();
+  const futuros = nuevos.filter((n) => n.fireAt > ahora);
+  const idsNuevos = new Set(futuros.map((n) => n.id));
   await enLotes(
     [
-      ...existentes.docs.filter((d) => !idsNuevos.has(d.id)).map((d) => ({ borrar: d.id })),
-      ...nuevos.map((n) => ({ crear: n })),
+      ...existentes.docs
+        .filter((d) => !idsNuevos.has(d.id) && (d.data().fireAt as number) > ahora)
+        .map((d) => ({ borrar: d.id })),
+      ...futuros.map((n) => ({ crear: n })),
     ],
     (lote, op) => {
       if ('borrar' in op) lote.delete(refDoc(COLECCIONES.recordatorios, op.borrar));

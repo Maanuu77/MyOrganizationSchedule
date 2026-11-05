@@ -48,6 +48,8 @@ export interface EstadoDatos {
   dispositivos: Dispositivo[];
   integracionGoogle: IntegracionGoogle | null;
   contador: EstadoContador | null;
+  /** Si ya ha llegado el estado del contador (hasta entonces `contador` vale null aunque haya sesión). */
+  contadorCargado: boolean;
   /** Error de permisos u otro problema al escuchar Firestore. */
   errorSincronizacion: string | null;
   poner: (parcial: Partial<EstadoDatos>) => void;
@@ -80,6 +82,7 @@ const vacio = () => ({
   dispositivos: [],
   integracionGoogle: null,
   contador: null,
+  contadorCargado: false,
   errorSincronizacion: null,
 });
 

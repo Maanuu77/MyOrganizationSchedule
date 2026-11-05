@@ -13,6 +13,7 @@ import {
   type RecordatorioNuevo,
 } from './recordatorios';
 import { expandirOcurrencias } from './recurrencia';
+import { ahoraServidor } from './relojServidor';
 import type { AvisoCarga } from './tipos';
 
 /** Últimos recordatorios calculados: los usa también el aviso en primer plano. */
@@ -33,7 +34,9 @@ export function useRecordatorios(avisos: AvisoCarga[]): void {
     // Esperamos un poco para agrupar varios cambios seguidos en una sola escritura
     const temporizador = setTimeout(async () => {
       try {
-        const ahora = Date.now();
+        // Hora del servidor: con el reloj del dispositivo desfasado podríamos tocar avisos
+        // que la Cloud Function ya está enviando
+        const ahora = ahoraServidor();
         const desde = startOfDay(ahora).getTime();
         const ocurrencias = expandirOcurrencias(
           eventos,
@@ -54,7 +57,7 @@ export function useRecordatorios(avisos: AvisoCarga[]): void {
         const existentes = (await recordatoriosPendientes()).filter(
           (r) => r.tipo !== 'faseTemporizador',
         );
-        const { crear, borrar } = diferenciaRecordatorios(existentes as never, deseados);
+        const { crear, borrar } = diferenciaRecordatorios(existentes as never, deseados, ahora);
         if (!crear.length && !borrar.length) return;
         await enLotes(
           [

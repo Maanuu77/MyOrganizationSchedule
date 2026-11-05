@@ -1,7 +1,7 @@
 // Editor de tareas en hoja modal: título, etiqueta, prioridad, fechas, estimación,
 // subtareas, notas y repetición.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarPlus, Plus, Trash2, X } from 'lucide-react';
 import { addHours, format, startOfHour } from 'date-fns';
 import { useUI, confirmar, avisar } from './almacenUI';
@@ -58,10 +58,16 @@ export function EditorTarea() {
   const [nuevaSub, setNuevaSub] = useState('');
   const [planificar, setPlanificar] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // Con un ref y no con el estado: dos Intro seguidos llegan antes de que se vuelva a pintar
+  const enviando = useRef(false);
+  // El formulario tal y como se abrió, para saber si hay cambios sin guardar
+  const [inicial, setInicial] = useState<string | null>(null);
   const tarea = estado?.tarea ?? null;
 
   useEffect(() => {
-    setF(estado ? formularioDe(tarea ?? { ...estado.borrador }) : null);
+    const formulario = estado ? formularioDe(tarea ?? { ...estado.borrador }) : null;
+    setF(formulario);
+    setInicial(formulario ? JSON.stringify(formulario) : null);
     setNuevaSub('');
   }, [estado, tarea]);
 
@@ -89,12 +95,16 @@ export function EditorTarea() {
     return { tipo: 'sinFecha' };
   };
 
+  const cambiosSinGuardar = JSON.stringify(f) !== inicial || nuevaSub.trim() !== '';
+
   const guardar = async () => {
+    if (enviando.current) return;
     const titulo = f.titulo.trim();
     if (!titulo) {
       avisar(t.tareas.tituloObligatorio, 'error');
       return;
     }
+    enviando.current = true;
     setGuardando(true);
     const datos = {
       titulo,
@@ -115,6 +125,7 @@ export function EditorTarea() {
       console.error(e);
       avisar(t.comun.error, 'error');
     } finally {
+      enviando.current = false;
       setGuardando(false);
     }
   };
@@ -144,6 +155,7 @@ export function EditorTarea() {
       <Modal
         abierto
         alCerrar={cerrar}
+        cambiosSinGuardar={cambiosSinGuardar}
         titulo={tarea ? t.tareas.editar : t.tareas.nueva}
         ancho="lg"
         pie={

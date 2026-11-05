@@ -15,7 +15,7 @@ import {
 } from './datos';
 import { crearBloque, eventoVacio } from './operaciones';
 import { duracionRutinaMin, fasesDeRutina, reglaDeRutina } from './rutinas';
-import { iniciarSesion } from './temporizador';
+import { empezarSesionConAviso } from './temporizador';
 import { conHora } from './fechas';
 import { t } from './textos';
 import type { Evento, Rutina } from './tipos';
@@ -96,7 +96,9 @@ export async function empezarRutina(
     avisar(t.rutinas.contadorOcupado, 'error');
     return false;
   }
-  await iniciarSesion({
+  // El aviso local es rápido, pero la sesión puede haberla empezado otro dispositivo hace un
+  // instante: iniciarSesion lo vuelve a comprobar en el servidor
+  return empezarSesionConAviso({
     modo: 'ciclo',
     fases: fasesDeRutina(rutina, etiquetas),
     etiquetaId: rutina.pasos[0].etiquetaId,
@@ -105,7 +107,6 @@ export async function empezarRutina(
     cicloId: null,
     rutinaId: rutina.id,
   });
-  return true;
 }
 
 /** Coloca la rutina en el calendario a una hora concreta (al soltarla o elegir hora). */

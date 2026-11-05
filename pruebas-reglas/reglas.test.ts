@@ -242,6 +242,97 @@ describe('validación de campos', () => {
     await assertFails(setDoc(doc(ana, 'users/ana/reminders/r2'), { ...r, uid: 'beto' }));
   });
 
+  it('los recordatorios solo pueden vencer entre ahora y dentro de 16 días', async () => {
+    const ana = db('ana');
+    const r = {
+      uid: 'ana',
+      tipo: 'inicioBloque',
+      refId: 'x',
+      fireAt: Date.now() + 3_600_000,
+      titulo: 'Clase',
+      cuerpo: '',
+      url: '/',
+      enviado: false,
+      creadoEnMs: ahora,
+    };
+    await assertSucceeds(setDoc(doc(ana, 'users/ana/reminders/r1'), r));
+    // Atrasados (llenarían la cola de envío) o demasiado lejanos
+    await assertFails(setDoc(doc(ana, 'users/ana/reminders/r2'), { ...r, fireAt: 0 }));
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/reminders/r3'), { ...r, fireAt: Date.now() + 30 * 86_400_000 }),
+    );
+    // No se pueden crear ya enviados
+    await assertFails(setDoc(doc(ana, 'users/ana/reminders/r4'), { ...r, enviado: true }));
+  });
+
+  it('un recordatorio enviado ya no se puede cambiar', async () => {
+    await entorno.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/ana/reminders/r1'), {
+        uid: 'ana',
+        tipo: 'inicioBloque',
+        refId: 'x',
+        fireAt: Date.now() + 60_000,
+        titulo: 'Clase',
+        cuerpo: '',
+        url: '/',
+        enviado: true,
+        creadoEnMs: ahora,
+      });
+    });
+    const ana = db('ana');
+    await assertFails(updateDoc(doc(ana, 'users/ana/reminders/r1'), { enviado: false }));
+    await assertFails(updateDoc(doc(ana, 'users/ana/reminders/r1'), { titulo: 'Otra' }));
+    await assertSucceeds(deleteDoc(doc(ana, 'users/ana/reminders/r1')));
+  });
+
+  it('los mapas internos solo admiten sus campos y tipos', async () => {
+    const ana = db('ana');
+    // Recurrencia sin fin: colgaría la app al pintar el calendario
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/events/e1'), {
+        ...evento,
+        recurrencia: { frecuencia: 'semanal', intervalo: 1, diasSemana: [1] },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/events/e2'), {
+        ...evento,
+        recurrencia: { ...evento.recurrencia, extra: 'x'.repeat(1000) },
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(ana, 'users/ana/events/e3'), {
+        ...evento,
+        recurrencia: {
+          frecuencia: 'mensual',
+          intervalo: 1,
+          mensual: { modo: 'ordinal', ordinal: -1, diaSemana: 1 },
+          fin: { tipo: 'veces', veces: 10 },
+        },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/tasks/t1'), { ...tarea, planificacion: { tipo: 'dia' } }),
+    );
+    await assertSucceeds(
+      setDoc(doc(ana, 'users/ana/tasks/t2'), {
+        ...tarea,
+        planificacion: { tipo: 'dia', fecha: '2026-11-05' },
+        repeticion: { frecuencia: 'semanal', intervalo: 1, diasSemana: [1, 3] },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(ana, 'users/ana/eventExceptions/x1'), {
+        eventoId: 'e1',
+        inicioOriginalMs: ahora,
+        cancelada: false,
+        completado: false,
+        cambios: { titulo: 'x'.repeat(201) },
+        ...marcas,
+      }),
+    );
+  });
+
   it('los dispositivos admiten escrituras parciales con merge', async () => {
     const ana = db('ana');
     await assertSucceeds(

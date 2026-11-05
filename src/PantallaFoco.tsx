@@ -22,13 +22,13 @@ import {
   Workflow,
 } from 'lucide-react';
 import { buscarEtiqueta, etiquetasActivas, useDatos } from './almacenDatos';
-import { avisar } from './almacenUI';
+import { avisar, confirmar } from './almacenUI';
 import { useEstadoContador } from './useTemporizador';
 import {
   añadirMinutos,
   cortarFaseEn,
   detener,
-  iniciarSesion,
+  empezarSesionConAviso,
   pausar,
   reanudar,
   resumenDe,
@@ -74,20 +74,16 @@ function PrepararSesion() {
 
   const empezar = async () => {
     setEmpezando(true);
-    try {
-      await iniciarSesion({
-        modo: modo === 'ciclo' && ciclo ? 'ciclo' : 'cronometro',
-        fases,
-        etiquetaId,
-        tareaId: tareaId || null,
-        eventoId: null,
-        cicloId: modo === 'ciclo' ? (ciclo?.id ?? null) : null,
-      });
-    } catch (e) {
-      console.error(e);
-      avisar(t.comun.error, 'error');
-      setEmpezando(false);
-    }
+    // Si empieza, esta pantalla pasa a la sesión en curso; si no, ya se ha avisado del motivo
+    const empezada = await empezarSesionConAviso({
+      modo: modo === 'ciclo' && ciclo ? 'ciclo' : 'cronometro',
+      fases,
+      etiquetaId,
+      tareaId: tareaId || null,
+      eventoId: null,
+      cicloId: modo === 'ciclo' ? (ciclo?.id ?? null) : null,
+    });
+    if (!empezada) setEmpezando(false);
   };
 
   const añadirArranque = async () => {
@@ -238,6 +234,21 @@ function SesionEnCurso() {
   const [nota, setNota] = useState('');
   const [valoracion, setValoracion] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Mientras se aplica un cambio del contador, los botones no hacen nada: un doble clic
+  // en «Saltar» se saltaría dos fases
+  const [ocupado, setOcupado] = useState(false);
+  const accion = (fn: () => Promise<void>) => async () => {
+    if (ocupado) return;
+    setOcupado(true);
+    try {
+      await fn();
+    } catch (e) {
+      console.error(e);
+      avisar(t.comun.error, 'error');
+    } finally {
+      setOcupado(false);
+    }
+  };
 
   // ¿La fase actual invade un bloque protegido o el siguiente evento?
   const finFase = ahora + restanteMs;
@@ -502,7 +513,7 @@ function SesionEnCurso() {
             variante="primario"
             tamano="lg"
             icono={<Play size={18} />}
-            onClick={() => seguir()}
+            onClick={accion(seguir)}
           >
             {t.foco.seguir}
           </Boton>
@@ -511,7 +522,7 @@ function SesionEnCurso() {
             variante="primario"
             tamano="lg"
             icono={<Play size={18} />}
-            onClick={() => reanudar()}
+            onClick={accion(reanudar)}
           >
             {t.foco.reanudar}
           </Boton>
@@ -520,7 +531,7 @@ function SesionEnCurso() {
             variante="primario"
             tamano="lg"
             icono={<Pause size={18} />}
-            onClick={() => pausar()}
+            onClick={accion(pausar)}
           >
             {t.foco.pausar}
           </Boton>
@@ -531,7 +542,8 @@ function SesionEnCurso() {
               variante="secundario"
               tamano="lg"
               icono={<SkipForward size={16} />}
-              onClick={() => saltarFase()}
+              onClick={accion(() => saltarFase(contador.indiceFase))}
+              disabled={ocupado}
             >
               {t.foco.saltar}
             </Boton>
@@ -540,7 +552,7 @@ function SesionEnCurso() {
                 variante="secundario"
                 tamano="lg"
                 icono={<Plus size={16} />}
-                onClick={() => añadirMinutos(5)}
+                onClick={accion(() => añadirMinutos(5))}
               >
                 {t.foco.mas5}
               </Boton>
@@ -568,10 +580,17 @@ function SesionEnCurso() {
           <>
             <Boton
               variante="fantasma"
-              onClick={async () => {
+              onClick={accion(async () => {
+                const ok = await confirmar({
+                  titulo: t.foco.descartarTitulo,
+                  mensaje: t.foco.descartarTexto,
+                  textoConfirmar: t.foco.descartar,
+                  peligro: true,
+                });
+                if (!ok) return;
                 await detener();
                 setResumen(null);
-              }}
+              })}
             >
               {t.foco.descartar}
             </Boton>

@@ -24,6 +24,22 @@ export const useEsEscritorioGrande = () => useConsultaMedia('(min-width: 1440px)
 export const useEsTactil = () => useConsultaMedia('(pointer: coarse)');
 export const usePrefiereOscuro = () => useConsultaMedia('(prefers-color-scheme: dark)');
 
+/** Si el navegador tiene conexión (se actualiza al perderla o recuperarla). */
+export function useEnLinea(): boolean {
+  return useSyncExternalStore(
+    (avisar) => {
+      window.addEventListener('online', avisar);
+      window.addEventListener('offline', avisar);
+      return () => {
+        window.removeEventListener('online', avisar);
+        window.removeEventListener('offline', avisar);
+      };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+}
+
 /**
  * Ancho real de un elemento en píxeles, que se actualiza cuando cambia de tamaño.
  * Sirve para adaptar una vista al sitio que tiene de verdad y no al ancho de la ventana:

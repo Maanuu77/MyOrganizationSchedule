@@ -1,5 +1,5 @@
 // Editor de etiquetas: nombre, color, icono, duración por defecto y objetivo semanal.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal } from './Modal';
 import { Boton } from './Boton';
 import { Campo } from './Campos';
@@ -25,22 +25,37 @@ export function EditorEtiqueta({ abierto, etiqueta, orden, alCerrar }: Props) {
   const [duracion, setDuracion] = useState('50');
   const [objetivo, setObjetivo] = useState('');
   const [guardando, setGuardando] = useState(false);
+  // Con un ref y no con el estado: dos Intro seguidos llegan antes de que se vuelva a pintar
+  const enviando = useRef(false);
+  // Los valores con que se abrió, para saber si hay cambios sin guardar
+  const [inicial, setInicial] = useState('');
+  const actual = JSON.stringify([nombre, color, icono, duracion, objetivo]);
 
   useEffect(() => {
     if (!abierto) return;
-    setNombre(etiqueta?.nombre ?? '');
-    setColor(etiqueta?.color ?? PALETA[orden % PALETA.length]);
-    setIcono(etiqueta?.icono ?? 'libro');
-    setDuracion(String(etiqueta?.duracionMin ?? 50));
-    setObjetivo(etiqueta?.objetivoSemanalHoras ? String(etiqueta.objetivoSemanalHoras) : '');
+    const valores = {
+      nombre: etiqueta?.nombre ?? '',
+      color: etiqueta?.color ?? PALETA[orden % PALETA.length],
+      icono: etiqueta?.icono ?? 'libro',
+      duracion: String(etiqueta?.duracionMin ?? 50),
+      objetivo: etiqueta?.objetivoSemanalHoras ? String(etiqueta.objetivoSemanalHoras) : '',
+    };
+    setNombre(valores.nombre);
+    setColor(valores.color);
+    setIcono(valores.icono);
+    setDuracion(valores.duracion);
+    setObjetivo(valores.objetivo);
+    setInicial(JSON.stringify(Object.values(valores)));
   }, [abierto, etiqueta, orden]);
 
   const guardar = async () => {
+    if (enviando.current) return;
     const limpio = nombre.trim();
     if (!limpio) {
       avisar(t.etiquetas.nombreObligatorio, 'error');
       return;
     }
+    enviando.current = true;
     setGuardando(true);
     const datos = {
       nombre: limpio,
@@ -57,6 +72,7 @@ export function EditorEtiqueta({ abierto, etiqueta, orden, alCerrar }: Props) {
       console.error(e);
       avisar(t.comun.error, 'error');
     } finally {
+      enviando.current = false;
       setGuardando(false);
     }
   };
@@ -65,6 +81,7 @@ export function EditorEtiqueta({ abierto, etiqueta, orden, alCerrar }: Props) {
     <Modal
       abierto={abierto}
       alCerrar={alCerrar}
+      cambiosSinGuardar={actual !== inicial}
       titulo={etiqueta ? t.etiquetas.editar : t.etiquetas.nueva}
       pie={
         <>

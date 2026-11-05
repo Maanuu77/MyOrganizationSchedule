@@ -8,6 +8,12 @@ export const t = {
     nombreCorto: 'MOS',
     lema: 'Planifica con ganas. Enfócate sin ruido.',
     cargando: 'Cargando tu espacio…',
+    errorCargaTitulo: 'No se han podido cargar tus datos',
+    errorCargaTexto:
+      'Comprueba la conexión e inténtalo de nuevo. Si sigue pasando, cierra sesión y vuelve a entrar.',
+    reintentar: 'Reintentar',
+    errorSincronizacion: 'Algunos datos no se están actualizando. Recarga la página.',
+    sinConexion: 'Sin conexión: los cambios se guardarán al volver la red',
   },
 
   nav: {
@@ -59,6 +65,9 @@ export const t = {
     todas: 'Todas',
     todos: 'Todos',
     guardado: 'Guardado',
+    descartarCambiosTitulo: '¿Descartar los cambios?',
+    descartarCambiosTexto: 'Lo que has escrito no se ha guardado.',
+    descartarCambios: 'Descartar',
     borrado: 'Borrado',
     deshacer: 'Deshacer',
     error: 'Algo ha fallado. Inténtalo de nuevo.',
@@ -326,6 +335,10 @@ export const t = {
     valoracion: 'Concentración',
     valoracionAyuda: 'Del 1 (muy disperso) al 5 (máximo foco). Opcional.',
     descartar: 'Descartar',
+    descartarTitulo: '¿Descartar la sesión?',
+    descartarTexto: 'El tiempo de esta sesión no se guardará en tus estadísticas.',
+    sesionEnCurso: 'Ya hay una sesión en marcha. Termínala antes de empezar otra.',
+    irAlContador: 'Ir al contador',
     resumen: (foco: string, descanso: string) => `Foco real: ${foco} · Descansos: ${descanso}`,
     interrupciones: 'Interrupciones',
     editarCiclos: 'Editar ciclos',

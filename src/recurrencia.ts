@@ -197,16 +197,24 @@ export function expandirOcurrencias(
   const resultado: Ocurrencia[] = [];
   for (const evento of eventos) {
     const duracion = evento.finMs - evento.inicioMs;
-    const inicios = evento.recurrencia
-      ? iniciosEnRango(evento, desdeMs - MARGEN_MOVIDAS, hastaMs + MARGEN_MOVIDAS)
-      : iniciosEnRango(evento, desdeMs, hastaMs);
+    let inicios: number[];
+    try {
+      inicios = evento.recurrencia
+        ? iniciosEnRango(evento, desdeMs - MARGEN_MOVIDAS, hastaMs + MARGEN_MOVIDAS)
+        : iniciosEnRango(evento, desdeMs, hastaMs);
+    } catch (e) {
+      // Un evento con datos rotos (por ejemplo, de una copia editada a mano) se salta en vez
+      // de dejar sin pintar el calendario entero y todas las pantallas que lo usan
+      console.warn(`Evento ${evento.id} con datos no válidos`, e);
+      continue;
+    }
 
     for (const original of inicios) {
       const clave = claveOcurrencia(evento.id, original);
       const ex = evento.recurrencia ? (porClave.get(clave) ?? null) : null;
       if (ex?.cancelada) continue;
-      const inicioMs = ex?.cambios.inicioMs ?? original;
-      const finMs = ex?.cambios.finMs ?? inicioMs + duracion;
+      const inicioMs = ex?.cambios?.inicioMs ?? original;
+      const finMs = ex?.cambios?.finMs ?? inicioMs + duracion;
       if (!(inicioMs < hastaMs && finMs > desdeMs)) continue;
       resultado.push({
         clave,
@@ -214,10 +222,10 @@ export function expandirOcurrencias(
         inicioMs,
         finMs,
         inicioOriginalMs: original,
-        titulo: ex?.cambios.titulo ?? evento.titulo,
+        titulo: ex?.cambios?.titulo ?? evento.titulo,
         etiquetaId:
-          ex?.cambios.etiquetaId !== undefined ? ex.cambios.etiquetaId : evento.etiquetaId,
-        notas: ex?.cambios.notas ?? evento.notas,
+          ex?.cambios?.etiquetaId !== undefined ? ex.cambios.etiquetaId : evento.etiquetaId,
+        notas: ex?.cambios?.notas ?? evento.notas,
         esRecurrente: !!evento.recurrencia,
         completado: evento.recurrencia ? !!ex?.completado : evento.completado,
         excepcion: ex,

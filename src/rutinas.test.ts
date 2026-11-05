@@ -293,29 +293,76 @@ describe('recordatorios', () => {
     ).toHaveLength(0);
   });
 
+  const deseado = (id: string, fireAt: number, titulo = 'A') => ({
+    id,
+    uid: 'u',
+    tipo: 'inicioBloque' as const,
+    refId: 'x',
+    fireAt,
+    titulo,
+    cuerpo: '',
+    url: '/',
+    enviado: false,
+  });
+  const dentroDeUnaHora = ahora + 3_600_000;
+
   it('calcula la diferencia con los existentes', () => {
-    const deseados = [
-      {
-        id: 'a',
-        uid: 'u',
-        tipo: 'inicioBloque' as const,
-        refId: 'x',
-        fireAt: 1,
-        titulo: 'A',
-        cuerpo: '',
-        url: '/',
-        enviado: false,
-      },
-    ];
     const { crear, borrar } = diferenciaRecordatorios(
       [
-        { id: 'a', fireAt: 1, titulo: 'A', cuerpo: '', tipo: 'inicioBloque' },
-        { id: 'viejo', fireAt: 1, titulo: 'B', cuerpo: '', tipo: 'inicioBloque' },
-        { id: 'timer', fireAt: 1, titulo: 'T', cuerpo: '', tipo: 'faseTemporizador' },
+        { id: 'a', fireAt: dentroDeUnaHora, titulo: 'A', cuerpo: '', tipo: 'inicioBloque' },
+        { id: 'viejo', fireAt: dentroDeUnaHora, titulo: 'B', cuerpo: '', tipo: 'inicioBloque' },
+        { id: 'timer', fireAt: dentroDeUnaHora, titulo: 'T', cuerpo: '', tipo: 'faseTemporizador' },
       ],
-      deseados,
+      [deseado('a', dentroDeUnaHora)],
+      ahora,
     );
     expect(crear).toHaveLength(0);
     expect(borrar).toEqual(['viejo']);
+  });
+
+  it('no toca los avisos que vencen ya o en menos de 2 minutos', () => {
+    const { crear, borrar } = diferenciaRecordatorios(
+      [
+        // Vencido y sin enviar todavía: si se borrara, el push no llegaría
+        { id: 'vencido', fireAt: ahora - 10_000, titulo: 'V', cuerpo: '', tipo: 'inicioBloque' },
+        { id: 'inminente', fireAt: ahora + 60_000, titulo: 'I', cuerpo: '', tipo: 'inicioBloque' },
+      ],
+      [deseado('inminente', ahora + 60_000, 'Cambiado'), deseado('nuevo', ahora + 30_000)],
+      ahora,
+    );
+    expect(borrar).toEqual([]);
+    expect(crear).toEqual([]);
+  });
+
+  it('recorta los títulos largos para que las reglas no rechacen el lote', () => {
+    const lista = generarRecordatorios({
+      uid: 'u',
+      ajustes,
+      ocurrencias: [],
+      tareas: [
+        {
+          id: 't1',
+          titulo: 'x'.repeat(300),
+          etiquetaId: null,
+          prioridad: 'media',
+          fechaLimiteMs: new Date(2026, 2, 12, 12).getTime(),
+          planificacion: { tipo: 'sinFecha' },
+          estimacionMin: null,
+          subtareas: [],
+          notas: '',
+          repeticion: null,
+          completada: false,
+          completadaEnMs: null,
+          orden: 0,
+          creadoEnMs: 0,
+          actualizadoEnMs: 0,
+        },
+      ],
+      rutinas: [],
+      avisos: [],
+      ahoraMs: ahora,
+    });
+    expect(lista.length).toBeGreaterThan(0);
+    for (const r of lista) expect(r.titulo.length).toBeLessThanOrEqual(300);
   });
 });
