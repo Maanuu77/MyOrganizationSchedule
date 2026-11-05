@@ -24,6 +24,18 @@ export const useEsEscritorioGrande = () => useConsultaMedia('(min-width: 1440px)
 export const useEsTactil = () => useConsultaMedia('(pointer: coarse)');
 export const usePrefiereOscuro = () => useConsultaMedia('(prefers-color-scheme: dark)');
 
+/** Si esta pestaña se está viendo (no está en segundo plano ni minimizada). */
+export function useVisible(): boolean {
+  return useSyncExternalStore(
+    (avisar) => {
+      document.addEventListener('visibilitychange', avisar);
+      return () => document.removeEventListener('visibilitychange', avisar);
+    },
+    () => document.visibilityState === 'visible',
+    () => true,
+  );
+}
+
 /** Si el navegador tiene conexión (se actualiza al perderla o recuperarla). */
 export function useEnLinea(): boolean {
   return useSyncExternalStore(

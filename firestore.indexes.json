@@ -15,5 +15,17 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    { "collectionGroup": "events", "fieldPath": "notas", "indexes": [] },
+    { "collectionGroup": "tasks", "fieldPath": "notas", "indexes": [] },
+    { "collectionGroup": "tasks", "fieldPath": "subtareas", "indexes": [] },
+    { "collectionGroup": "sessionLogs", "fieldPath": "nota", "indexes": [] },
+    { "collectionGroup": "reminders", "fieldPath": "cuerpo", "indexes": [] },
+    { "collectionGroup": "timerState", "fieldPath": "fases", "indexes": [] },
+    { "collectionGroup": "timerState", "fieldPath": "tramos", "indexes": [] },
+    { "collectionGroup": "routines", "fieldPath": "pasos", "indexes": [] },
+    { "collectionGroup": "cycleTemplates", "fieldPath": "fases", "indexes": [] },
+    { "collectionGroup": "weekTemplates", "fieldPath": "bloques", "indexes": [] },
+    { "collectionGroup": "routineRuns", "fieldPath": "pasosHechos", "indexes": [] }
+  ]
 }

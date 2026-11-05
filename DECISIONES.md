@@ -32,7 +32,8 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - **Si un cambio no cabe en una excepción** (cambiar el tipo, la regla, el ciclo…), no se ofrece "solo este": solo "este y siguientes" o "todos".
 - **Tareas repetidas**: al completar una, se crea la siguiente con la fecha que toque (como hacen la mayoría de gestores de tareas), en vez de mantener una serie infinita.
 - **Etiquetas borradas**: los bloques, tareas y registros que las usaban conservan el id, pero se muestran "sin etiqueta". Archivar es la opción recomendada.
-- **Los datos se cargan enteros en memoria** (eventos, tareas, rutinas…) para uso personal; los registros de sesión, solo de los últimos 800 días (suficiente para comparar un año con el anterior).
+- **Qué se escucha al abrir la app**: etiquetas, eventos, excepciones, ciclos, rutinas, plantillas y tareas pendientes, enteros (el calendario los necesita para cualquier fecha a la que se navegue). Lo que crece sin parar —registros de sesión, tareas completadas y ejecuciones de rutina— solo de los **últimos 90 días** (`historico.ts`). Con un año de uso, cada apertura lee unos cientos de documentos en vez de varios miles.
+- **Historial bajo demanda**: lo anterior a 90 días se lee una sola vez por sesión cuando una pantalla lo pide. Estadísticas carga desde el 1 de enero del año que se mira (y el periodo anterior, para comparar), y la racha de Hoy, si llega al principio de lo cargado, pide 90 días más hasta encontrar dónde empieza. «Ver completadas» en Tareas solo enseña las de los últimos 90 días, salvo que ya se haya cargado más.
 - **Copia local de Firestore** (`persistentLocalCache`, IndexedDB, compartida entre pestañas): la app abre al instante y funciona sin conexión. Sin red, las escrituras no se esperan (su promesa no se resuelve hasta que vuelve la conexión y los botones se quedaban girando): se aplican en local, se envían solas al volver y, si fallan, se avisa. Se muestra «Sin conexión» mientras dura. Al cerrar sesión se borra la copia local y se recarga la app.
 - **Tareas repetidas mensuales**: guardan el día ancla (`repeticion.diaMes`): la del día 31 pasa al 28 de febrero y vuelve al 31 en marzo. A diferencia de los eventos, que se saltan los meses que no tienen ese día, una tarea se pasa al último día del mes. Las semanales respetan si la semana empieza en lunes o en domingo.
 - **Tareas repetidas**: la siguiente tiene id fijo (`<id de la primera>_<fecha>`), así que completar dos veces no crea dos copias. «Deshacer» la borra si aún no se ha tocado.
@@ -93,7 +94,8 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 ## Notificaciones y recordatorios
 
 - **La app genera los recordatorios** de los próximos **14 días** cada vez que cambian datos o ajustes, y aplica solo las diferencias (ids deterministas → sin duplicados). Se regeneran cada vez que se abre la app, así que si no la abres en más de 14 días dejan de llegar avisos de las recurrencias lejanas.
-- **Resumen diario y avisos de sobrecarga**: se generan con el contenido calculado en el momento de prepararlos (no en el momento de enviarlos). Se actualizan cada vez que cambias algo.
+- **Resumen diario y avisos de sobrecarga**: se generan con el contenido calculado en el momento de prepararlos (no en el momento de enviarlos). Se actualizan cada vez que cambias algo. Llegan entre 0 y 4 minutos después de la hora elegida, siempre lo mismo para cada usuario (sale de su uid): si todos lo piden a las 8:00, la función no tiene que enviar miles de avisos en el mismo minuto.
+- **Recalcular los recordatorios sin leerlos todos**: la app guarda en memoria los pendientes que hay en Firestore y calcula la diferencia contra esa copia (se vuelve a leer cada 30 minutos o si falla una escritura). Solo escribe la pestaña que se está viendo; las de segundo plano solo calculan para los avisos con la app abierta. En el contador, solo se escriben las fases que cambian.
 - **Silencio nocturno**: no se generan recordatorios en esa franja, salvo los del contador (si estás estudiando, quieres saber cuándo parar).
 - **Ajuste por dispositivo**: cada dispositivo puede desactivar tipos concretos; la Cloud Function lo respeta al enviar.
 - **Mensajes "solo datos"**: la función envía datos y es el service worker quien muestra la notificación, para controlar icono, vibración y agrupación. En Android las notificaciones llegan al reloj por el espejo de notificaciones.
@@ -105,6 +107,7 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 - **Si falla el envío**, el aviso vuelve a la cola para la siguiente pasada. `messaging/invalid-argument` ya no anula el token (lo provoca también un mensaje mal formado) y el mensaje no lleva `fcmOptions.link`, que exige una URL absoluta: el service worker usa la `url` de los datos.
 - **Token de push**: se renueva al abrir la app si ha cambiado. Al cerrar sesión se borra y el dispositivo deja de recibir avisos de la cuenta.
 - **Región de las funciones**: `europe-west1`. Se puede cambiar en `functions/src/index.ts`.
+- **Envío en paralelo**: la función atiende hasta 10 usuarios a la vez; los avisos de cada usuario van en orden. Un usuario con un error no deja sin avisos a los demás.
 
 ## Avisos de sobrecarga
 

@@ -50,6 +50,11 @@ export interface EstadoDatos {
   contador: EstadoContador | null;
   /** Si ya ha llegado el estado del contador (hasta entonces `contador` vale null aunque haya sesión). */
   contadorCargado: boolean;
+  /**
+   * Desde cuándo están cargados registros, tareas completadas y ejecuciones (ver historico.ts):
+   * al principio, los últimos 90 días; las pantallas que necesitan más lo amplían.
+   */
+  historicoDesdeMs: number;
   /** Error de permisos u otro problema al escuchar Firestore. */
   errorSincronizacion: string | null;
   poner: (parcial: Partial<EstadoDatos>) => void;
@@ -83,6 +88,8 @@ const vacio = () => ({
   integracionGoogle: null,
   contador: null,
   contadorCargado: false,
+  // Lo fija useSincronizacion al empezar a escuchar
+  historicoDesdeMs: 0,
   errorSincronizacion: null,
 });
 

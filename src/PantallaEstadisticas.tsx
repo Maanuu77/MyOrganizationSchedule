@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { addDays, addMonths, addWeeks, addYears } from 'date-fns';
 import { useDatos } from './almacenDatos';
+import { useHistorico } from './historico';
 import { expandirOcurrencias } from './recurrencia';
 import {
   aCsv,
@@ -147,6 +148,10 @@ export function PantallaEstadisticas() {
     [tipo, referencia, inicioSemana, rango],
   );
   const anterior = useMemo(() => periodoAnterior(periodo), [periodo]);
+  const año = new Date(periodo.desde).getFullYear();
+  // Al abrir la app solo se cargan los últimos 90 días: aquí se carga lo que falte para el
+  // periodo, el anterior (para comparar) y el año entero del mapa de calor
+  useHistorico(Math.min(anterior.desde, new Date(año, 0, 1).getTime()));
   const nombreEtiqueta = useMemo(() => new Map(etiquetas.map((e) => [e.id, e])), [etiquetas]);
 
   const datos = useMemo(() => {
@@ -214,7 +219,6 @@ export function PantallaEstadisticas() {
       progresoObjetivos(etiquetas, registros, inicioDeSemana(new Date(), inicioSemana).getTime()),
     [etiquetas, registros, inicioSemana],
   );
-  const año = new Date(periodo.desde).getFullYear();
   const calor = useMemo(() => mapaCalor(registros, año), [registros, año]);
 
   const mover = (sentido: -1 | 1) => {

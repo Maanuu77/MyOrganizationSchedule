@@ -30,6 +30,13 @@ export const MARGEN_CONGELADO_MS = 2 * MS_MINUTO;
 const MAX_TITULO = 300;
 const MAX_CUERPO = 1000;
 
+/** Retraso fijo de 0 a 4 minutos que sale del uid (siempre el mismo para cada usuario). */
+export function retrasoDe(uid: string): number {
+  let hash = 0;
+  for (const c of uid) hash = (hash * 31 + c.charCodeAt(0)) | 0;
+  return (Math.abs(hash) % 5) * MS_MINUTO;
+}
+
 /** Recorta un texto para que quepa en el límite (con «…» si se corta). */
 export function recortar(texto: string, max: number): string {
   return texto.length <= max ? texto : `${texto.slice(0, max - 1)}…`;
@@ -145,7 +152,9 @@ export function generarRecordatorios(e: Entrada): RecordatorioNuevo[] {
   // Resumen diario y avisos de sobrecarga del día, a la hora elegida
   for (let d = startOfDay(e.ahoraMs); d.getTime() < limite; d = addDays(d, 1)) {
     const clave = claveDia(d);
-    const fireAt = conHora(d, notificaciones.resumenDiarioHora).getTime();
+    // Unos minutos más tarde según el usuario (0–4): si todos lo piden a las 8:00, la Cloud
+    // Function no tiene que enviar miles de avisos en el mismo minuto
+    const fireAt = conHora(d, notificaciones.resumenDiarioHora).getTime() + retrasoDe(e.uid);
     const bloques = e.ocurrencias.filter(
       (o) => claveDia(o.inicioMs) === clave && o.evento.tipo !== 'protegido',
     );

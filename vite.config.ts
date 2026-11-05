@@ -71,14 +71,36 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Separamos librerías grandes para que la primera carga sea más rápida.
-        manualChunks(id: string) {
-          if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
-            return 'firebase';
-          }
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'graficos';
-          }
-          return undefined;
+        // Cada grupo se lleva también las dependencias de sus módulos, así que el orden importa:
+        // el de más prioridad elige primero. React va en su grupo antes que los gráficos: si
+        // no, acababa dentro del trozo de Recharts (~115 KB comprimidos) y ese trozo se
+        // descargaba al abrir cualquier pantalla.
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react',
+              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 40,
+            },
+            // Firebase sin la parte del push, que solo se descarga al activar los avisos
+            // (useNotificaciones la importa bajo demanda). Va antes para quedarse con lo que
+            // comparten (app, util…) y que el trozo del push no se cargue al principio.
+            {
+              name: 'firebase',
+              test: /node_modules[\\/]@?firebase[\\/](?!messaging)/,
+              priority: 30,
+            },
+            {
+              name: 'firebase-mensajeria',
+              test: /node_modules[\\/]@?firebase[\\/]messaging/,
+              priority: 20,
+            },
+            {
+              name: 'graficos',
+              test: /node_modules[\\/](recharts|d3-|victory-vendor)/,
+              priority: 10,
+            },
+          ],
         },
       },
     },
