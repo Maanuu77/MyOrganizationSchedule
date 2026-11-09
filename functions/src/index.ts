@@ -4,6 +4,7 @@
 //   `fireAt` ya ha llegado y que aún no se han enviado, y manda una notificación push (FCM)
 //   a los dispositivos del usuario. Requiere el plan Blaze de Firebase.
 // limpiarRecordatorios: una vez al día borra los recordatorios ya enviados o caducados.
+// borrarDatosDeUsuario: al borrarse una cuenta, borra todo lo que quede de ella en Firestore.
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
@@ -11,6 +12,7 @@ import { getMessaging } from 'firebase-admin/messaging';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
+import * as functionsV1 from 'firebase-functions/v1';
 
 initializeApp();
 setGlobalOptions({ region: 'europe-west1', maxInstances: 1 });
@@ -209,3 +211,16 @@ export const limpiarRecordatorios = onSchedule(
     logger.info(`Recordatorios antiguos borrados: ${borrados}`);
   },
 );
+
+/**
+ * Al borrarse una cuenta, borra en el servidor todo lo que quede bajo users/{uid}. La app ya
+ * lo borra antes de eliminar la cuenta, pero si se corta a medias (sin red, pestaña cerrada)
+ * quedarían datos huérfanos; aquí `recursiveDelete` lo limpia todo, subcolecciones incluidas.
+ */
+export const borrarDatosDeUsuario = functionsV1
+  .region('europe-west1')
+  .auth.user()
+  .onDelete(async (usuario) => {
+    await db.recursiveDelete(db.doc(`users/${usuario.uid}`));
+    logger.info(`Datos borrados del usuario ${usuario.uid}`);
+  });

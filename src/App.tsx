@@ -2,7 +2,7 @@
 // y define las rutas. Cada pantalla se carga bajo demanda (lazy) para que la primera carga sea ligera.
 
 import { Suspense, lazy, type ComponentType } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { firebaseConfigurado } from './firebase';
 import { useDatos } from './almacenDatos';
 import { useSesion, useSincronizacion } from './useSincronizacion';
@@ -13,6 +13,7 @@ import { PantallaErrorCarga } from './PantallaErrorCarga';
 import { PantallaConfiguracionPendiente } from './PantallaConfiguracionPendiente';
 import { CapaGlobal } from './CapaGlobal';
 import { LimiteErrores } from './LimiteErrores';
+import { RUTA_PRIVACIDAD } from './enlaces';
 import type { PantallaInicio } from './tipos';
 
 /** Carga perezosa de un componente exportado con nombre. */
@@ -37,6 +38,7 @@ const PantallaEtiquetas = perezoso(() => import('./PantallaEtiquetas'), 'Pantall
 const PantallaAvisos = perezoso(() => import('./PantallaAvisos'), 'PantallaAvisos');
 const PantallaAjustes = perezoso(() => import('./PantallaAjustes'), 'PantallaAjustes');
 const PantallaPlantilla = perezoso(() => import('./PantallaPlantilla'), 'PantallaPlantilla');
+const PantallaPrivacidad = perezoso(() => import('./PantallaPrivacidad'), 'PantallaPrivacidad');
 
 const RUTA_INICIO: Record<PantallaInicio, string> = {
   hoy: '/hoy',
@@ -48,6 +50,14 @@ const RUTA_INICIO: Record<PantallaInicio, string> = {
 };
 
 export function App() {
+  const { pathname } = useLocation();
+  // La política de privacidad es pública: se ve sin iniciar sesión (la piden el RGPD y Google)
+  if (pathname === RUTA_PRIVACIDAD)
+    return (
+      <Suspense fallback={<PantallaCarga />}>
+        <PantallaPrivacidad />
+      </Suspense>
+    );
   if (!firebaseConfigurado) return <PantallaConfiguracionPendiente />;
   return <AppConFirebase />;
 }

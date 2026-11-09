@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { CalendarDays, ChartColumn, Lock, Timer } from 'lucide-react';
+import { RUTA_PRIVACIDAD, URL_REPOSITORIO } from './enlaces';
 import { Logo } from './Logo';
 import { Boton } from './Boton';
 import { entrarConGoogle } from './useSincronizacion';
@@ -119,6 +120,19 @@ export function PantallaAcceso() {
         <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-texto-tenue">
           <Lock size={12} aria-hidden /> {t.acceso.privacidad}
         </p>
+        <nav className="mt-3 flex justify-center gap-4 text-xs font-semibold text-texto-suave">
+          <a href={RUTA_PRIVACIDAD} className="hover:text-acento hover:underline">
+            {t.legal.privacidad}
+          </a>
+          <a
+            href={URL_REPOSITORIO}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-acento hover:underline"
+          >
+            {t.legal.codigo}
+          </a>
+        </nav>
       </motion.div>
     </main>
   );
