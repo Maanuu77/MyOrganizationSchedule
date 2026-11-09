@@ -18,7 +18,9 @@ import {
   Download,
   CalendarDays,
   House,
+  LifeBuoy,
 } from 'lucide-react';
+import { RUTA_PRIVACIDAD, URL_PROBLEMAS, URL_REPOSITORIO } from './enlaces';
 import { deleteDoc, setDoc } from 'firebase/firestore';
 import { GoogleAuthProvider, deleteUser, reauthenticateWithPopup } from 'firebase/auth';
 import { useDatos } from './almacenDatos';
@@ -656,6 +658,31 @@ export function PantallaAjustes() {
           <p className="text-xs text-texto-tenue">
             {usuario?.email} · {t.ajustes.version} {__VERSION_APP__}
           </p>
+        </Seccion>
+
+        <Seccion titulo={t.legal.ayuda} icono={<LifeBuoy size={18} />}>
+          <p className="text-sm text-texto-suave">{t.legal.ayudaTexto}</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
+            <a
+              href={URL_PROBLEMAS}
+              target="_blank"
+              rel="noreferrer"
+              className="text-acento hover:underline"
+            >
+              {t.legal.problema}
+            </a>
+            <a href={RUTA_PRIVACIDAD} className="text-acento hover:underline">
+              {t.legal.privacidad}
+            </a>
+            <a
+              href={URL_REPOSITORIO}
+              target="_blank"
+              rel="noreferrer"
+              className="text-acento hover:underline"
+            >
+              {t.legal.codigo}
+            </a>
+          </div>
         </Seccion>
       </div>
     </div>

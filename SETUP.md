@@ -153,6 +153,16 @@ La API key de Firebase es pública: cualquiera puede leerla en la web y usarla d
 
 Con los emuladores App Check no se activa, aunque la clave esté en el `.env`.
 
+## 12. Antes de abrir la app al público
+
+Lo que no se puede hacer desde el código:
+
+1. **Política de privacidad** (`/privacidad`): en GitHub → **Settings → Secrets and variables → Actions → Variables**, crea `VITE_RESPONSABLE_NOMBRE` (quién responde de los datos) y `VITE_CONTACTO_EMAIL` (un correo de contacto). Ponlas también en tu `.env`. Sin ellas, la política remite al repositorio de GitHub. Si la app va a tener usuarios de verdad, conviene que alguien con conocimientos legales revise el texto (`t.legal` en `src/textos.ts`).
+2. **Dominio propio** (opcional, recomendado): consola de Firebase → **Hosting → Añadir dominio personalizado**, y sigue los pasos de DNS. Añádelo después en **Authentication → Configuración → Dominios autorizados**.
+3. **Verificación de Google para Calendar**: Google Cloud → **Google Auth Platform → Verificación**. Necesitas la página de inicio pública (la pantalla de acceso, en `/`), la política de privacidad (`/privacidad`) en el mismo dominio, el dominio verificado en Search Console y un vídeo en YouTube (oculto) que enseñe el inicio de sesión y para qué se usa cada permiso. Tarda hasta unos 10 días. Mientras tanto, la app funciona sin Google Calendar para quien no esté en la lista de usuarios de prueba.
+4. **Política de seguridad de contenidos (CSP)**: `firebase.json` la envía en modo informe (`Content-Security-Policy-Report-Only`), que no bloquea nada. Tras desplegar, abre la app con la consola del navegador abierta, entra, usa el calendario, el contador, los avisos y Google Calendar, y comprueba que no salen avisos de CSP. Si no salen, cambia la clave a `Content-Security-Policy`, añade `frame-ancestors 'none'` al final de esa política y borra la otra cabecera `Content-Security-Policy` (la que solo lleva `frame-ancestors`). Si cambias los scripts en línea de `index.html`, recalcula sus hashes.
+5. **App Check y presupuesto**: apartado 11.
+
 ## Probar en local con emuladores
 
 Sin tocar tus datos reales puedes probar todo con los emuladores de Firebase (necesitas Java 11+). Crea `.env.emuladores.local` (no se sube a git):

@@ -147,6 +147,12 @@ Decisiones tomadas durante el desarrollo cuando la especificación no las defin�
 
 ## Seguridad y privacidad
 
+- **Publicación**: la política de privacidad (`/privacidad`) es pública y no necesita sesión; el responsable y el correo salen del `.env` para no publicar datos personales sin decidirlo. La pantalla de acceso enlaza a ella y al código, y Ajustes tiene un apartado de ayuda que lleva a las issues de GitHub.
+- **Cabeceras**: `X-Frame-Options`, `frame-ancestors`, `Permissions-Policy` y `Cross-Origin-Opener-Policy` (compatible con la ventana de inicio de sesión de Google) se aplican ya; la CSP completa va en modo informe hasta comprobarla en producción (SETUP, apartado 12). `index.html` y el manifiesto no se cachean.
+- **Versión nueva con una pestaña abierta**: si falta un archivo de la versión anterior al entrar en una pantalla, la app se recarga sola una vez (`vite:preloadError`).
+- **Borrar la cuenta**: la app borra los ajustes los últimos; además, la función `borrarDatosDeUsuario` borra en el servidor todo lo que quede al eliminarse la cuenta.
+- **Despliegue**: las acciones de GitHub van fijadas por SHA, el secreto de la cuenta de servicio se pasa por variable de entorno y las reglas se despliegan antes que la web.
+
 - Reglas estrictas por colección con `hasOnly`, tipos y tamaños máximos; todo lo no listado está prohibido. Probadas con el emulador.
 - **También los mapas internos** (recurrencia y su fin, cambios de una ocurrencia, planificación, repetición, origen de Google, ajustes, avisos de rutina) admiten solo sus campos y tipos. Las reglas no pueden recorrer los elementos de una lista, así que las listas solo tienen tamaño máximo; la importación descarta además los eventos con una recurrencia inutilizable y el calendario se salta un evento con datos rotos en vez de fallar entero.
 - **App Check** (opcional, recomendado al publicar): con `VITE_APPCHECK_SITE_KEY` en el `.env`, Firestore solo acepta peticiones de la web y no de un script con la API key, que es pública. Pasos en SETUP.md.

@@ -493,7 +493,14 @@ export async function importarTodo(copia: CopiaSeguridad): Promise<number> {
 
 /** Borra todos los documentos del usuario (antes de borrar la cuenta). */
 export async function borrarTodosLosDatos(uid: string): Promise<void> {
-  for (const nombre of COLECCIONES_USUARIO) {
+  // Los ajustes, los últimos: si se borraran antes, la app saltaría a la bienvenida mientras
+  // sigue borrando y podría volver a crear documentos. Si algo queda a medias, la Cloud
+  // Function borrarDatosDeUsuario lo limpia al borrarse la cuenta (con el plan Blaze).
+  const orden = [
+    ...COLECCIONES_USUARIO.filter((n) => n !== COLECCIONES.ajustes),
+    COLECCIONES.ajustes,
+  ];
+  for (const nombre of orden) {
     const snap = await getDocs(refColeccion(nombre, uid));
     await enLotes(snap.docs, (lote, d) => lote.delete(d.ref));
   }

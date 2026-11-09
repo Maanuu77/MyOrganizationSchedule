@@ -108,6 +108,76 @@ export const t = {
     privacidad: 'Tus datos son solo tuyos: nadie más puede leerlos.',
   },
 
+  legal: {
+    privacidad: 'Política de privacidad',
+    codigo: 'Código fuente',
+    problema: 'Informar de un problema',
+    ayuda: 'Ayuda y contacto',
+    ayudaTexto:
+      '¿Algo no funciona o echas algo en falta? Cuéntalo en GitHub: cada aviso se convierte en una tarea del proyecto.',
+    version: (v: string) => `Versión ${v}`,
+    volver: 'Volver',
+    actualizada: 'Última actualización: 9 de noviembre de 2026',
+    responsablePorDefecto: 'el autor de MyOrganizationSchedule',
+    /** Política de privacidad: secciones con su título y sus párrafos. */
+    secciones: (responsable: string, contacto: string) => [
+      {
+        titulo: 'Quién es el responsable',
+        parrafos: [
+          `El responsable de tus datos es ${responsable}. Para cualquier cuestión sobre ellos puedes escribir a ${contacto}.`,
+        ],
+      },
+      {
+        titulo: 'Qué datos se guardan',
+        parrafos: [
+          'De tu cuenta de Google: el correo, el nombre y la foto de perfil, para identificarte.',
+          'Lo que tú creas en la app: etiquetas, bloques del calendario, tareas, rutinas, ciclos, plantillas, sesiones de foco con sus notas y valoraciones, y tus ajustes.',
+          'De cada dispositivo en que activas los avisos: un nombre como «Chrome en Windows» y el identificador para enviarle notificaciones.',
+          'Si conectas Google Calendar: los calendarios que eliges. El permiso de acceso de Google se guarda solo en la memoria del navegador y caduca a la hora.',
+        ],
+      },
+      {
+        titulo: 'Para qué se usan',
+        parrafos: [
+          'Solo para que la app funcione: guardar tu planificación, sincronizarla entre tus dispositivos, calcular tus estadísticas y enviarte los avisos que hayas activado.',
+          'No hay publicidad, no se venden ni se ceden tus datos y no se usa analítica de terceros.',
+        ],
+      },
+      {
+        titulo: 'Base legal',
+        parrafos: [
+          'Prestarte el servicio que pides al crear la cuenta (artículo 6.1.b del RGPD). Las notificaciones y Google Calendar solo se activan si tú lo eliges, y puedes desactivarlos cuando quieras.',
+        ],
+      },
+      {
+        titulo: 'Dónde se guardan',
+        parrafos: [
+          'En Firebase, de Google, que actúa como encargado del tratamiento. Las funciones que envían los avisos se ejecutan en Europa (Bélgica). Google aplica las cláusulas contractuales tipo de la Comisión Europea a cualquier transferencia fuera del Espacio Económico Europeo.',
+          'En tu dispositivo se guarda una copia de tus datos para que la app funcione sin conexión. Se borra al cerrar sesión.',
+        ],
+      },
+      {
+        titulo: 'Cuánto tiempo',
+        parrafos: [
+          'Mientras tengas la cuenta. Si la borras (Ajustes → Borrar cuenta), se borran todos tus datos. Los avisos ya enviados se borran solos a los dos días.',
+        ],
+      },
+      {
+        titulo: 'Tus derechos',
+        parrafos: [
+          'Puedes descargar todos tus datos (Ajustes → Exportar), corregirlos desde la propia app y borrar la cuenta con todo su contenido.',
+          `Para ejercer cualquier otro derecho (acceso, rectificación, supresión, oposición, limitación o portabilidad) escribe a ${contacto}. Si crees que no se han respetado, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).`,
+        ],
+      },
+      {
+        titulo: 'Cookies y almacenamiento local',
+        parrafos: [
+          'La app no usa cookies de publicidad ni de seguimiento. Solo guarda en tu navegador preferencias técnicas (tema, vista del calendario, identificador del dispositivo) y la copia de tus datos para trabajar sin conexión.',
+        ],
+      },
+    ],
+  },
+
   bienvenida: {
     paso: (n: number, total: number) => `Paso ${n} de ${total}`,
     etiquetasTitulo: 'Crea tus primeras etiquetas',
